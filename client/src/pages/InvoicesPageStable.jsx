@@ -1,0 +1,492 @@
+import { useMemo, useState } from "react";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
+import {
+  Box,
+  Button,
+  Chip,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import toast from "react-hot-toast";
+import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
+import DataSection from "../components/DataSection";
+import Dialog from "../components/DraggableDialog";
+import DialogFooterActions from "../components/DialogFooterActions";
+import { FormGrid, FormGridFull } from "../components/FormGrid";
+import GridRowActions from "../components/GridRowActions";
+import PageHeader from "../components/PageHeader";
+import ResponsiveTable from "../components/ResponsiveTable";
+import { useFetch } from "../hooks/useFetch";
+import { useMobileDetection } from "../hooks/useMobileDetection";
+import api from "../lib/api";
+import { formatCurrencyEUR } from "../lib/currency";
+import { printInvoice } from "../lib/printDocuments";
+
+const statusOptions = [
+  { value: "draft", label: "Чернова" },
+  { value: "issued", label: "Издадена" },
+  { value: "paid", label: "Платена" },
+  { value: "cancelled", label: "Анулирана" }
+];
+
+const paymentMethods = ["Брой", "Банков превод", "Карта", "Наложен платеж"];
+
+const denseInvoiceFieldSx = {
+  "& .MuiInputLabel-root": {
+    fontSize: 12,
+    transform: "translate(10px, 7px) scale(1)"
+  },
+  "& .MuiInputLabel-shrink": {
+    transform: "translate(10px, -8px) scale(0.72)"
+  },
+  "& .MuiOutlinedInput-root": {
+    minHeight: 34
+  },
+  "& .MuiInputBase-input": {
+    py: 0.55,
+    px: 1,
+    fontSize: 13
+  }
+};
+
+const defaultSupplier = {
+  name: "MARK LIGHT LTD",
+  address: "Габрово, ул. Пенчо Постомпиров 35",
+  idNumber: "200288095",
+  vatNumber: "",
+  manager: "инж. Антон Марков",
+  bank: "",
+  iban: ""
+};
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function blankItem() {
+  return {
+    description: "",
+    unit: "бр.",
+    quantity: "1",
+    unitPrice: "",
+    vatRate: "20"
+  };
+}
+
+function blankInvoice() {
+  return {
+    invoiceNumber: "Генерира се автоматично",
+    issueDate: today(),
+    taxEventDate: today(),
+    supplier: { ...defaultSupplier },
+    customerName: "",
+    customerAddress: "",
+    customerIdNumber: "",
+    customerVatNumber: "",
+    store: "",
+    paymentMethod: "Банков превод",
+    status: "issued",
+    notes: "",
+    items: [blankItem()]
+  };
+}
+
+function toInputDate(value) {
+  if (!value) return today();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return today();
+  return date.toISOString().slice(0, 10);
+}
+
+function numberValue(value) {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function calculateTotals(items) {
+  return items.reduce(
+    (totals, item) => {
+      const lineBase = numberValue(item.quantity) * numberValue(item.unitPrice);
+      const lineVat = lineBase * (numberValue(item.vatRate) / 100);
+      return {
+        subtotal: totals.subtotal + lineBase,
+        vatAmount: totals.vatAmount + lineVat,
+        totalAmount: totals.totalAmount + lineBase + lineVat
+      };
+    },
+    { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+  );
+}
+
+function validateInvoice(invoice) {
+  if (!invoice?.customerName?.trim()) return "Името на получателя е задължително.";
+  if (!invoice?.customerAddress?.trim()) return "Адресът на получателя е задължителен.";
+  if (!invoice?.customerIdNumber?.trim() && !invoice?.customerVatNumber?.trim()) {
+    return "Попълни ЕИК/ЕГН или ДДС номер на получателя.";
+  }
+  if (!invoice?.issueDate) return "Датата на издаване е задължителна.";
+  if (!invoice?.items?.length) return "Добави поне един ред във фактурата.";
+
+  for (const [index, item] of invoice.items.entries()) {
+    const row = index + 1;
+    if (!item.description.trim()) return `Описание на ред ${row} е задължително.`;
+    if (numberValue(item.quantity) <= 0) return `Количеството на ред ${row} трябва да е по-голямо от 0.`;
+    if (numberValue(item.unitPrice) < 0) return `Единичната цена на ред ${row} не може да е отрицателна.`;
+    if (numberValue(item.vatRate) < 0) return `ДДС ставката на ред ${row} не може да е отрицателна.`;
+  }
+
+  return "";
+}
+
+function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
+  const totals = calculateTotals(invoice.items);
+  const payload = {
+    supplier: {
+      name: invoice.supplier?.name?.trim() || defaultSupplier.name,
+      address: invoice.supplier?.address?.trim() || undefined,
+      idNumber: invoice.supplier?.idNumber?.trim() || undefined,
+      vatNumber: invoice.supplier?.vatNumber?.trim() || undefined,
+      manager: invoice.supplier?.manager?.trim() || undefined,
+      bank: invoice.supplier?.bank?.trim() || undefined,
+      iban: invoice.supplier?.iban?.trim() || undefined
+    },
+    customerName: invoice.customerName.trim(),
+    customerAddress: invoice.customerAddress.trim(),
+    customerIdNumber: invoice.customerIdNumber.trim() || undefined,
+    customerVatNumber: invoice.customerVatNumber.trim() || undefined,
+    store: invoice.store || undefined,
+    issueDate: invoice.issueDate,
+    taxEventDate: invoice.taxEventDate || invoice.issueDate,
+    paymentMethod: invoice.paymentMethod || undefined,
+    status: invoice.status,
+    notes: invoice.notes.trim() || undefined,
+    items: invoice.items.map((item) => ({
+      description: item.description.trim(),
+      unit: item.unit.trim() || "бр.",
+      quantity: numberValue(item.quantity),
+      unitPrice: numberValue(item.unitPrice),
+      vatRate: numberValue(item.vatRate)
+    })),
+    ...totals
+  };
+
+  if (includeInvoiceNumber) {
+    payload.invoiceNumber = invoice.invoiceNumber.trim();
+  }
+
+  return payload;
+}
+
+function StatusChip({ value }) {
+  const color = value === "paid" ? "success" : value === "cancelled" ? "error" : value === "draft" ? "warning" : "default";
+  const label = statusOptions.find((item) => item.value === value)?.label || value || "-";
+  return <Chip label={label} size="small" color={color} />;
+}
+
+function TotalsPreview({ totals }) {
+  return (
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      spacing={1.5}
+      sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
+    >
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary">Данъчна основа</Typography>
+        <Typography fontWeight={800}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary">ДДС</Typography>
+        <Typography fontWeight={800}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary">Общо за плащане</Typography>
+        <Typography fontWeight={900}>{formatCurrencyEUR(totals.totalAmount)}</Typography>
+      </Box>
+    </Stack>
+  );
+}
+
+function InvoiceForm({ invoice, setInvoice, stores }) {
+  const totals = useMemo(() => calculateTotals(invoice.items), [invoice.items]);
+
+  function updateField(key, value) {
+    setInvoice((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateSupplier(key, value) {
+    setInvoice((current) => ({
+      ...current,
+      supplier: {
+        ...defaultSupplier,
+        ...current.supplier,
+        [key]: value
+      }
+    }));
+  }
+
+  function updateItem(index, key, value) {
+    setInvoice((current) => ({
+      ...current,
+      items: current.items.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item))
+    }));
+  }
+
+  function addItem() {
+    setInvoice((current) => ({ ...current, items: [...current.items, blankItem()] }));
+  }
+
+  function removeItem(index) {
+    setInvoice((current) => ({
+      ...current,
+      items: current.items.length === 1 ? current.items : current.items.filter((_, itemIndex) => itemIndex !== index)
+    }));
+  }
+
+  return (
+    <Stack spacing={2.5}>
+      <Stack spacing={1}>
+        <Typography variant="subtitle1" fontWeight={800}>Документ</Typography>
+        <FormGrid min={220}>
+          <TextField label="Номер на фактура" value={invoice.invoiceNumber} disabled={invoice.invoiceNumber === "Генерира се автоматично"} onChange={(e) => updateField("invoiceNumber", e.target.value)} />
+          <TextField label="Дата на издаване" type="date" value={invoice.issueDate} onChange={(e) => updateField("issueDate", e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField label="Дата на данъчно събитие" type="date" value={invoice.taxEventDate} onChange={(e) => updateField("taxEventDate", e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField select label="Магазин/обект" value={invoice.store} onChange={(e) => updateField("store", e.target.value)}>
+            <MenuItem value="">Централа</MenuItem>
+            {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name} | {store.city}</MenuItem>)}
+          </TextField>
+        </FormGrid>
+      </Stack>
+
+      <Divider />
+
+      <Stack spacing={1}>
+        <Typography variant="subtitle1" fontWeight={800}>Доставчик</Typography>
+        <FormGrid min={240}>
+          <TextField label="Фирма" value={invoice.supplier?.name || ""} onChange={(e) => updateSupplier("name", e.target.value)} />
+          <TextField label="ЕИК" value={invoice.supplier?.idNumber || ""} onChange={(e) => updateSupplier("idNumber", e.target.value)} />
+          <TextField label="ДДС номер" value={invoice.supplier?.vatNumber || ""} onChange={(e) => updateSupplier("vatNumber", e.target.value)} placeholder="BG..." />
+          <TextField label="МОЛ" value={invoice.supplier?.manager || ""} onChange={(e) => updateSupplier("manager", e.target.value)} />
+          <TextField label="Адрес" value={invoice.supplier?.address || ""} onChange={(e) => updateSupplier("address", e.target.value)} />
+          <TextField label="Банка" value={invoice.supplier?.bank || ""} onChange={(e) => updateSupplier("bank", e.target.value)} />
+          <TextField label="IBAN" value={invoice.supplier?.iban || ""} onChange={(e) => updateSupplier("iban", e.target.value)} sx={{ gridColumn: { md: "span 2" } }} />
+        </FormGrid>
+      </Stack>
+
+      <Divider />
+
+      <Stack spacing={1}>
+        <Typography variant="subtitle1" fontWeight={800}>Получател</Typography>
+        <FormGrid min={240}>
+          <TextField label="Име / фирма" value={invoice.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
+          <TextField label="ЕИК / ЕГН" value={invoice.customerIdNumber} onChange={(e) => updateField("customerIdNumber", e.target.value)} />
+          <TextField label="ДДС номер" value={invoice.customerVatNumber} onChange={(e) => updateField("customerVatNumber", e.target.value)} placeholder="BG..." />
+          <TextField label="Адрес" value={invoice.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} />
+        </FormGrid>
+      </Stack>
+
+      <Divider />
+
+      <Stack spacing={1.5}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+          <Typography variant="subtitle1" fontWeight={800}>Редове във фактурата</Typography>
+          <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={addItem}>Ред</Button>
+        </Stack>
+
+        {invoice.items.map((item, index) => (
+          <Box
+            key={index}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "48px minmax(220px, 2fr) 74px 92px 130px 76px 36px" },
+              gap: 0.75,
+              alignItems: "center",
+              p: 0.5,
+              borderRadius: 1.25,
+              border: "1px solid rgba(39,86,107,0.12)"
+            }}
+          >
+            <Typography variant="caption" fontWeight={800} color="text.secondary">
+              {index + 1}
+            </Typography>
+            <TextField size="small" label="Описание" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} sx={denseInvoiceFieldSx} />
+            <TextField size="small" label="Мярка" value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} sx={denseInvoiceFieldSx} />
+            <TextField size="small" label="Кол." type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} sx={denseInvoiceFieldSx} />
+            <TextField size="small" label="Цена без ДДС" type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", e.target.value)} sx={denseInvoiceFieldSx} />
+            <TextField size="small" label="ДДС %" type="number" value={item.vatRate} onChange={(e) => updateItem(index, "vatRate", e.target.value)} sx={denseInvoiceFieldSx} />
+            <IconButton size="small" onClick={() => removeItem(index)} disabled={invoice.items.length === 1} aria-label="Премахни ред">
+              <DeleteRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ))}
+      </Stack>
+
+      <TotalsPreview totals={totals} />
+
+      <Divider />
+
+      <FormGrid min={220}>
+        <TextField select label="Начин на плащане" value={invoice.paymentMethod} onChange={(e) => updateField("paymentMethod", e.target.value)}>
+          {paymentMethods.map((method) => <MenuItem key={method} value={method}>{method}</MenuItem>)}
+        </TextField>
+        <TextField select label="Статус" value={invoice.status} onChange={(e) => updateField("status", e.target.value)}>
+          {statusOptions.map((status) => <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>)}
+        </TextField>
+        <FormGridFull>
+          <TextField label="Бележки / основание" value={invoice.notes} onChange={(e) => updateField("notes", e.target.value)} multiline minRows={2} />
+        </FormGridFull>
+      </FormGrid>
+    </Stack>
+  );
+}
+
+export default function InvoicesPageStable() {
+  const { data: invoices, loading, setData } = useFetch("/invoices");
+  const { data: stores } = useFetch("/stores");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(() => blankInvoice());
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [deletingInvoice, setDeletingInvoice] = useState(null);
+  const isMobile = useMobileDetection();
+
+  async function handleCreate() {
+    const validationMessage = validateInvoice(form);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+
+    try {
+      const response = await api.post("/invoices", buildPayload(form));
+      setData((current) => [response.data, ...current]);
+      setForm(blankInvoice());
+      setOpen(false);
+      toast.success("Фактурата е създадена.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно създаване на фактура.");
+    }
+  }
+
+  function openEditDialog(invoice) {
+    setEditingInvoice({
+      _id: invoice._id,
+      invoiceNumber: invoice.invoiceNumber || "",
+      issueDate: toInputDate(invoice.issueDate),
+      taxEventDate: toInputDate(invoice.taxEventDate || invoice.issueDate),
+      supplier: { ...defaultSupplier, ...(invoice.supplier || {}) },
+      customerName: invoice.customerName || "",
+      customerAddress: invoice.customerAddress || "",
+      customerIdNumber: invoice.customerIdNumber || "",
+      customerVatNumber: invoice.customerVatNumber || "",
+      store: invoice.store?._id || "",
+      paymentMethod: invoice.paymentMethod || "Банков превод",
+      status: invoice.status || "issued",
+      notes: invoice.notes || "",
+      items: invoice.items?.length
+        ? invoice.items.map((item) => ({
+            description: item.description || "",
+            unit: item.unit || "бр.",
+            quantity: String(item.quantity ?? 1),
+            unitPrice: String(item.unitPrice ?? ""),
+            vatRate: String(item.vatRate ?? 20)
+          }))
+        : [blankItem()]
+    });
+  }
+
+  async function handleUpdate() {
+    if (!editingInvoice?._id) return;
+
+    const validationMessage = validateInvoice(editingInvoice);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+
+    try {
+      const response = await api.put(`/invoices/${editingInvoice._id}`, buildPayload(editingInvoice, { includeInvoiceNumber: true }));
+      setData((current) => current.map((item) => (item._id === editingInvoice._id ? response.data : item)));
+      setEditingInvoice(null);
+      toast.success("Фактурата е обновена.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешна редакция на фактура.");
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingInvoice?._id) return;
+
+    try {
+      await api.delete(`/invoices/${deletingInvoice._id}`);
+      setData((current) => current.filter((item) => item._id !== deletingInvoice._id));
+      setDeletingInvoice(null);
+      toast.success("Фактурата е изтрита.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно изтриване на фактура.");
+    }
+  }
+
+  return (
+    <Stack spacing={3}>
+      <PageHeader eyebrow="Фактуриране" title="Фактури" subtitle="Регистър и форма с основните реквизити за издаване на фактура." icon={<DescriptionRoundedIcon />} />
+
+      <DataSection title="Регистър на фактурите" subtitle="Издадени документи, статуси и суми" icon={<DescriptionRoundedIcon />} actions={<Button variant="contained" startIcon={<NoteAddRoundedIcon />} onClick={() => setOpen(true)}>Нова фактура</Button>}>
+        <ResponsiveTable>
+          <DataGrid
+            autoHeight
+            rowHeight={44}
+            columnHeaderHeight={44}
+            loading={loading}
+            rows={invoices}
+            getRowId={(row) => row._id}
+            columns={[
+              { field: "invoiceNumber", headerName: "Фактура", flex: 0.9, minWidth: 135 },
+              { field: "issueDate", headerName: "Дата", flex: 0.75, minWidth: 115, valueFormatter: (params) => toInputDate(params?.value ?? params) },
+              { field: "customerName", headerName: "Получател", flex: 1.35, minWidth: 180 },
+              { field: "customerIdNumber", headerName: "ЕИК/ДДС", flex: 0.9, minWidth: 130, valueGetter: (_, row) => row.customerVatNumber || row.customerIdNumber || "-" },
+              { field: "store", headerName: "Обект", flex: 0.9, minWidth: 130, valueGetter: (_, row) => row.store?.name || "Централа" },
+              { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <StatusChip value={params?.value} /> },
+              { field: "vatAmount", headerName: "ДДС", flex: 0.75, minWidth: 105, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              { field: "totalAmount", headerName: "Общо", flex: 0.85, minWidth: 115, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printInvoice(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
+            ]}
+            disableRowSelectionOnClick
+          />
+        </ResponsiveTable>
+      </DataSection>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
+        <DialogTitle>Нова фактура</DialogTitle>
+        <DialogContent dividers>
+          <InvoiceForm invoice={form} setInvoice={setForm} stores={stores} />
+        </DialogContent>
+        <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
+      </Dialog>
+
+      <Dialog open={Boolean(editingInvoice)} onClose={() => setEditingInvoice(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
+        <DialogTitle>Редактиране на фактура</DialogTitle>
+        <DialogContent dividers>
+          {editingInvoice ? <InvoiceForm invoice={editingInvoice} setInvoice={setEditingInvoice} stores={stores} /> : null}
+        </DialogContent>
+        <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingInvoice(null)} onConfirm={handleUpdate} />
+      </Dialog>
+
+      <ConfirmDeleteDialog
+        open={Boolean(deletingInvoice)}
+        title="Изтриване на фактура"
+        description={`Сигурен ли си, че искаш да изтриеш ${deletingInvoice?.invoiceNumber || "тази фактура"}?`}
+        onClose={() => setDeletingInvoice(null)}
+        onConfirm={handleDelete}
+      />
+    </Stack>
+  );
+}

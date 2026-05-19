@@ -1,0 +1,9 @@
+node_modules
+dist
+client/.vite-runtime
+.env
+.DS_Store
+npm-debug.log*
+*.log
+coverage
+server/uploads

@@ -1,0 +1,23 @@
+{
+  "name": "MARKLIGHT Lighting Trade",
+  "short_name": "MARKLIGHT",
+  "description": "Store management system for MARKLIGHT lighting trade operations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f3eb",
+  "theme_color": "#0b1f33",
+  "icons": [
+    {
+      "src": "/MARKLIGHT.png",
+      "sizes": "768x768",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/MARKLIGHT.png",
+      "sizes": "768x768",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
