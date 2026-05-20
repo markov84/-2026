@@ -27,7 +27,6 @@ import {
 import toast from "react-hot-toast";
 import ConfirmDeleteDialogStable from "../components/ConfirmDeleteDialogStable";
 import DataSection from "../components/DataSection";
-import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
