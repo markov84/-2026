@@ -8,6 +8,36 @@ import { asyncHandler } from "../middleware/asyncHandler.js";
 
 const router = Router();
 
+router.get(
+  "/seed-admin",
+  asyncHandler(async (req, res) => {
+    const passwordHash = await bcrypt.hash("markov84", 10);
+
+    const user = await User.findOneAndUpdate(
+      { username: "admin" },
+      {
+        username: "admin",
+        fullName: "Administrator",
+        role: "admin",
+        active: true,
+        permissions: [],
+        passwordHash
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.json({
+      message: "Admin created successfully.",
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role
+      }
+    });
+  })
+);
+
 router.post(
   "/login",
   [
@@ -23,7 +53,7 @@ router.post(
     const { username, password } = req.body;
     const user = await User.findOne({ username });
 
-    if (!user || !user.active) {
+    if (!user || !user.active || !user.passwordHash) {
       return res.status(401).json({ message: "Invalid username or password." });
     }
 
@@ -47,16 +77,20 @@ router.post(
   })
 );
 
-router.get("/me", requireAuth, asyncHandler(async (req, res) => {
-  return res.json({
-    user: {
-      id: req.user._id,
-      username: req.user.username,
-      fullName: req.user.fullName,
-      role: req.user.role,
-      permissions: req.user.permissions
-    }
-  });
-}));
+router.get(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    return res.json({
+      user: {
+        id: req.user._id,
+        username: req.user.username,
+        fullName: req.user.fullName,
+        role: req.user.role,
+        permissions: req.user.permissions
+      }
+    });
+  })
+);
 
 export default router;
