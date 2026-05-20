@@ -5,11 +5,13 @@ import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+import {
   Avatar,
   Autocomplete,
   Box,
   Button,
   Chip,
+  Dialog,
   DialogContent,
   DialogTitle,
   Divider,
@@ -21,7 +23,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+ import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialogStable from "../components/ConfirmDeleteDialogStable";
 import DataSection from "../components/DataSection";
