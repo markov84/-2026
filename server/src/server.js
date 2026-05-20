@@ -1,4 +1,4 @@
-import cors from "cors";
+ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -23,6 +23,23 @@ function isPrivateIpv4(hostname) {
   return false;
 }
 
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      env.clientUrl,
+      "https://2026-client.vercel.app",
+      "https://2026-client-buaswr5x6-injmarkov84-8197s-projects.vercel.app",
+      "https://2026-client-git-main-injmarkov84-8197s-projects.vercel.app",
+      "http://localhost:4173",
+      "http://127.0.0.1:4173",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ].filter(Boolean)
+  )
+);
+
 function isAllowedOrigin(origin) {
   if (!origin) return true;
 
@@ -32,31 +49,22 @@ function isAllowedOrigin(origin) {
 
     if (allowedOrigins.includes(origin)) return true;
     if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    if (hostname.endsWith(".vercel.app")) return true;
     if (isPrivateIpv4(hostname)) return true;
+
     return false;
   } catch {
     return false;
   }
 }
 
-const allowedOrigins = Array.from(
-  new Set([
-    env.clientUrl,
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-  ])
-);
-
 const corsOptions = {
   origin(origin, callback) {
     if (isAllowedOrigin(origin)) {
-      callback(null, true);
-      return;
+      return callback(null, true);
     }
 
-    callback(new Error(`CORS blocked for origin: ${origin}`));
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true
 };
@@ -70,6 +78,7 @@ app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
+
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
