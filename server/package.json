@@ -1,5 +1,5 @@
 {
-  "name": "MARK LIGHT LTD",
+  "name": "mark-light-ltd-server",
   "version": "1.0.0",
   "type": "module",
   "main": "src/server.js",
