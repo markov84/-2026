@@ -1,4 +1,4 @@
-﻿import React from "react";
+ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { BrowserRouter } from "react-router-dom";
@@ -10,8 +10,12 @@ import "./styles.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map((registration) => registration.unregister()));
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (error) {
+      console.warn("Service worker unregister failed:", error);
+    }
   });
 }
 
@@ -24,6 +28,10 @@ class AppErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) {
     return { error };
   }
+
+  handleReload = () => {
+    window.location.reload();
+  };
 
   render() {
     if (!this.state.error) {
@@ -38,7 +46,7 @@ class AppErrorBoundary extends React.Component {
             <Alert severity="error">
               {this.state.error?.message || "Неочаквана грешка при стартиране."}
             </Alert>
-            <Button variant="contained" onClick={() => window.location.reload()}>
+            <Button variant="contained" onClick={this.handleReload}>
               Презареди
             </Button>
           </Stack>
@@ -48,17 +56,17 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AppThemeProvider>
-        <AppErrorBoundary>
-          <AuthProvider>
-            <App />
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </AppErrorBoundary>
-      </AppThemeProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+const rootElement = document.getElementById("root");
+
+ReactDOM.createRoot(rootElement).render(
+  <BrowserRouter>
+    <AppThemeProvider>
+      <AppErrorBoundary>
+        <AuthProvider>
+          <App />
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </AppErrorBoundary>
+    </AppThemeProvider>
+  </BrowserRouter>
 );
