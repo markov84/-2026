@@ -2,6 +2,7 @@
 import ReactDOM from "react-dom/client";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import App from "./App.jsx";
 import { AuthProvider } from "./providers/AuthProviderStable.jsx";
 import AppThemeProvider from "./providers/AppThemeProvider.jsx";
@@ -63,6 +64,7 @@ ReactDOM.createRoot(rootElement).render(
       <AppErrorBoundary>
         <AuthProvider>
           <App />
+          <Toaster position="top-right" />
         </AuthProvider>
       </AppErrorBoundary>
     </AppThemeProvider>
