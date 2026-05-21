@@ -193,7 +193,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
         <Box
           sx={{
             display: { xs: "none", md: "grid" },
-            gridTemplateColumns: "28px minmax(220px, 1fr) 64px 96px 96px 70px 30px",
+            gridTemplateColumns: "28px minmax(150px, 1fr) 56px 82px 132px 96px 30px",
             gap: 0.5,
             px: 0.35,
             color: "text.secondary",
@@ -206,7 +206,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
           <Box textAlign="right">Брой</Box>
           <Box textAlign="right">Ед. цена</Box>
           <Box textAlign="right">Общо</Box>
-          <Box textAlign="right">Нал.</Box>
+          <Box textAlign="right">Наличност</Box>
           <Box />
         </Box>
         {items.map((item, index) => {
@@ -221,7 +221,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "28px minmax(220px, 1fr) 64px 96px 96px 70px 30px" },
+                gridTemplateColumns: { xs: "1fr", md: "28px minmax(150px, 1fr) 56px 82px 132px 96px 30px" },
                 gap: 0.5,
                 alignItems: "center",
                 p: 0.35,
@@ -270,12 +270,12 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                 onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
                 inputProps={{ min: 0 }}
               />
-              <Box>
+              <Box sx={{ minWidth: 0, textAlign: "right" }}>
                 <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
                   {formatCurrencyEUR(quantity * unitPrice)}
                 </Typography>
               </Box>
-              <Box>
+              <Box sx={{ minWidth: 0, textAlign: "right" }}>
                 <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900} noWrap>
                   {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
                 </Typography>
