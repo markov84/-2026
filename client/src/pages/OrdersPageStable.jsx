@@ -255,7 +255,7 @@ export default function OrdersPageStable() {
 
     const product = findProductByScanCode(products, code);
     if (!product) {
-      toast.error(`Няма продукт с номер/баркод/SKU ${code}.`);
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;
     }
 
@@ -314,7 +314,7 @@ export default function OrdersPageStable() {
           <Stack spacing={2.5}>
             <TextField
               fullWidth
-              label="Сканирай номер, баркод или SKU"
+              label="Сканирай баркод или SKU"
               value={scanCode}
               onChange={(e) => setScanCode(e.target.value)}
               onKeyDown={(e) => handleScanKeyDown(e, setForm, setScanCode, form)}
@@ -391,7 +391,7 @@ export default function OrdersPageStable() {
           <Stack spacing={2.5}>
             <TextField
               fullWidth
-              label="Сканирай номер, баркод или SKU"
+              label="Сканирай баркод или SKU"
               value={editScanCode}
               onChange={(e) => setEditScanCode(e.target.value)}
               onKeyDown={(e) => handleScanKeyDown(e, setEditingOrder, setEditScanCode, editingOrder)}

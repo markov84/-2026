@@ -146,7 +146,7 @@ export function ProductIdentity({ product, compact = false, showSku = true, onIm
         </Tooltip>
         {showSku ? (
           <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", lineHeight: 1.15 }}>
-            {[product.productNumber ? `Номер: ${product.productNumber}` : "", product.sku ? `SKU: ${product.sku}` : "", product.barcode ? `Баркод: ${product.barcode}` : ""].filter(Boolean).join(" | ") || "Без код"}
+            {[product.sku ? `SKU: ${product.sku}` : "", product.barcode ? `Баркод: ${product.barcode}` : ""].filter(Boolean).join(" | ") || "Без код"}
           </Typography>
         ) : null}
       </Box>
@@ -213,7 +213,6 @@ export function ProductPreviewCard({ product }) {
           {product.name}
         </Typography>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {product.productNumber ? <Chip size="small" label={`Номер: ${product.productNumber}`} /> : null}
           {product.sku ? <Chip size="small" label={`SKU: ${product.sku}`} /> : null}
           {product.barcode ? <Chip size="small" label={`Баркод: ${product.barcode}`} /> : null}
           {product.category ? <Chip size="small" label={product.category} variant="outlined" /> : null}

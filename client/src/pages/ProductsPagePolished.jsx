@@ -394,13 +394,6 @@ export default function ProductsPagePolished() {
               { field: "category", headerName: "Категория", flex: 0.75, minWidth: 110 },
               { field: "brand", headerName: "Марка", flex: 0.7, minWidth: 100 },
               {
-                field: "productNumber",
-                headerName: "Номер",
-                flex: 0.9,
-                minWidth: 145,
-                valueGetter: (_, row) => row.productNumber || "-"
-              },
-              {
                 field: "barcode",
                 headerName: "Баркод",
                 flex: 0.85,
