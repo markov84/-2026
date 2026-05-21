@@ -4,6 +4,7 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     sku: { type: String, required: true, unique: true, trim: true },
+    productNumber: { type: String, trim: true },
     barcode: { type: String, trim: true },
     category: { type: String, required: true, trim: true },
     brand: { type: String, trim: true },
@@ -16,6 +17,14 @@ const productSchema = new mongoose.Schema(
     lowStockThreshold: { type: Number, default: 5, min: 0 }
   },
   { timestamps: true }
+);
+
+productSchema.index(
+  { productNumber: 1 },
+  {
+    unique: true,
+    sparse: true
+  }
 );
 
 productSchema.index(
@@ -88,6 +97,8 @@ export async function ensureProductIndexes() {
 
   await repairDuplicateProductSkus();
   await Product.collection.updateMany({ barcode: "" }, { $unset: { barcode: "" } });
+  await Product.collection.updateMany({ productNumber: "" }, { $unset: { productNumber: "" } });
   await Product.collection.createIndex({ sku: 1 }, { name: "sku_1", unique: true });
+  await Product.collection.createIndex({ productNumber: 1 }, { name: "productNumber_1", unique: true, sparse: true });
   await Product.collection.createIndex({ barcode: 1 }, { name: "barcode_1", unique: true, sparse: true });
 }

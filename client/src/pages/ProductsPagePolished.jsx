@@ -3,6 +3,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -50,6 +51,7 @@ const HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY = "hiddenProductNameSuggestions";
 
 const initialForm = {
   name: "",
+  productNumber: "",
   sku: "",
   category: "",
   brand: "",
@@ -138,7 +140,7 @@ export default function ProductsPagePolished() {
     if (!normalized) return sortedProducts;
 
     return sortedProducts.filter((product) =>
-      [product.name, product.sku, product.category, product.brand, product.barcode, product.description]
+      [product.name, product.productNumber, product.sku, product.category, product.brand, product.barcode, product.description]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
@@ -221,6 +223,7 @@ export default function ProductsPagePolished() {
     setEditingProductId(editableProduct._id);
     setForm({
       name: editableProduct.name || "",
+      productNumber: editableProduct.productNumber || "",
       sku: editableProduct.sku || "",
       category: editableProduct.category || "",
       brand: editableProduct.brand || "",
@@ -272,6 +275,7 @@ export default function ProductsPagePolished() {
 
     const payload = {
       name: form.name,
+      productNumber: form.productNumber,
       sku: form.sku,
       category: form.category,
       brand: form.brand,
@@ -389,6 +393,20 @@ export default function ProductsPagePolished() {
               },
               { field: "category", headerName: "Категория", flex: 0.75, minWidth: 110 },
               { field: "brand", headerName: "Марка", flex: 0.7, minWidth: 100 },
+              {
+                field: "productNumber",
+                headerName: "Номер",
+                flex: 0.9,
+                minWidth: 145,
+                valueGetter: (_, row) => row.productNumber || "-"
+              },
+              {
+                field: "barcode",
+                headerName: "Баркод",
+                flex: 0.85,
+                minWidth: 140,
+                valueGetter: (_, row) => row.barcode || "-"
+              },
               { field: "price", headerName: "Продажна цена", flex: 0.75, minWidth: 145, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               ...(canViewCost
                 ? [{ field: "cost", headerName: "Себестойност", flex: 0.75, minWidth: 145, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) }]
@@ -453,6 +471,12 @@ export default function ProductsPagePolished() {
                   renderInput={(params) => <TextField {...params} label="Име на продукт" />}
                 />
                 <TextField
+                  label="Номер на продукт"
+                  value={form.productNumber}
+                  onChange={(e) => updateField("productNumber", e.target.value)}
+                  helperText="Например ML-A5151-2. По този номер също може да търсиш и сканираш."
+                />
+                <TextField
                   label="SKU код"
                   value={form.sku}
                   onChange={(e) => updateField("sku", e.target.value)}
@@ -472,7 +496,22 @@ export default function ProductsPagePolished() {
                   onInputChange={(_, value) => updateField("brand", value)}
                   renderInput={(params) => <TextField {...params} label="Марка" />}
                 />
-                <TextField label="Баркод" value={form.barcode} onChange={(e) => updateField("barcode", e.target.value)} />
+                <TextField
+                  label="Баркод"
+                  value={form.barcode}
+                  onChange={(e) => updateField("barcode", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.preventDefault();
+                  }}
+                  helperText="Сканирай с баркод четец или въведи ръчно. Кодът трябва да е уникален."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <QrCodeScannerRoundedIcon fontSize="small" />
+                      </InputAdornment>
+                    )
+                  }}
+                />
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minHeight: 56 }}>
                   <Typography variant="body2" fontWeight={700}>Активен продукт</Typography>
                   <Switch checked={form.isActive} onChange={(e) => updateField("isActive", e.target.checked)} />

@@ -87,7 +87,7 @@ router.get(
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name sku imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price")
       .lean();
 
     return res.json(orders);
@@ -159,7 +159,7 @@ router.post(
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name sku imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price")
       .lean();
 
     return res.status(201).json(populated);
@@ -229,7 +229,7 @@ router.put(
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name sku imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price")
       .lean();
 
     return res.json(order);

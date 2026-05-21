@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import { Button, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
+import { Button, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -52,6 +53,21 @@ function validateOrder(order) {
   return "";
 }
 
+function normalizeScanCode(value) {
+  return String(value || "").replace(/[\r\n\t]/g, "").trim();
+}
+
+function findProductByScanCode(products, code) {
+  const normalized = normalizeScanCode(code).toLowerCase();
+  if (!normalized) return null;
+
+  return products.find((product) =>
+    [product.productNumber, product.barcode, product.sku]
+      .filter(Boolean)
+      .some((value) => String(value).trim().toLowerCase() === normalized)
+  );
+}
+
 export default function OrdersPageStable() {
   const { user } = useAuth();
   const { data: orders, loading, setData } = useFetch("/orders");
@@ -61,6 +77,8 @@ export default function OrdersPageStable() {
   const { data: inventory } = useFetch("/inventory/summary");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialOrder);
+  const [scanCode, setScanCode] = useState("");
+  const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const isMobile = useMobileDetection();
@@ -231,6 +249,41 @@ export default function OrdersPageStable() {
     });
   }
 
+  function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
+    const code = normalizeScanCode(rawCode);
+    if (!code) return;
+
+    const product = findProductByScanCode(products, code);
+    if (!product) {
+      toast.error(`Няма продукт с номер/баркод/SKU ${code}.`);
+      return;
+    }
+
+    setter((current) => {
+      const currentQuantity = Number(current.quantity || 0);
+      const isSameProduct = current.product === product._id;
+      const quantity = isSameProduct ? String(currentQuantity + 1) : current.quantity || "1";
+      const unitPrice = String(product.price ?? current.unitPrice ?? "");
+      const totalAmount = Number(quantity || 0) * Number(unitPrice || 0);
+
+      return {
+        ...current,
+        product: product._id,
+        quantity,
+        unitPrice,
+        totalAmount: totalAmount ? totalAmount.toFixed(2) : ""
+      };
+    });
+    clearScan("");
+    toast.success(activeDraft?.product === product._id ? "Количество +1." : `Избран продукт: ${product.name}`);
+  }
+
+  function handleScanKeyDown(event, setter, clearScan, activeDraft) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader
@@ -259,6 +312,28 @@ export default function OrdersPageStable() {
         <DialogTitle>Нова продажба</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
+            <TextField
+              fullWidth
+              label="Сканирай номер, баркод или SKU"
+              value={scanCode}
+              onChange={(e) => setScanCode(e.target.value)}
+              onKeyDown={(e) => handleScanKeyDown(e, setForm, setScanCode, form)}
+              helperText="Работи с USB/Bluetooth баркод четец. След сканиране натисни Enter, ако четецът не го изпраща автоматично."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <QrCodeScannerRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button size="small" onClick={() => applyScannedProduct(scanCode, setForm, setScanCode, form)}>
+                      Добави
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
             <FormGrid min={230}>
               <TextField label="Номер на продажба" value={form.orderNumber} disabled />
               <TextField select label="Магазин" value={form.store} onChange={(e) => setForm({ ...form, store: e.target.value })}>
@@ -314,6 +389,28 @@ export default function OrdersPageStable() {
         <DialogTitle>Редактиране на продажба</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
+            <TextField
+              fullWidth
+              label="Сканирай номер, баркод или SKU"
+              value={editScanCode}
+              onChange={(e) => setEditScanCode(e.target.value)}
+              onKeyDown={(e) => handleScanKeyDown(e, setEditingOrder, setEditScanCode, editingOrder)}
+              helperText="Сканирай нов продукт или същия продукт за +1 към количеството."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <QrCodeScannerRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button size="small" onClick={() => applyScannedProduct(editScanCode, setEditingOrder, setEditScanCode, editingOrder)}>
+                      Добави
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
             <FormGrid min={230}>
               <TextField
                 label="Номер на продажба"

@@ -42,6 +42,10 @@ function normalizeOptionalString(value) {
 }
 
 function getDuplicateProductMessage(error) {
+  if (error?.keyPattern?.productNumber || error?.keyValue?.productNumber !== undefined) {
+    return "A product with this product number already exists.";
+  }
+
   if (error?.keyPattern?.barcode || error?.keyValue?.barcode !== undefined) {
     return "A product with this barcode already exists.";
   }
@@ -109,6 +113,7 @@ router.get("/", async (req, res) => {
     ? {
         $or: [
           { name: new RegExp(search, "i") },
+          { productNumber: new RegExp(search, "i") },
           { sku: new RegExp(search, "i") },
           { barcode: new RegExp(search, "i") }
         ]
@@ -118,8 +123,8 @@ router.get("/", async (req, res) => {
   const products = await Product.find(filter)
     .select(
       compact
-        ? "name sku category brand price lowStockThreshold isActive"
-        : "name sku barcode category brand description price cost vatRate isActive lowStockThreshold createdAt updatedAt"
+        ? "name productNumber sku barcode category brand price lowStockThreshold isActive"
+        : "name productNumber sku barcode category brand description price cost vatRate isActive lowStockThreshold createdAt updatedAt"
     )
     .sort({ createdAt: -1, _id: -1 })
     .lean();
@@ -149,7 +154,9 @@ router.post(
   "/",
   [
     body("name").trim().notEmpty(),
+    body("productNumber").optional({ values: "falsy" }).trim(),
     body("sku").optional({ values: "falsy" }).trim(),
+    body("barcode").optional({ values: "falsy" }).trim(),
     body("category").optional({ values: "falsy" }).trim(),
     body("price").isFloat({ min: 0 }),
     body("initialQuantity").optional().isInt({ min: 0 })
@@ -177,6 +184,7 @@ router.post(
     const payload = {
       ...req.body,
       sku: generatedSku,
+      productNumber: normalizeOptionalString(req.body.productNumber),
       barcode: normalizeOptionalString(req.body.barcode),
       brand: normalizeOptionalString(req.body.brand),
       description: normalizeOptionalString(req.body.description),
@@ -215,7 +223,9 @@ router.put(
   "/:id",
   [
     body("name").optional().trim().notEmpty(),
+    body("productNumber").optional({ values: "falsy" }).trim(),
     body("sku").optional({ values: "falsy" }).trim(),
+    body("barcode").optional({ values: "falsy" }).trim(),
     body("category").optional({ values: "falsy" }).trim(),
     body("price").optional().isFloat({ min: 0 }),
     body("cost").optional().isFloat({ min: 0 }),
@@ -233,19 +243,25 @@ router.put(
       return res.status(404).json({ message: "Product not found." });
     }
 
+    const sku = req.body.sku?.trim() || existingProduct.sku;
     const payload = removeUndefinedFields({
       ...req.body,
-      sku: req.body.sku?.trim() || existingProduct.sku,
+      sku,
+      productNumber: normalizeOptionalString(req.body.productNumber),
       barcode: normalizeOptionalString(req.body.barcode),
       brand: normalizeOptionalString(req.body.brand),
       description: normalizeOptionalString(req.body.description),
       imageUrl: normalizeOptionalString(req.body.imageUrl),
       category: req.body.category?.trim() || existingProduct.category || "General"
     });
-    const update =
-      "barcode" in req.body && payload.barcode === undefined
-        ? { $set: payload, $unset: { barcode: "" } }
-        : payload;
+    const update = {
+      $set: payload,
+      $unset: {
+        ...(Object.prototype.hasOwnProperty.call(req.body, "productNumber") && payload.productNumber === undefined ? { productNumber: "" } : {}),
+        ...(Object.prototype.hasOwnProperty.call(req.body, "barcode") && payload.barcode === undefined ? { barcode: "" } : {})
+      }
+    };
+    if (!Object.keys(update.$unset).length) delete update.$unset;
 
     try {
       const product = await Product.findByIdAndUpdate(req.params.id, update, {
