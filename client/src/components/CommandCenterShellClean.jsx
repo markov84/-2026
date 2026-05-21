@@ -475,7 +475,7 @@ export default function CommandCenterShellClean({ children }) {
             </IconButton>
             <Box>
               <Typography variant="caption" color="text.secondary">
-                Централизирано управление
+                Централизирано управление на MARK LIGHT LTD
               </Typography>
               <Typography variant="subtitle1" fontWeight={700}>
                  Търговска платформа на MARK LIGHT LTD
