@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+ import { useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -23,7 +23,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStable";
-import MobileBottomNavigationBar from "./MobileBottomNavigationBar";
+import MobileBottomNavigationBar from "./MobileBottomNavigation";
 import MobileQuickActions from "./MobileQuickActions";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
