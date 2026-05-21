@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
@@ -77,7 +76,7 @@ function blankItem() {
   return {
     description: "",
     unit: "бр.",
-    quantity: "1",
+    quantity: "",
     unitPrice: "",
     vatRate: "20"
   };
@@ -113,8 +112,22 @@ function numberValue(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isInvoiceItemFilled(item) {
+  return Boolean(item?.description?.trim() || numberValue(item?.quantity) > 0 || numberValue(item?.unitPrice) > 0);
+}
+
+function getCleanInvoiceItems(items = []) {
+  return items.filter(isInvoiceItemFilled);
+}
+
+function withTrailingInvoiceRow(items) {
+  const nextItems = items.length ? items : [blankItem()];
+  const lastItem = nextItems[nextItems.length - 1];
+  return isInvoiceItemFilled(lastItem) ? [...nextItems, blankItem()] : nextItems;
+}
+
 function calculateTotals(items) {
-  return items.reduce(
+  return getCleanInvoiceItems(items).reduce(
     (totals, item) => {
       const lineBase = numberValue(item.quantity) * numberValue(item.unitPrice);
       const lineVat = lineBase * (numberValue(item.vatRate) / 100);
@@ -135,9 +148,10 @@ function validateInvoice(invoice) {
     return "Попълни ЕИК/ЕГН или ДДС номер на получателя.";
   }
   if (!invoice?.issueDate) return "Датата на издаване е задължителна.";
-  if (!invoice?.items?.length) return "Добави поне един ред във фактурата.";
+  const items = getCleanInvoiceItems(invoice?.items);
+  if (!items.length) return "Добави поне един ред във фактурата.";
 
-  for (const [index, item] of invoice.items.entries()) {
+  for (const [index, item] of items.entries()) {
     const row = index + 1;
     if (!item.description.trim()) return `Описание на ред ${row} е задължително.`;
     if (numberValue(item.quantity) <= 0) return `Количеството на ред ${row} трябва да е по-голямо от 0.`;
@@ -149,7 +163,8 @@ function validateInvoice(invoice) {
 }
 
 function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
-  const totals = calculateTotals(invoice.items);
+  const cleanItems = getCleanInvoiceItems(invoice.items);
+  const totals = calculateTotals(cleanItems);
   const payload = {
     supplier: {
       name: invoice.supplier?.name?.trim() || defaultSupplier.name,
@@ -170,7 +185,7 @@ function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
     paymentMethod: invoice.paymentMethod || undefined,
     status: invoice.status,
     notes: invoice.notes.trim() || undefined,
-    items: invoice.items.map((item) => ({
+    items: cleanItems.map((item) => ({
       description: item.description.trim(),
       unit: item.unit.trim() || "бр.",
       quantity: numberValue(item.quantity),
@@ -237,12 +252,8 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
   function updateItem(index, key, value) {
     setInvoice((current) => ({
       ...current,
-      items: current.items.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item))
+      items: withTrailingInvoiceRow(current.items.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item)))
     }));
-  }
-
-  function addItem() {
-    setInvoice((current) => ({ ...current, items: [...current.items, blankItem()] }));
   }
 
   function removeItem(index) {
@@ -299,7 +310,6 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
       <Stack spacing={1.5}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
           <Typography variant="subtitle1" fontWeight={800}>Редове във фактурата</Typography>
-          <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={addItem}>Ред</Button>
         </Stack>
 
         {invoice.items.map((item, index) => (
@@ -307,10 +317,10 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
             key={index}
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "48px minmax(220px, 2fr) 74px 92px 130px 76px 36px" },
-              gap: 0.75,
+              gridTemplateColumns: { xs: "1fr", md: "34px minmax(200px, 2fr) 64px 76px 116px 66px 32px" },
+              gap: 0.5,
               alignItems: "center",
-              p: 0.5,
+              p: 0.35,
               borderRadius: 1.25,
               border: "1px solid rgba(39,86,107,0.12)"
             }}
@@ -391,15 +401,17 @@ export default function InvoicesPageStable() {
       paymentMethod: invoice.paymentMethod || "Банков превод",
       status: invoice.status || "issued",
       notes: invoice.notes || "",
-      items: invoice.items?.length
-        ? invoice.items.map((item) => ({
-            description: item.description || "",
-            unit: item.unit || "бр.",
-            quantity: String(item.quantity ?? 1),
-            unitPrice: String(item.unitPrice ?? ""),
-            vatRate: String(item.vatRate ?? 20)
-          }))
-        : [blankItem()]
+      items: withTrailingInvoiceRow(
+        invoice.items?.length
+          ? invoice.items.map((item) => ({
+              description: item.description || "",
+              unit: item.unit || "бр.",
+              quantity: String(item.quantity ?? 1),
+              unitPrice: String(item.unitPrice ?? ""),
+              vatRate: String(item.vatRate ?? 20)
+            }))
+          : [blankItem()]
+      )
     });
   }
 

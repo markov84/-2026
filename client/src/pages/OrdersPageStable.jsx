@@ -13,7 +13,7 @@ import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
 import PageHeader from "../components/PageHeader";
-import { ProductIdentity, ProductPreviewCard } from "../components/ProductPresentation";
+import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
@@ -48,7 +48,7 @@ function createOrderItem(product = null, overrides = {}) {
   return {
     key: globalThis.crypto?.randomUUID?.() || `order-item-${Date.now()}-${Math.random()}`,
     product: product?._id || "",
-    quantity: "1",
+    quantity: product ? "1" : "",
     unitPrice: product ? String(product.price ?? "") : "",
     ...overrides
   };
@@ -127,6 +127,16 @@ function getProductOptionLabel(product) {
   return [product.name, product.sku, product.barcode].filter(Boolean).join(" | ");
 }
 
+function isOrderItemFilled(item) {
+  return Boolean(item?.product || Number(item?.quantity || 0) > 0 || Number(item?.unitPrice || 0) > 0);
+}
+
+function withTrailingOrderRow(items) {
+  const nextItems = items.length ? items : [createOrderItem()];
+  const lastItem = nextItems[nextItems.length - 1];
+  return isOrderItemFilled(lastItem) ? [...nextItems, createOrderItem()] : nextItems;
+}
+
 function OrderProductsCell({ items }) {
   const visibleItems = items || [];
   if (!visibleItems.length) return <Typography variant="body2" color="text.secondary">-</Typography>;
@@ -156,7 +166,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
   const items = value?.length ? value : [createOrderItem()];
 
   function updateItem(key, patch) {
-    onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+    onChange(withTrailingOrderRow(items.map((item) => (item.key === key ? { ...item, ...patch } : item))));
   }
 
   function removeItem(key) {
@@ -164,22 +174,15 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
     onChange(nextItems.length ? nextItems : [createOrderItem()]);
   }
 
-  function addEmptyItem() {
-    onChange([...items, createOrderItem()]);
-  }
-
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
         <Typography variant="subtitle1" fontWeight={900}>
           Продукти в продажбата
         </Typography>
-        <Button size="small" variant="outlined" startIcon={<AddShoppingCartRoundedIcon />} onClick={addEmptyItem}>
-          Добави продукт
-        </Button>
       </Stack>
 
-      <Stack spacing={1}>
+      <Stack spacing={0.75}>
         {items.map((item, index) => {
           const selectedProduct = getProductById(products, item.product);
           const selectedInventory = getInventoryForItem(inventory, item.product, store);
@@ -192,10 +195,10 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "minmax(240px, 1fr) 88px 130px 130px 96px 42px" },
-                gap: 1,
+                gridTemplateColumns: { xs: "1fr", md: "minmax(220px, 1fr) 76px 112px 112px 82px 34px" },
+                gap: 0.75,
                 alignItems: "center",
-                p: 1,
+                p: 0.65,
                 border: "1px solid",
                 borderColor: hasLowStockRisk ? "warning.main" : "divider",
                 borderRadius: 1.25,
@@ -261,11 +264,6 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                   </IconButton>
                 </span>
               </Tooltip>
-              {selectedProduct ? (
-                <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
-                  <ProductPreviewCard product={selectedProduct} />
-                </Box>
-              ) : null}
             </Box>
           );
         })}
@@ -382,7 +380,7 @@ export default function OrdersPageStable() {
       orderNumber: order.orderNumber || "",
       store: order.store?._id || "",
       customer: order.customer?._id || "",
-      items: normalizeOrderItems(order.items),
+      items: withTrailingOrderRow(normalizeOrderItems(order.items)),
       status: order.status || "pending",
       paymentStatus: order.paymentStatus || "unpaid"
     });
@@ -464,21 +462,21 @@ export default function OrdersPageStable() {
     }
 
     setter((current) => {
-      const currentItems = current.items?.length ? current.items : [];
+      const currentItems = (current.items || []).filter(isOrderItemFilled);
       const existingItem = currentItems.find((item) => item.product === product._id);
 
       if (existingItem) {
         return {
           ...current,
-          items: currentItems.map((item) =>
+          items: withTrailingOrderRow(currentItems.map((item) =>
             item.key === existingItem.key ? { ...item, quantity: String(Number(item.quantity || 0) + 1), unitPrice: item.unitPrice || String(product.price ?? "") } : item
-          )
+          ))
         };
       }
 
       return {
         ...current,
-        items: [...currentItems, createOrderItem(product)]
+        items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
       };
     });
 

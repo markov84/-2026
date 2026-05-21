@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -42,7 +41,7 @@ import { formatCurrencyEUR } from "../lib/currency";
 import { printTransfer } from "../lib/printDocuments";
 
 let transferItemKey = 0;
-const defaultTransferItemRows = 4;
+const defaultTransferItemRows = 1;
 
 function createTransferItemKey() {
   transferItemKey += 1;
@@ -156,6 +155,16 @@ function getInventoryForItem(inventory, productId, storeId) {
   return inventory.find((item) => item.product?._id === productId && item.store?._id === storeId);
 }
 
+function isTransferItemFilled(item) {
+  return Boolean(item?.product || Number(item?.quantity || 0) > 0);
+}
+
+function withTrailingTransferRow(items) {
+  const nextItems = items.length ? items : createTransferItems();
+  const lastItem = nextItems[nextItems.length - 1];
+  return isTransferItemFilled(lastItem) ? [...nextItems, createTransferItem()] : nextItems;
+}
+
 function buildTransferPayload(transfer) {
   return {
     fromStore: transfer.fromStore,
@@ -243,7 +252,7 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
   const items = value?.length ? value : createTransferItems();
 
   function updateItem(key, patch) {
-    onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+    onChange(withTrailingTransferRow(items.map((item) => (item.key === key ? { ...item, ...patch } : item))));
   }
 
   function removeItem(key) {
@@ -257,9 +266,6 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
         <Typography variant="subtitle2" fontWeight={900}>
           Продукти за трансфер
         </Typography>
-        <Button size="small" startIcon={<AddRoundedIcon />} onClick={() => onChange([...items, createTransferItem()])}>
-          Добави ред
-        </Button>
       </Stack>
 
       <TableContainer
@@ -383,9 +389,6 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
           </TableBody>
         </Table>
       </TableContainer>
-      <Button variant="outlined" size="small" startIcon={<AddRoundedIcon />} onClick={() => onChange([...items, createTransferItem()])} sx={{ alignSelf: "flex-start" }}>
-        Добави още един ред
-      </Button>
     </Stack>
   );
 }
@@ -486,7 +489,7 @@ export default function TransfersPageStable() {
       requestedBy: transfer.requestedBy || "",
       notes: transfer.notes || "",
       status: transfer.status || "pending",
-      items: normalizeTransferItems(transfer.items)
+      items: withTrailingTransferRow(normalizeTransferItems(transfer.items))
     });
   }
 
