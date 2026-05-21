@@ -14,7 +14,11 @@ router.get("/", async (req, res) => {
 
 router.post(
   "/",
-  [body("fullName").trim().notEmpty()],
+  [
+    body("customerType").optional().isIn(["person", "company"]),
+    body("fullName").trim().notEmpty(),
+    body("company").if(body("customerType").equals("company")).trim().notEmpty()
+  ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -26,25 +30,33 @@ router.post(
   }
 );
 
-router.put("/:id", [body("fullName").optional().trim().notEmpty()], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: "Invalid customer payload.", errors: errors.array() });
+router.put(
+  "/:id",
+  [
+    body("customerType").optional().isIn(["person", "company"]),
+    body("fullName").optional().trim().notEmpty(),
+    body("company").if(body("customerType").equals("company")).trim().notEmpty()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: "Invalid customer payload.", errors: errors.array() });
+    }
+
+    const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    })
+      .populate("preferredStore", "name city")
+      .lean();
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    return res.json(customer);
   }
-
-  const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true
-  })
-    .populate("preferredStore", "name city")
-    .lean();
-
-  if (!customer) {
-    return res.status(404).json({ message: "Customer not found." });
-  }
-
-  return res.json(customer);
-});
+);
 
 router.delete("/:id", async (req, res) => {
   const customer = await Customer.findByIdAndDelete(req.params.id);

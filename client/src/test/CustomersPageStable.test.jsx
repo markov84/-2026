@@ -36,7 +36,7 @@ describe("CustomersPageStable", () => {
     toastSuccess.mockReset();
   });
 
-  it("shows validation error when trying to create a customer without a name", async () => {
+  it("shows validation error when trying to create a person without a name", async () => {
     const user = userEvent.setup();
 
     render(
@@ -48,5 +48,20 @@ describe("CustomersPageStable", () => {
     await user.click(screen.getByRole("button", { name: "Добави клиент" }));
 
     expect(toastError).toHaveBeenCalledWith("Името на клиента е задължително.");
+  });
+
+  it("shows validation error when trying to create a company without company name", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <CustomersPageStable />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Фирма" }));
+    await user.click(screen.getByRole("button", { name: "Добави клиент" }));
+
+    expect(toastError).toHaveBeenCalledWith("Името на фирмата е задължително.");
   });
 });

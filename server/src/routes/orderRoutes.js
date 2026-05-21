@@ -85,7 +85,7 @@ router.get(
     const orders = await Order.find()
       .sort({ createdAt: -1 })
       .populate("store", "name city")
-      .populate("customer", "fullName company")
+      .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
       .populate("items.product", "name sku imageUrl price")
       .lean();
@@ -157,7 +157,7 @@ router.post(
 
     const populated = await Order.findById(order._id)
       .populate("store", "name city")
-      .populate("customer", "fullName company")
+      .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
       .populate("items.product", "name sku imageUrl price")
       .lean();
@@ -227,7 +227,7 @@ router.put(
       { new: true, runValidators: true }
     )
       .populate("store", "name city")
-      .populate("customer", "fullName company")
+      .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
       .populate("items.product", "name sku imageUrl price")
       .lean();

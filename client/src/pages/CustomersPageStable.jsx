@@ -1,6 +1,8 @@
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
+import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import {
   Button,
   Card,
@@ -13,6 +15,8 @@ import {
   MenuItem,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -33,10 +37,15 @@ import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 
 const initialForm = {
+  customerType: "person",
   fullName: "",
   email: "",
   phone: "",
   company: "",
+  contactPerson: "",
+  taxNumber: "",
+  vatNumber: "",
+  legalAddress: "",
   preferredStore: "",
   notes: ""
 };
@@ -54,11 +63,115 @@ function StatCard({ label, value }) {
   );
 }
 
+function isCompanyCustomer(customer) {
+  return customer?.customerType === "company";
+}
+
+function getCustomerDisplayName(customer) {
+  if (!customer) return "-";
+  return isCompanyCustomer(customer) ? customer.company || customer.fullName || "-" : customer.fullName || customer.company || "-";
+}
+
 function validateCustomer(customer) {
+  if (isCompanyCustomer(customer)) {
+    if (!customer?.company?.trim()) {
+      return "Името на фирмата е задължително.";
+    }
+    return "";
+  }
+
   if (!customer?.fullName?.trim()) {
     return "Името на клиента е задължително.";
   }
+
   return "";
+}
+
+function toCustomerPayload(customer) {
+  const isCompany = isCompanyCustomer(customer);
+  const company = customer.company.trim();
+  const contactPerson = customer.contactPerson.trim();
+  const fullName = isCompany ? contactPerson || company : customer.fullName.trim();
+
+  return {
+    customerType: customer.customerType,
+    fullName,
+    email: customer.email.trim() || undefined,
+    phone: customer.phone.trim() || undefined,
+    company: company || undefined,
+    contactPerson: contactPerson || undefined,
+    taxNumber: customer.taxNumber.trim() || undefined,
+    vatNumber: customer.vatNumber.trim() || undefined,
+    legalAddress: customer.legalAddress.trim() || undefined,
+    preferredStore: customer.preferredStore || undefined,
+    notes: customer.notes.trim() || undefined
+  };
+}
+
+function CustomerTypeToggle({ value, onChange }) {
+  return (
+    <ToggleButtonGroup
+      exclusive
+      color="primary"
+      value={value}
+      onChange={(_, nextValue) => {
+        if (nextValue) onChange(nextValue);
+      }}
+      sx={{ alignSelf: "flex-start" }}
+    >
+      <ToggleButton value="person">
+        <PersonRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+        Физическо лице
+      </ToggleButton>
+      <ToggleButton value="company">
+        <BusinessRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+        Фирма
+      </ToggleButton>
+    </ToggleButtonGroup>
+  );
+}
+
+function CustomerFields({ customer, onChange, stores, attachedStoresLabel }) {
+  const isCompany = isCompanyCustomer(customer);
+
+  return (
+    <Stack spacing={2.25}>
+      <CustomerTypeToggle value={customer.customerType} onChange={(customerType) => onChange({ customerType })} />
+      <FormGrid min={250}>
+        {isCompany ? (
+          <>
+            <TextField label="Име на фирма" value={customer.company} onChange={(event) => onChange({ company: event.target.value })} required />
+            <TextField label="ЕИК / Булстат" value={customer.taxNumber} onChange={(event) => onChange({ taxNumber: event.target.value })} />
+            <TextField label="ДДС номер" value={customer.vatNumber} onChange={(event) => onChange({ vatNumber: event.target.value })} placeholder="BG..." />
+            <TextField label="МОЛ / лице за контакт" value={customer.contactPerson} onChange={(event) => onChange({ contactPerson: event.target.value })} />
+            <TextField label="Email" type="email" value={customer.email} onChange={(event) => onChange({ email: event.target.value })} />
+            <TextField label="Телефон" value={customer.phone} onChange={(event) => onChange({ phone: event.target.value })} />
+            <FormGridFull>
+              <TextField label="Адрес на фирмата" value={customer.legalAddress} onChange={(event) => onChange({ legalAddress: event.target.value })} />
+            </FormGridFull>
+          </>
+        ) : (
+          <>
+            <TextField label="Име на клиент" value={customer.fullName} onChange={(event) => onChange({ fullName: event.target.value })} required />
+            <TextField label="Email" type="email" value={customer.email} onChange={(event) => onChange({ email: event.target.value })} />
+            <TextField label="Телефон" value={customer.phone} onChange={(event) => onChange({ phone: event.target.value })} />
+          </>
+        )}
+        <TextField select label="Предпочитан магазин" value={customer.preferredStore} onChange={(event) => onChange({ preferredStore: event.target.value })}>
+          <MenuItem value="">Без предпочитан магазин</MenuItem>
+          {stores.map((store) => (
+            <MenuItem key={store._id} value={store._id}>
+              {store.name} - {store.city}
+            </MenuItem>
+          ))}
+        </TextField>
+        {attachedStoresLabel ? <TextField disabled label="Свързани магазини" value={attachedStoresLabel} /> : null}
+        <FormGridFull>
+          <TextField label="Бележки" multiline minRows={3} value={customer.notes} onChange={(event) => onChange({ notes: event.target.value })} />
+        </FormGridFull>
+      </FormGrid>
+    </Stack>
+  );
 }
 
 export default function CustomersPageStable() {
@@ -75,7 +188,18 @@ export default function CustomersPageStable() {
     if (!normalized) return data;
 
     return data.filter((customer) =>
-      [customer.fullName, customer.email, customer.phone, customer.company, customer.preferredStore?.name]
+      [
+        getCustomerDisplayName(customer),
+        customer.fullName,
+        customer.email,
+        customer.phone,
+        customer.company,
+        customer.contactPerson,
+        customer.taxNumber,
+        customer.vatNumber,
+        customer.legalAddress,
+        customer.preferredStore?.name
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
@@ -97,16 +221,7 @@ export default function CustomersPageStable() {
     }
 
     try {
-      const payload = {
-        fullName: form.fullName.trim(),
-        email: form.email.trim() || undefined,
-        phone: form.phone.trim() || undefined,
-        company: form.company.trim() || undefined,
-        preferredStore: form.preferredStore || undefined,
-        notes: form.notes.trim() || undefined
-      };
-
-      const response = await api.post("/customers", payload);
+      const response = await api.post("/customers", toCustomerPayload(form));
       setData((current) => [response.data, ...current]);
       setForm(initialForm);
       toast.success("Клиентът е добавен успешно.");
@@ -116,12 +231,19 @@ export default function CustomersPageStable() {
   }
 
   function openEditDialog(customer) {
+    const customerType = customer.customerType || (customer.company ? "company" : "person");
+
     setEditingCustomer({
       _id: customer._id,
+      customerType,
       fullName: customer.fullName || "",
       email: customer.email || "",
       phone: customer.phone || "",
       company: customer.company || "",
+      contactPerson: customer.contactPerson || (customerType === "company" && customer.fullName !== customer.company ? customer.fullName || "" : ""),
+      taxNumber: customer.taxNumber || "",
+      vatNumber: customer.vatNumber || "",
+      legalAddress: customer.legalAddress || "",
       preferredStore: customer.preferredStore?._id || "",
       notes: customer.notes || ""
     });
@@ -137,14 +259,7 @@ export default function CustomersPageStable() {
     }
 
     try {
-      const response = await api.put(`/customers/${editingCustomer._id}`, {
-        fullName: editingCustomer.fullName.trim(),
-        email: editingCustomer.email.trim() || undefined,
-        phone: editingCustomer.phone.trim() || undefined,
-        company: editingCustomer.company.trim() || undefined,
-        preferredStore: editingCustomer.preferredStore || undefined,
-        notes: editingCustomer.notes.trim() || undefined
-      });
+      const response = await api.put(`/customers/${editingCustomer._id}`, toCustomerPayload(editingCustomer));
       setData((current) => current.map((item) => (item._id === editingCustomer._id ? response.data : item)));
       setEditingCustomer(null);
       toast.success("Клиентът е обновен.");
@@ -166,47 +281,59 @@ export default function CustomersPageStable() {
     }
   }
 
+  const attachedStoresLabel = stats.attachedStores ? `${stats.attachedStores} свързани магазина` : "Все още няма връзки";
+
   return (
     <Stack spacing={3}>
-      <PageHeader eyebrow="CRM" title="Клиенти" subtitle="Управлявай контакти, лоялност и стойност на клиентите в по-подреден и бърз работен екран." icon={<PeopleAltRoundedIcon />} />
+      <PageHeader
+        eyebrow="CRM"
+        title="Клиенти"
+        subtitle="Управлявай физически лица и фирми с ясни контактни, данъчни и търговски данни."
+        icon={<PeopleAltRoundedIcon />}
+      />
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 4 }}><StatCard label="Активни клиенти" value={data.length} /></Grid>
-        <Grid size={{ xs: 12, md: 4 }}><StatCard label="С точки за лоялност" value={stats.loyaltyCustomers} /></Grid>
-        <Grid size={{ xs: 12, md: 4 }}><StatCard label="Общ оборот" value={formatCurrencyEUR(stats.totalRevenue)} /></Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <StatCard label="Активни клиенти" value={data.length} />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <StatCard label="С точки за лоялност" value={stats.loyaltyCustomers} />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <StatCard label="Общ оборот" value={formatCurrencyEUR(stats.totalRevenue)} />
+        </Grid>
       </Grid>
 
-      <FormPanel title="Нов клиент" subtitle="Добави основните данни за клиента директно на страницата." icon={<PersonAddRoundedIcon />} actions={<Button variant="contained" startIcon={<PersonAddRoundedIcon />} onClick={addCustomer}>Добави клиент</Button>}>
-        <FormGrid min={250}>
-          <div><TextField label="Име на клиент" value={form.fullName} onChange={(e) => setForm((current) => ({ ...current, fullName: e.target.value }))} /></div>
-          <div><TextField label="Email" type="email" value={form.email} onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))} /></div>
-          <div><TextField label="Телефон" value={form.phone} onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))} /></div>
-          <div><TextField label="Фирма" value={form.company} onChange={(e) => setForm((current) => ({ ...current, company: e.target.value }))} /></div>
-          <div>
-            <TextField select label="Предпочитан магазин" value={form.preferredStore} onChange={(e) => setForm((current) => ({ ...current, preferredStore: e.target.value }))}>
-              <MenuItem value="">Без предпочитан магазин</MenuItem>
-              {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name} - {store.city}</MenuItem>)}
-            </TextField>
-          </div>
-          <div><TextField disabled label="Свързани магазини" value={stats.attachedStores ? `${stats.attachedStores} свързани магазина` : "Все още няма връзки"} /></div>
-          <FormGridFull>
-            <TextField label="Бележки" multiline minRows={3} value={form.notes} onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))} />
-          </FormGridFull>
-        </FormGrid>
+      <FormPanel
+        title="Нов клиент"
+        subtitle="Избери дали добавяш физическо лице или фирма и попълни само релевантните полета."
+        icon={<PersonAddRoundedIcon />}
+        actions={
+          <Button variant="contained" startIcon={<PersonAddRoundedIcon />} onClick={addCustomer}>
+            Добави клиент
+          </Button>
+        }
+      >
+        <CustomerFields
+          customer={form}
+          stores={stores}
+          attachedStoresLabel={attachedStoresLabel}
+          onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+        />
       </FormPanel>
 
       <DataSection
         title="Клиенти"
-        subtitle="По-ясен CRM регистър с търсене и контекст за всеки клиент."
+        subtitle="CRM регистър с търсене по име, фирма, контакт, ЕИК, ДДС номер и магазин."
         icon={<PeopleAltRoundedIcon />}
         toolbar={
           <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5} alignItems={{ xs: "stretch", lg: "center" }}>
             <TextField
-              placeholder="Търси по име, имейл, телефон, фирма или магазин"
+              placeholder="Търси по име, фирма, телефон, ЕИК, ДДС номер или магазин"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
-              sx={{ maxWidth: { xs: "100%", lg: 460 } }}
+              sx={{ maxWidth: { xs: "100%", lg: 520 } }}
             />
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <Chip label={`Показани: ${filteredCustomers.length}`} variant="outlined" />
@@ -222,14 +349,24 @@ export default function CustomersPageStable() {
             rows={filteredCustomers}
             getRowId={(row) => row._id}
             columns={[
-              { field: "fullName", headerName: "Име", flex: 1.2, minWidth: 180 },
-              { field: "company", headerName: "Фирма", flex: 1, minWidth: 160, valueGetter: (_, row) => row.company || "-" },
-              { field: "email", headerName: "Имейл", flex: 1.1, minWidth: 180, valueGetter: (_, row) => row.email || "-" },
+              { field: "displayName", headerName: "Клиент", flex: 1.25, minWidth: 190, valueGetter: (_, row) => getCustomerDisplayName(row) },
+              { field: "company", headerName: "Фирма", flex: 1, minWidth: 170, valueGetter: (_, row) => row.company || "-" },
+              { field: "taxNumber", headerName: "ЕИК/ДДС", flex: 0.85, minWidth: 140, valueGetter: (_, row) => row.vatNumber || row.taxNumber || "-" },
+              { field: "contactPerson", headerName: "Контакт", flex: 1, minWidth: 160, valueGetter: (_, row) => row.contactPerson || (!isCompanyCustomer(row) ? row.fullName : "-") },
+              { field: "email", headerName: "Имейл", flex: 1.05, minWidth: 180, valueGetter: (_, row) => row.email || "-" },
               { field: "phone", headerName: "Телефон", flex: 0.9, minWidth: 150, valueGetter: (_, row) => row.phone || "-" },
               { field: "preferredStore", headerName: "Предпочитан магазин", flex: 1, minWidth: 170, valueGetter: (_, row) => row.preferredStore?.name || "-" },
               { field: "loyaltyPoints", headerName: "Точки", flex: 0.6, minWidth: 110 },
               { field: "totalSpent", headerName: "Общо похарчено", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingCustomer(params.row)} /> }
+              {
+                field: "actions",
+                headerName: "",
+                sortable: false,
+                filterable: false,
+                width: 110,
+                align: "center",
+                renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingCustomer(params.row)} />
+              }
             ]}
             pageSizeOptions={[5, 10, 20]}
             initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
@@ -241,21 +378,13 @@ export default function CustomersPageStable() {
       <Dialog open={Boolean(editingCustomer)} onClose={() => setEditingCustomer(null)} fullWidth maxWidth="md" fullScreen={isMobile}>
         <DialogTitle>Редактиране на клиент</DialogTitle>
         <DialogContent dividers>
-          <FormGrid min={250}>
-            <div><TextField label="Име на клиент" value={editingCustomer?.fullName || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, fullName: e.target.value }))} /></div>
-            <div><TextField label="Email" type="email" value={editingCustomer?.email || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, email: e.target.value }))} /></div>
-            <div><TextField label="Телефон" value={editingCustomer?.phone || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, phone: e.target.value }))} /></div>
-            <div><TextField label="Фирма" value={editingCustomer?.company || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, company: e.target.value }))} /></div>
-            <div>
-              <TextField select label="Предпочитан магазин" value={editingCustomer?.preferredStore || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, preferredStore: e.target.value }))}>
-                <MenuItem value="">Без предпочитан магазин</MenuItem>
-                {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name} - {store.city}</MenuItem>)}
-              </TextField>
-            </div>
-            <FormGridFull>
-              <TextField label="Бележки" multiline minRows={3} value={editingCustomer?.notes || ""} onChange={(e) => setEditingCustomer((current) => ({ ...current, notes: e.target.value }))} />
-            </FormGridFull>
-          </FormGrid>
+          {editingCustomer ? (
+            <CustomerFields
+              customer={editingCustomer}
+              stores={stores}
+              onChange={(patch) => setEditingCustomer((current) => ({ ...current, ...patch }))}
+            />
+          ) : null}
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingCustomer(null)} onConfirm={handleUpdate} />
       </Dialog>
@@ -263,7 +392,7 @@ export default function CustomersPageStable() {
       <ConfirmDeleteDialog
         open={Boolean(deletingCustomer)}
         title="Изтриване на клиент"
-        description={`Сигурен ли си, че искаш да изтриеш ${deletingCustomer?.fullName || "този клиент"}?`}
+        description={`Сигурен ли си, че искаш да изтриеш ${getCustomerDisplayName(deletingCustomer)}?`}
         onClose={() => setDeletingCustomer(null)}
         onConfirm={handleDelete}
       />

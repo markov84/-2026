@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .populate("store", "name city")
-        .populate("customer", "fullName company")
+        .populate("customer", "customerType fullName company")
         .lean(),
       FinancialEntry.find().sort({ entryDate: -1, createdAt: -1 }).limit(10).populate("store", "name").lean(),
       AuditLog.find().sort({ createdAt: -1 }).limit(8).lean()

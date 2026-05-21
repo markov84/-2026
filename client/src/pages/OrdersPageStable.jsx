@@ -38,6 +38,11 @@ const paymentStatusLabels = {
   paid: "Платена"
 };
 
+function getCustomerDisplayName(customer) {
+  if (!customer) return "На място";
+  return customer.customerType === "company" ? customer.company || customer.fullName || "На място" : customer.fullName || customer.company || "На място";
+}
+
 function validateOrder(order) {
   if (!order?.store) return "Избери магазин.";
   if (!order?.product) return "Избери продукт.";
@@ -76,7 +81,7 @@ export default function OrdersPageStable() {
         headerName: "Клиент",
         flex: 0.9,
         minWidth: 135,
-        valueGetter: (_, row) => row.customer?.fullName || row.customer?.company || "На място"
+        valueGetter: (_, row) => getCustomerDisplayName(row.customer)
       },
       { field: "store", headerName: "Магазин", flex: 0.75, minWidth: 120, valueGetter: (_, row) => row.store?.name || "-" },
       ...(canSeeOrderAuthor
@@ -267,7 +272,7 @@ export default function OrdersPageStable() {
                 <MenuItem value="">Клиент на място</MenuItem>
                 {customers.map((customer) => (
                   <MenuItem key={customer._id} value={customer._id}>
-                    {customer.fullName}
+                    {getCustomerDisplayName(customer)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -336,7 +341,7 @@ export default function OrdersPageStable() {
                 <MenuItem value="">Клиент на място</MenuItem>
                 {customers.map((customer) => (
                   <MenuItem key={customer._id} value={customer._id}>
-                    {customer.fullName}
+                    {getCustomerDisplayName(customer)}
                   </MenuItem>
                 ))}
               </TextField>

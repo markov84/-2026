@@ -264,7 +264,7 @@ export function printOrder(order) {
       <section class="grid">
         <div class="box">
           <h2>Клиент</h2>
-          <p>${escapeHtml(order.customer?.fullName || order.customer?.company || "Клиент на място")}</p>
+          <p>${escapeHtml(order.customer?.customerType === "company" ? order.customer?.company || order.customer?.fullName || "Клиент на място" : order.customer?.fullName || order.customer?.company || "Клиент на място")}</p>
         </div>
         <div class="box">
           <h2>Магазин</h2>
