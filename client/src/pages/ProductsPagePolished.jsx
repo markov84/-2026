@@ -3,8 +3,9 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
+
 import {
   Avatar,
   Autocomplete,
@@ -23,8 +24,10 @@ import {
   TextField,
   Typography
 } from "@mui/material";
- import { DataGrid } from "@mui/x-data-grid";
+
+import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
+
 import ConfirmDeleteDialogStable from "../components/ConfirmDeleteDialogStable";
 import DataSection from "../components/DataSection";
 import DialogFooterActions from "../components/DialogFooterActions";
@@ -33,9 +36,12 @@ import GridRowActions from "../components/GridRowActions";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
+
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
+
 import { useAuth } from "../providers/AuthProviderStable";
+
 import { formatCurrencyEUR } from "../lib/currency";
 import api from "../lib/api";
 
