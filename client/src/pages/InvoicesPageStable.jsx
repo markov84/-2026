@@ -312,6 +312,26 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
           <Typography variant="subtitle1" fontWeight={800}>Редове във фактурата</Typography>
         </Stack>
 
+        <Box
+          sx={{
+            display: { xs: "none", md: "grid" },
+            gridTemplateColumns: "28px minmax(190px, 2fr) 58px 68px 108px 58px 30px",
+            gap: 0.5,
+            px: 0.25,
+            color: "text.secondary",
+            fontSize: 12,
+            fontWeight: 900
+          }}
+        >
+          <Box>№</Box>
+          <Box>Наименование</Box>
+          <Box>Мярка</Box>
+          <Box textAlign="right">Брой</Box>
+          <Box textAlign="right">Ед. цена</Box>
+          <Box textAlign="right">ДДС</Box>
+          <Box />
+        </Box>
+
         {invoice.items.map((item, index) => (
           <Box
             key={index}

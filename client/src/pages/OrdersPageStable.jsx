@@ -190,6 +190,25 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
       </Stack>
 
       <Stack spacing={0.75}>
+        <Box
+          sx={{
+            display: { xs: "none", md: "grid" },
+            gridTemplateColumns: "28px minmax(220px, 1fr) 64px 96px 96px 70px 30px",
+            gap: 0.5,
+            px: 0.35,
+            color: "text.secondary",
+            fontSize: 12,
+            fontWeight: 900
+          }}
+        >
+          <Box>№</Box>
+          <Box>Наименование</Box>
+          <Box textAlign="right">Брой</Box>
+          <Box textAlign="right">Ед. цена</Box>
+          <Box textAlign="right">Общо</Box>
+          <Box textAlign="right">Нал.</Box>
+          <Box />
+        </Box>
         {items.map((item, index) => {
           const selectedProduct = getProductById(products, item.product);
           const selectedInventory = getInventoryForItem(inventory, item.product, store);
@@ -202,7 +221,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "minmax(220px, 1fr) 64px 96px 96px 70px 30px" },
+                gridTemplateColumns: { xs: "1fr", md: "28px minmax(220px, 1fr) 64px 96px 96px 70px 30px" },
                 gap: 0.5,
                 alignItems: "center",
                 p: 0.35,
@@ -212,6 +231,9 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                 bgcolor: hasLowStockRisk ? "rgba(183,138,77,0.08)" : "background.paper"
               }}
             >
+              <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: { xs: "none", md: "block" } }}>
+                {index + 1}
+              </Typography>
               <TextField
                 select
                 size="small"

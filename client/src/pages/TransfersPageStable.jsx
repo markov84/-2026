@@ -297,9 +297,10 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
           }
         }}
       >
-        <Table size="small" sx={{ minWidth: 700, tableLayout: "fixed" }}>
+        <Table size="small" sx={{ minWidth: 728, tableLayout: "fixed" }}>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ width: 28, fontWeight: 900 }}>№</TableCell>
               <TableCell sx={{ width: 300, fontWeight: 900 }}>Продукт</TableCell>
               <TableCell align="right" sx={{ width: 76, fontWeight: 900 }}>Бройки</TableCell>
               <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Ед. цена</TableCell>
@@ -318,6 +319,11 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
 
               return (
                 <TableRow key={item.key} sx={{ bgcolor: hasLowStockRisk ? "rgba(183,138,77,0.08)" : "inherit" }}>
+                  <TableCell>
+                    <Typography variant="caption" fontWeight={900} color="text.secondary">
+                      {index + 1}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Autocomplete
                       options={products}
