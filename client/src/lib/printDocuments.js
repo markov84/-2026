@@ -245,7 +245,7 @@ export function printInvoice(invoice) {
 }
 
 export function printOrder(order) {
-  const item = order.items?.[0] || {};
+  const items = order.items?.length ? order.items : [];
 
   printHtml(
     `Продажба ${order.orderNumber || ""}`,
@@ -277,7 +277,7 @@ export function printOrder(order) {
         <thead>
           <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows([item])}</tbody>
+        <tbody>${getItemRows(items)}</tbody>
       </table>
       <section class="totals">
         <p class="total"><span>Общо:</span><span>${formatCurrencyEUR(order.totalAmount || 0)}</span></p>

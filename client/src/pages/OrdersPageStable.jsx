@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { Button, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -25,10 +26,7 @@ const initialOrder = {
   orderNumber: "Генерира се автоматично",
   store: "",
   customer: "",
-  product: "",
-  quantity: "1",
-  unitPrice: "",
-  totalAmount: "",
+  items: [],
   status: "pending",
   paymentStatus: "unpaid"
 };
@@ -39,6 +37,47 @@ const paymentStatusLabels = {
   paid: "Платена"
 };
 
+const orderStatusLabels = {
+  pending: "Чакаща",
+  confirmed: "Потвърдена",
+  fulfilled: "Изпълнена",
+  cancelled: "Отказана"
+};
+
+function createOrderItem(product = null, overrides = {}) {
+  return {
+    key: globalThis.crypto?.randomUUID?.() || `order-item-${Date.now()}-${Math.random()}`,
+    product: product?._id || "",
+    quantity: "1",
+    unitPrice: product ? String(product.price ?? "") : "",
+    ...overrides
+  };
+}
+
+function normalizeOrderItems(items = []) {
+  return items.map((item) =>
+    createOrderItem(null, {
+      product: item.product?._id || item.product || "",
+      quantity: String(item.quantity ?? 1),
+      unitPrice: String(item.unitPrice ?? item.product?.price ?? "")
+    })
+  );
+}
+
+function getCleanOrderItems(order) {
+  return (order?.items || [])
+    .map((item) => ({
+      product: item.product,
+      quantity: Number(item.quantity || 0),
+      unitPrice: Number(item.unitPrice || 0)
+    }))
+    .filter((item) => item.product && item.quantity > 0);
+}
+
+function getOrderTotal(order) {
+  return getCleanOrderItems(order).reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+}
+
 function getCustomerDisplayName(customer) {
   if (!customer) return "На място";
   return customer.customerType === "company" ? customer.company || customer.fullName || "На място" : customer.fullName || customer.company || "На място";
@@ -46,10 +85,17 @@ function getCustomerDisplayName(customer) {
 
 function validateOrder(order) {
   if (!order?.store) return "Избери магазин.";
-  if (!order?.product) return "Избери продукт.";
-  if (Number(order?.quantity || 0) <= 0) return "Количеството трябва да е по-голямо от 0.";
-  if (Number(order?.unitPrice || 0) < 0) return "Единичната цена не може да е отрицателна.";
-  if (Number(order?.totalAmount || 0) <= 0) return "Крайната сума трябва да е по-голяма от 0.";
+  const items = getCleanOrderItems(order);
+  if (!items.length) return "Добави поне един продукт.";
+
+  for (const [index, item] of items.entries()) {
+    const row = index + 1;
+    if (!item.product) return `Избери продукт на ред ${row}.`;
+    if (Number(item.quantity || 0) <= 0) return `Количеството на ред ${row} трябва да е по-голямо от 0.`;
+    if (Number(item.unitPrice || 0) < 0) return `Единичната цена на ред ${row} не може да е отрицателна.`;
+  }
+
+  if (getOrderTotal(order) <= 0) return "Крайната сума трябва да е по-голяма от 0.";
   return "";
 }
 
@@ -68,6 +114,189 @@ function findProductByScanCode(products, code) {
   );
 }
 
+function getProductById(products, productId) {
+  return products.find((product) => product._id === productId) || null;
+}
+
+function getInventoryForItem(inventory, productId, storeId) {
+  return inventory.find((item) => item.product?._id === productId && item.store?._id === storeId);
+}
+
+function getProductOptionLabel(product) {
+  if (!product) return "";
+  return [product.name, product.sku, product.barcode].filter(Boolean).join(" | ");
+}
+
+function OrderProductsCell({ items }) {
+  const visibleItems = items || [];
+  if (!visibleItems.length) return <Typography variant="body2" color="text.secondary">-</Typography>;
+
+  return (
+    <Stack spacing={0.5} sx={{ width: "100%", py: 0.75 }}>
+      {visibleItems.slice(0, 3).map((item, index) => (
+        <Stack key={`${item.product?._id || index}-${index}`} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <ProductIdentity compact product={item.product} />
+          </Box>
+          <Typography variant="body2" fontWeight={900} whiteSpace="nowrap">
+            {Number(item.quantity || 0)} бр.
+          </Typography>
+        </Stack>
+      ))}
+      {visibleItems.length > 3 ? (
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>
+          + още {visibleItems.length - 3} продукта
+        </Typography>
+      ) : null}
+    </Stack>
+  );
+}
+
+function OrderItemsEditor({ value, products, inventory, store, onChange }) {
+  const items = value?.length ? value : [createOrderItem()];
+
+  function updateItem(key, patch) {
+    onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  }
+
+  function removeItem(key) {
+    const nextItems = items.filter((item) => item.key !== key);
+    onChange(nextItems.length ? nextItems : [createOrderItem()]);
+  }
+
+  function addEmptyItem() {
+    onChange([...items, createOrderItem()]);
+  }
+
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+        <Typography variant="subtitle1" fontWeight={900}>
+          Продукти в продажбата
+        </Typography>
+        <Button size="small" variant="outlined" startIcon={<AddShoppingCartRoundedIcon />} onClick={addEmptyItem}>
+          Добави продукт
+        </Button>
+      </Stack>
+
+      <Stack spacing={1}>
+        {items.map((item, index) => {
+          const selectedProduct = getProductById(products, item.product);
+          const selectedInventory = getInventoryForItem(inventory, item.product, store);
+          const quantity = Number(item.quantity || 0);
+          const unitPrice = Number(item.unitPrice || 0);
+          const hasLowStockRisk = selectedInventory && quantity > Number(selectedInventory.quantity || 0);
+
+          return (
+            <Box
+              key={item.key}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "minmax(240px, 1fr) 88px 130px 130px 96px 42px" },
+                gap: 1,
+                alignItems: "center",
+                p: 1,
+                border: "1px solid",
+                borderColor: hasLowStockRisk ? "warning.main" : "divider",
+                borderRadius: 1.25,
+                bgcolor: hasLowStockRisk ? "rgba(183,138,77,0.08)" : "background.paper"
+              }}
+            >
+              <TextField
+                select
+                size="small"
+                label={`Продукт ${index + 1}`}
+                value={item.product}
+                onChange={(event) => {
+                  const product = getProductById(products, event.target.value);
+                  updateItem(item.key, {
+                    product: event.target.value,
+                    quantity: item.quantity || "1",
+                    unitPrice: String(product?.price ?? item.unitPrice ?? "")
+                  });
+                }}
+              >
+                {products.map((product) => (
+                  <MenuItem key={product._id} value={product._id}>
+                    {getProductOptionLabel(product)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                size="small"
+                label="Брой"
+                type="number"
+                value={item.quantity}
+                onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
+                inputProps={{ min: 1 }}
+              />
+              <TextField
+                size="small"
+                label="Ед. цена"
+                type="number"
+                value={item.unitPrice}
+                onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
+                inputProps={{ min: 0 }}
+              />
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                  Сума
+                </Typography>
+                <Typography variant="body2" fontWeight={900} color="primary.main">
+                  {formatCurrencyEUR(quantity * unitPrice)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                  Наличност
+                </Typography>
+                <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900}>
+                  {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
+                </Typography>
+              </Box>
+              <Tooltip title="Премахни продукт">
+                <span>
+                  <IconButton size="small" color="error" onClick={() => removeItem(item.key)} disabled={items.length === 1} aria-label="Премахни продукт">
+                    <DeleteRoundedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              {selectedProduct ? (
+                <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
+                  <ProductPreviewCard product={selectedProduct} />
+                </Box>
+              ) : null}
+            </Box>
+          );
+        })}
+      </Stack>
+    </Stack>
+  );
+}
+
+function OrderTotals({ order }) {
+  const rows = getCleanOrderItems(order);
+  const totalQuantity = rows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const totalAmount = getOrderTotal(order);
+
+  return (
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
+        <Typography fontWeight={900}>{rows.length}</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
+        <Typography fontWeight={900}>{totalQuantity} бр.</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо</Typography>
+        <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totalAmount)}</Typography>
+      </Box>
+    </Stack>
+  );
+}
+
 export default function OrdersPageStable() {
   const { user } = useAuth();
   const { data: orders, loading, setData } = useFetch("/orders");
@@ -83,13 +312,6 @@ export default function OrdersPageStable() {
   const [deletingOrder, setDeletingOrder] = useState(null);
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
-
-  const activeForm = editingOrder || form;
-  const selectedProduct = useMemo(() => products.find((product) => product._id === activeForm.product), [products, activeForm.product]);
-  const selectedInventory = useMemo(
-    () => inventory.find((item) => item.product?._id === activeForm.product && item.store?._id === activeForm.store),
-    [inventory, activeForm.product, activeForm.store]
-  );
 
   const orderColumns = useMemo(
     () => [
@@ -114,11 +336,12 @@ export default function OrdersPageStable() {
           ]
         : []),
       {
-        field: "product",
-        headerName: "Продукт",
-        flex: 1.9,
-        minWidth: 280,
-        renderCell: (params) => <ProductIdentity compact product={params?.row?.items?.[0]?.product} />
+        field: "products",
+        headerName: "Продукти",
+        flex: 2,
+        minWidth: 300,
+        sortable: false,
+        renderCell: (params) => <OrderProductsCell items={params?.row?.items || []} />
       },
       {
         field: "paymentStatus",
@@ -147,30 +370,37 @@ export default function OrdersPageStable() {
     [canSeeOrderAuthor]
   );
 
-  useEffect(() => {
-    if (!selectedProduct || editingOrder) return;
-    setForm((current) => {
-      const quantity = Number(current.quantity || 1);
-      const unitPrice = current.unitPrice || String(selectedProduct.price ?? "");
-      const totalAmount = Number(unitPrice || 0) * quantity;
-      return { ...current, unitPrice, totalAmount: totalAmount ? totalAmount.toFixed(2) : current.totalAmount };
-    });
-  }, [selectedProduct, editingOrder]);
+  function openCreateDialog() {
+    setForm({ ...initialOrder, items: [createOrderItem()] });
+    setScanCode("");
+    setOpen(true);
+  }
 
   function openEditDialog(order) {
-    const item = order.items?.[0] || {};
     setEditingOrder({
       _id: order._id,
       orderNumber: order.orderNumber || "",
       store: order.store?._id || "",
       customer: order.customer?._id || "",
-      product: item.product?._id || "",
-      quantity: String(item.quantity ?? 1),
-      unitPrice: String(item.unitPrice ?? ""),
-      totalAmount: String(order.totalAmount ?? ""),
+      items: normalizeOrderItems(order.items),
       status: order.status || "pending",
       paymentStatus: order.paymentStatus || "unpaid"
     });
+    setEditScanCode("");
+  }
+
+  function buildOrderPayload(order, { includeOrderNumber = false } = {}) {
+    const payload = {
+      store: order.store,
+      customer: order.customer || undefined,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmount: getOrderTotal(order),
+      items: getCleanOrderItems(order)
+    };
+
+    if (includeOrderNumber) payload.orderNumber = order.orderNumber.trim();
+    return payload;
   }
 
   async function handleCreate() {
@@ -181,14 +411,7 @@ export default function OrdersPageStable() {
     }
 
     try {
-      const response = await api.post("/orders", {
-        store: form.store,
-        customer: form.customer || undefined,
-        status: form.status,
-        paymentStatus: form.paymentStatus,
-        totalAmount: Number(form.totalAmount),
-        items: [{ product: form.product, quantity: Number(form.quantity), unitPrice: Number(form.unitPrice) }]
-      });
+      const response = await api.post("/orders", buildOrderPayload(form));
       setData((current) => [response.data, ...current]);
       setForm(initialOrder);
       setOpen(false);
@@ -208,15 +431,7 @@ export default function OrdersPageStable() {
     }
 
     try {
-      const response = await api.put(`/orders/${editingOrder._id}`, {
-        orderNumber: editingOrder.orderNumber.trim(),
-        store: editingOrder.store,
-        customer: editingOrder.customer || undefined,
-        status: editingOrder.status,
-        paymentStatus: editingOrder.paymentStatus,
-        totalAmount: Number(editingOrder.totalAmount),
-        items: [{ product: editingOrder.product, quantity: Number(editingOrder.quantity), unitPrice: Number(editingOrder.unitPrice) }]
-      });
+      const response = await api.put(`/orders/${editingOrder._id}`, buildOrderPayload(editingOrder, { includeOrderNumber: true }));
       setData((current) => current.map((item) => (item._id === editingOrder._id ? response.data : item)));
       setEditingOrder(null);
       toast.success("Продажбата е обновена.");
@@ -238,17 +453,6 @@ export default function OrdersPageStable() {
     }
   }
 
-  function updateDraft(setter, nextPatch) {
-    setter((current) => {
-      const next = { ...current, ...nextPatch };
-      if ("quantity" in nextPatch || "unitPrice" in nextPatch) {
-        const totalAmount = Number(next.quantity || 0) * Number(next.unitPrice || 0);
-        next.totalAmount = totalAmount ? totalAmount.toFixed(2) : "";
-      }
-      return next;
-    });
-  }
-
   function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
     const code = normalizeScanCode(rawCode);
     if (!code) return;
@@ -260,22 +464,27 @@ export default function OrdersPageStable() {
     }
 
     setter((current) => {
-      const currentQuantity = Number(current.quantity || 0);
-      const isSameProduct = current.product === product._id;
-      const quantity = isSameProduct ? String(currentQuantity + 1) : current.quantity || "1";
-      const unitPrice = String(product.price ?? current.unitPrice ?? "");
-      const totalAmount = Number(quantity || 0) * Number(unitPrice || 0);
+      const currentItems = current.items?.length ? current.items : [];
+      const existingItem = currentItems.find((item) => item.product === product._id);
+
+      if (existingItem) {
+        return {
+          ...current,
+          items: currentItems.map((item) =>
+            item.key === existingItem.key ? { ...item, quantity: String(Number(item.quantity || 0) + 1), unitPrice: item.unitPrice || String(product.price ?? "") } : item
+          )
+        };
+      }
 
       return {
         ...current,
-        product: product._id,
-        quantity,
-        unitPrice,
-        totalAmount: totalAmount ? totalAmount.toFixed(2) : ""
+        items: [...currentItems, createOrderItem(product)]
       };
     });
+
     clearScan("");
-    toast.success(activeDraft?.product === product._id ? "Количество +1." : `Избран продукт: ${product.name}`);
+    const alreadyInCart = activeDraft?.items?.some((item) => item.product === product._id);
+    toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
   }
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
@@ -284,12 +493,84 @@ export default function OrdersPageStable() {
     applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
   }
 
+  function renderSharedOrderFields(order, setOrder, scanValue, setScanValue) {
+    return (
+      <Stack spacing={2.5}>
+        <TextField
+          fullWidth
+          label="Сканирай баркод или SKU"
+          value={scanValue}
+          onChange={(event) => setScanValue(event.target.value)}
+          onKeyDown={(event) => handleScanKeyDown(event, setOrder, setScanValue, order)}
+          helperText="Сканирай продукт, за да го добавиш в продажбата. Повторно сканиране увеличава количеството."
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <QrCodeScannerRoundedIcon fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <Button size="small" onClick={() => applyScannedProduct(scanValue, setOrder, setScanValue, order)}>
+                  Добави
+                </Button>
+              </InputAdornment>
+            )
+          }}
+        />
+        <FormGrid min={230}>
+          <TextField
+            label="Номер на продажба"
+            value={order.orderNumber}
+            disabled={order.orderNumber === initialOrder.orderNumber}
+            onChange={(event) => setOrder((current) => ({ ...current, orderNumber: event.target.value }))}
+          />
+          <TextField select label="Магазин" value={order.store} onChange={(event) => setOrder((current) => ({ ...current, store: event.target.value }))}>
+            {stores.map((store) => (
+              <MenuItem key={store._id} value={store._id}>
+                {store.name} | {store.city}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Клиент" value={order.customer} onChange={(event) => setOrder((current) => ({ ...current, customer: event.target.value }))}>
+            <MenuItem value="">Клиент на място</MenuItem>
+            {customers.map((customer) => (
+              <MenuItem key={customer._id} value={customer._id}>
+                {getCustomerDisplayName(customer)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Статус" value={order.status} onChange={(event) => setOrder((current) => ({ ...current, status: event.target.value }))}>
+            {Object.entries(orderStatusLabels).map(([value, label]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Плащане" value={order.paymentStatus} onChange={(event) => setOrder((current) => ({ ...current, paymentStatus: event.target.value }))}>
+            {Object.entries(paymentStatusLabels).map(([value, label]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </FormGrid>
+        <FormGridFull>
+          <OrderItemsEditor value={order.items} products={products} inventory={inventory} store={order.store} onChange={(items) => setOrder((current) => ({ ...current, items }))} />
+        </FormGridFull>
+        <FormGridFull>
+          <OrderTotals order={order} />
+        </FormGridFull>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader
         eyebrow="Продажби"
         title="Продажби и търговски поток"
-        subtitle="Създавай, редактирай и изтривай продажби с визуален избор на продукт."
+        subtitle="Създавай продажби с един или повече продукти, сканиране и бързо премахване от кошницата."
         icon={<ReceiptLongRoundedIcon />}
       />
 
@@ -298,212 +579,25 @@ export default function OrdersPageStable() {
         subtitle="Последни търговски операции"
         icon={<ReceiptLongRoundedIcon />}
         actions={
-          <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={() => setOpen(true)}>
+          <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
             Нова продажба
           </Button>
         }
       >
         <ResponsiveTable>
-          <DataGrid loading={loading} rowHeight={52} columnHeaderHeight={44} rows={orders} getRowId={(row) => row._id} columns={orderColumns} disableRowSelectionOnClick />
+          <DataGrid loading={loading} getRowHeight={() => "auto"} columnHeaderHeight={44} rows={orders} getRowId={(row) => row._id} columns={orderColumns} disableRowSelectionOnClick />
         </ResponsiveTable>
       </DataSection>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Нова продажба</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2.5}>
-            <TextField
-              fullWidth
-              label="Сканирай баркод или SKU"
-              value={scanCode}
-              onChange={(e) => setScanCode(e.target.value)}
-              onKeyDown={(e) => handleScanKeyDown(e, setForm, setScanCode, form)}
-              helperText="Работи с USB/Bluetooth баркод четец. След сканиране натисни Enter, ако четецът не го изпраща автоматично."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <QrCodeScannerRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Button size="small" onClick={() => applyScannedProduct(scanCode, setForm, setScanCode, form)}>
-                      Добави
-                    </Button>
-                  </InputAdornment>
-                )
-              }}
-            />
-            <FormGrid min={230}>
-              <TextField label="Номер на продажба" value={form.orderNumber} disabled />
-              <TextField select label="Магазин" value={form.store} onChange={(e) => setForm({ ...form, store: e.target.value })}>
-                {stores.map((store) => (
-                  <MenuItem key={store._id} value={store._id}>
-                    {store.name} | {store.city}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField select label="Клиент" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
-                <MenuItem value="">Клиент на място</MenuItem>
-                {customers.map((customer) => (
-                  <MenuItem key={customer._id} value={customer._id}>
-                    {getCustomerDisplayName(customer)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Продукт"
-                value={form.product}
-                onChange={(e) =>
-                  updateDraft(setForm, {
-                    product: e.target.value,
-                    unitPrice: String(products.find((product) => product._id === e.target.value)?.price ?? form.unitPrice)
-                  })
-                }
-              >
-                {products.map((product) => (
-                  <MenuItem key={product._id} value={product._id}>
-                    {product.name} | {product.sku}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField label="Количество" type="number" value={form.quantity} onChange={(e) => updateDraft(setForm, { quantity: e.target.value })} />
-              <TextField label="Единична цена" type="number" value={form.unitPrice} onChange={(e) => updateDraft(setForm, { unitPrice: e.target.value })} />
-              <TextField label="Крайна сума" type="number" value={form.totalAmount} onChange={(e) => setForm({ ...form, totalAmount: e.target.value })} />
-            </FormGrid>
-            <FormGridFull>
-              <ProductPreviewCard product={selectedProduct} />
-            </FormGridFull>
-            <FormGridFull>
-              <Typography variant="body2" color={selectedInventory ? "text.primary" : "warning.main"} fontWeight={700}>
-                Наличност в избрания магазин: {selectedInventory ? `${selectedInventory.quantity} бр.` : "няма наличност"}
-              </Typography>
-            </FormGridFull>
-          </Stack>
-        </DialogContent>
+        <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode)}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
 
-      <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="md" fullScreen={isMobile}>
+      <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Редактиране на продажба</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2.5}>
-            <TextField
-              fullWidth
-              label="Сканирай баркод или SKU"
-              value={editScanCode}
-              onChange={(e) => setEditScanCode(e.target.value)}
-              onKeyDown={(e) => handleScanKeyDown(e, setEditingOrder, setEditScanCode, editingOrder)}
-              helperText="Сканирай нов продукт или същия продукт за +1 към количеството."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <QrCodeScannerRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Button size="small" onClick={() => applyScannedProduct(editScanCode, setEditingOrder, setEditScanCode, editingOrder)}>
-                      Добави
-                    </Button>
-                  </InputAdornment>
-                )
-              }}
-            />
-            <FormGrid min={230}>
-              <TextField
-                label="Номер на продажба"
-                value={editingOrder?.orderNumber || ""}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, orderNumber: e.target.value }))}
-              />
-              <TextField
-                select
-                label="Магазин"
-                value={editingOrder?.store || ""}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, store: e.target.value }))}
-              >
-                {stores.map((store) => (
-                  <MenuItem key={store._id} value={store._id}>
-                    {store.name} | {store.city}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Клиент"
-                value={editingOrder?.customer || ""}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, customer: e.target.value }))}
-              >
-                <MenuItem value="">Клиент на място</MenuItem>
-                {customers.map((customer) => (
-                  <MenuItem key={customer._id} value={customer._id}>
-                    {getCustomerDisplayName(customer)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Продукт"
-                value={editingOrder?.product || ""}
-                onChange={(e) =>
-                  updateDraft(setEditingOrder, {
-                    product: e.target.value,
-                    unitPrice: String(products.find((product) => product._id === e.target.value)?.price ?? editingOrder?.unitPrice)
-                  })
-                }
-              >
-                {products.map((product) => (
-                  <MenuItem key={product._id} value={product._id}>
-                    {product.name} | {product.sku}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Количество"
-                type="number"
-                value={editingOrder?.quantity || "1"}
-                onChange={(e) => updateDraft(setEditingOrder, { quantity: e.target.value })}
-              />
-              <TextField
-                label="Единична цена"
-                type="number"
-                value={editingOrder?.unitPrice || ""}
-                onChange={(e) => updateDraft(setEditingOrder, { unitPrice: e.target.value })}
-              />
-              <TextField
-                label="Крайна сума"
-                type="number"
-                value={editingOrder?.totalAmount || ""}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, totalAmount: e.target.value }))}
-              />
-              <TextField
-                select
-                label="Статус"
-                value={editingOrder?.status || "pending"}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, status: e.target.value }))}
-              >
-                <MenuItem value="pending">Чакаща</MenuItem>
-                <MenuItem value="confirmed">Потвърдена</MenuItem>
-                <MenuItem value="fulfilled">Изпълнена</MenuItem>
-                <MenuItem value="cancelled">Отказана</MenuItem>
-              </TextField>
-              <TextField
-                select
-                label="Плащане"
-                value={editingOrder?.paymentStatus || "unpaid"}
-                onChange={(e) => setEditingOrder((current) => ({ ...current, paymentStatus: e.target.value }))}
-              >
-                <MenuItem value="unpaid">Неплатена</MenuItem>
-                <MenuItem value="partial">Частично</MenuItem>
-                <MenuItem value="paid">Платена</MenuItem>
-              </TextField>
-            </FormGrid>
-            <FormGridFull>
-              <ProductPreviewCard product={selectedProduct} />
-            </FormGridFull>
-          </Stack>
-        </DialogContent>
+        <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode) : null}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingOrder(null)} onConfirm={handleUpdate} />
       </Dialog>
 

@@ -115,7 +115,7 @@ router.post(
       }
     }
 
-    const productIds = req.body.items.map((item) => item.product);
+    const productIds = Array.from(new Set(req.body.items.map((item) => String(item.product))));
     const productCount = await Product.countDocuments({ _id: { $in: productIds } });
     if (productCount !== productIds.length) {
       return res.status(404).json({ message: "One or more products were not found." });
@@ -195,7 +195,7 @@ router.put(
       }
     }
 
-    const productIds = nextItems.map((item) => item.product);
+    const productIds = Array.from(new Set(nextItems.map((item) => String(item.product))));
     const productCount = await Product.countDocuments({ _id: { $in: productIds } });
     if (productCount !== productIds.length) {
       return res.status(404).json({ message: "One or more products were not found." });
