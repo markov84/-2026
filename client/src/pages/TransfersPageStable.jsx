@@ -276,34 +276,36 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
           overflowX: "auto",
           bgcolor: "background.paper",
           "& .MuiTableCell-root": {
-            px: 1,
-            py: 0.65,
+            px: 0.6,
+            py: 0.35,
             borderColor: "rgba(39,86,107,0.10)"
           },
           "& .MuiTableCell-head": {
-            py: 0.75,
+            py: 0.45,
             bgcolor: "rgba(39,86,107,0.04)",
             color: "text.secondary",
             fontSize: 12,
             lineHeight: 1.2
           },
           "& .MuiInputBase-root": {
-            minHeight: 34
+            minHeight: 30
           },
           "& .MuiInputBase-input": {
-            py: 0.75
+            py: 0.35,
+            px: 0.7,
+            fontSize: 13
           }
         }}
       >
-        <Table size="small" sx={{ minWidth: 760, tableLayout: "fixed" }}>
+        <Table size="small" sx={{ minWidth: 700, tableLayout: "fixed" }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 330, fontWeight: 900 }}>Продукт</TableCell>
-              <TableCell align="right" sx={{ width: 92, fontWeight: 900 }}>Бройки</TableCell>
-              <TableCell align="right" sx={{ width: 108, fontWeight: 900 }}>Ед. цена</TableCell>
-              <TableCell align="right" sx={{ width: 112, fontWeight: 900 }}>Сума</TableCell>
-              <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Наличност</TableCell>
-              <TableCell align="center" sx={{ width: 42, fontWeight: 900 }} />
+              <TableCell sx={{ width: 300, fontWeight: 900 }}>Продукт</TableCell>
+              <TableCell align="right" sx={{ width: 76, fontWeight: 900 }}>Бройки</TableCell>
+              <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Ед. цена</TableCell>
+              <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Сума</TableCell>
+              <TableCell align="right" sx={{ width: 86, fontWeight: 900 }}>Наличност</TableCell>
+              <TableCell align="center" sx={{ width: 34, fontWeight: 900 }} />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -350,7 +352,7 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
                       value={item.quantity}
                       onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
                       inputProps={{ min: 1 }}
-                      sx={{ width: 74 }}
+                      sx={{ width: 62 }}
                       aria-label="Бройки"
                     />
                   </TableCell>

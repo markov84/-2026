@@ -49,11 +49,11 @@ const denseInvoiceFieldSx = {
     transform: "translate(10px, -8px) scale(0.72)"
   },
   "& .MuiOutlinedInput-root": {
-    minHeight: 34
+    minHeight: 30
   },
   "& .MuiInputBase-input": {
-    py: 0.55,
-    px: 1,
+    py: 0.25,
+    px: 0.7,
     fontSize: 13
   }
 };
@@ -317,10 +317,10 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
             key={index}
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "34px minmax(200px, 2fr) 64px 76px 116px 66px 32px" },
+              gridTemplateColumns: { xs: "1fr", md: "28px minmax(190px, 2fr) 58px 68px 108px 58px 30px" },
               gap: 0.5,
               alignItems: "center",
-              p: 0.35,
+              p: 0.25,
               borderRadius: 1.25,
               border: "1px solid rgba(39,86,107,0.12)"
             }}

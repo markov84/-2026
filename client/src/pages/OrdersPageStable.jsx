@@ -175,7 +175,14 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
   }
 
   return (
-    <Stack spacing={1}>
+    <Stack
+      spacing={0.75}
+      sx={{
+        "& .MuiInputBase-root": { minHeight: 32 },
+        "& .MuiInputBase-input": { py: 0.35, px: 0.75, fontSize: 13 },
+        "& .MuiSelect-select": { py: 0.35, px: 0.75, fontSize: 13 }
+      }}
+    >
       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
         <Typography variant="subtitle1" fontWeight={900}>
           Продукти в продажбата
@@ -195,10 +202,10 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "minmax(220px, 1fr) 76px 112px 112px 82px 34px" },
-                gap: 0.75,
+                gridTemplateColumns: { xs: "1fr", md: "minmax(220px, 1fr) 64px 96px 96px 70px 30px" },
+                gap: 0.5,
                 alignItems: "center",
-                p: 0.65,
+                p: 0.35,
                 border: "1px solid",
                 borderColor: hasLowStockRisk ? "warning.main" : "divider",
                 borderRadius: 1.25,
@@ -208,7 +215,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               <TextField
                 select
                 size="small"
-                label={`Продукт ${index + 1}`}
+                aria-label={`Продукт ${index + 1}`}
                 value={item.product}
                 onChange={(event) => {
                   const product = getProductById(products, event.target.value);
@@ -227,7 +234,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               </TextField>
               <TextField
                 size="small"
-                label="Брой"
+                aria-label="Брой"
                 type="number"
                 value={item.quantity}
                 onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
@@ -235,25 +242,19 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               />
               <TextField
                 size="small"
-                label="Ед. цена"
+                aria-label="Единична цена"
                 type="number"
                 value={item.unitPrice}
                 onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
                 inputProps={{ min: 0 }}
               />
               <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={800}>
-                  Сума
-                </Typography>
-                <Typography variant="body2" fontWeight={900} color="primary.main">
+                <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
                   {formatCurrencyEUR(quantity * unitPrice)}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={800}>
-                  Наличност
-                </Typography>
-                <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900}>
+                <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900} noWrap>
                   {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
                 </Typography>
               </Box>
