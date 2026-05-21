@@ -23,7 +23,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStable";
-import MobileBottomNavigationBar from "./MobileBottomNavigation";
+import MobileBottomNavigationBar from "./MobileBottomNavigationBar";
 import MobileQuickActions from "./MobileQuickActions";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
