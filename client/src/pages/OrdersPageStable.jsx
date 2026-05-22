@@ -3,7 +3,8 @@ import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRound
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { Autocomplete, Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -234,26 +235,29 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
               <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: { xs: "none", md: "block" } }}>
                 {index + 1}
               </Typography>
-              <TextField
-                select
+              <Autocomplete
                 size="small"
-                aria-label={`Продукт ${index + 1}`}
-                value={item.product}
-                onChange={(event) => {
-                  const product = getProductById(products, event.target.value);
+                options={products}
+                getOptionLabel={getProductOptionLabel}
+                value={selectedProduct}
+                onChange={(_, product) => {
                   updateItem(item.key, {
-                    product: event.target.value,
+                    product: product?._id || "",
                     quantity: item.quantity || "1",
                     unitPrice: String(product?.price ?? item.unitPrice ?? "")
                   });
                 }}
-              >
-                {products.map((product) => (
-                  <MenuItem key={product._id} value={product._id}>
-                    {getProductOptionLabel(product)}
-                  </MenuItem>
-                ))}
-              </TextField>
+                isOptionEqualToValue={(option, value) => option._id === value._id}
+                noOptionsText="Няма продукт"
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Продукт"
+                    placeholder="Търси продукт"
+                    size="small"
+                  />
+                )}
+              />
               <TextField
                 size="small"
                 aria-label="Брой"
@@ -331,8 +335,35 @@ export default function OrdersPageStable() {
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [orderQuery, setOrderQuery] = useState("");
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
+
+  const filteredOrders = useMemo(() => {
+    const normalized = orderQuery.trim().toLowerCase();
+    if (!normalized) return orders;
+
+    return orders.filter((order) => {
+      const productNames = (order.items || [])
+        .map((item) => item.product?.name || item.product?.sku || item.product?.barcode || "")
+        .join(" ");
+
+      return [
+        order.orderNumber,
+        order.store?.name,
+        order.customer?.fullName,
+        order.customer?.company,
+        order.customer?.vatNumber,
+        order.status,
+        order.paymentStatus,
+        order.createdBy?.fullName,
+        order.createdBy?.username,
+        productNames
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized));
+    });
+  }, [orders, orderQuery]);
 
   const orderColumns = useMemo(
     () => [
@@ -599,6 +630,29 @@ export default function OrdersPageStable() {
         title="Регистър на продажбите"
         subtitle="Последни търговски операции"
         icon={<ReceiptLongRoundedIcon />}
+        toolbar={
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+            <TextField
+              placeholder="Търси по номер, клиент, обект, служител или продукт"
+              value={orderQuery}
+              onChange={(event) => setOrderQuery(event.target.value)}
+              size="small"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                )
+              }}
+              sx={{ minWidth: 220, maxWidth: 420 }}
+            />
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+                Показани: {filteredOrders.length} / {orders.length}
+              </Typography>
+            </Stack>
+          </Stack>
+        }
         actions={
           <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
             Нова продажба
@@ -606,7 +660,7 @@ export default function OrdersPageStable() {
         }
       >
         <ResponsiveTable>
-          <DataGrid loading={loading} getRowHeight={() => "auto"} columnHeaderHeight={44} rows={orders} getRowId={(row) => row._id} columns={orderColumns} disableRowSelectionOnClick />
+          <DataGrid loading={loading} getRowHeight={() => "auto"} columnHeaderHeight={44} rows={filteredOrders} getRowId={(row) => row._id} columns={orderColumns} disableRowSelectionOnClick />
         </ResponsiveTable>
       </DataSection>
 
