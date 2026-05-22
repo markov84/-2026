@@ -27,8 +27,8 @@ import MobileBottomNavigationBar from "./MobileBottomNavigation";
 import MobileQuickActions from "./MobileQuickActions";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
-const drawerWidth = 300;
-const iconRailHeight = 74;
+const drawerWidth = 240;
+const iconRailHeight = 64;
 
 const navItems = [
   { label: "Табло", path: "/", iconKey: "dashboard", color: "#4f8cff", bg: "rgba(79,140,255,0.16)" },
@@ -206,9 +206,9 @@ function Navigation({ onNavigate }) {
           "radial-gradient(circle at top left, rgba(124,154,173,0.22), transparent 28%), radial-gradient(circle at bottom right, rgba(58,84,103,0.22), transparent 24%), linear-gradient(180deg, #243340 0%, #1d2933 55%, #17212a 100%)"
       }}
     >
-      <Box sx={{ px: 2, pt: 2, pb: 1.5, flexShrink: 0 }}>
-        <Stack spacing={2} width="100%">
-          <Stack spacing={1} alignItems="flex-start">
+      <Box sx={{ px: 1.5, pt: 2, pb: 1.25, flexShrink: 0 }}>
+        <Stack spacing={1.5} width="100%">
+          <Stack spacing={0.75} alignItems="flex-start">
             <Box
               component="img"
               src="/MARKLIGHT.png"
@@ -232,7 +232,7 @@ function Navigation({ onNavigate }) {
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
-      <List sx={{ p: 2, flexGrow: 1, overflowY: "auto" }}>
+      <List sx={{ p: 1.5, flexGrow: 1, overflowY: "auto" }}>
         {visibleNavItems.map((item, index) => (
           <ListItemButton
             key={item.path}
@@ -244,10 +244,10 @@ function Navigation({ onNavigate }) {
             onClick={onNavigate}
             onKeyDown={(event) => handleNavItemKeyDown(event, index)}
             sx={{
-              mb: 1,
-              px: 1.5,
-              py: 1.1,
-              minHeight: 52,
+              mb: 0.75,
+              px: 1.25,
+              py: 0.9,
+              minHeight: 48,
               borderRadius: 3,
               color: "#e8edf3",
               alignItems: "center",
@@ -257,7 +257,7 @@ function Navigation({ onNavigate }) {
               }
             }}
           >
-            <ListItemIcon sx={{ minWidth: 42, justifyContent: "center" }}>
+            <ListItemIcon sx={{ minWidth: 36, justifyContent: "center" }}>
               <ColorIcon item={item} />
             </ListItemIcon>
             <ListItemText
@@ -328,9 +328,9 @@ function IconRail() {
       sx={(theme) => ({
         minHeight: iconRailHeight,
         alignItems: "center",
-        px: { xs: 1.5, md: 3 },
-        py: 1,
-        gap: 1,
+        px: { xs: 1, md: 2 },
+        py: 0.75,
+        gap: 0.75,
         background:
           theme.palette.mode === "dark"
             ? "linear-gradient(180deg, rgba(24,35,48,0.98) 0%, rgba(16,24,33,0.96) 100%)"
@@ -372,8 +372,10 @@ function IconRail() {
               aria-label={item.label}
               onKeyDown={(event) => handleRailItemKeyDown(event, index)}
               sx={{
+                width: 44,
+                height: 44,
                 p: 0,
-                borderRadius: 2.5,
+                borderRadius: 2.25,
                 transition: "transform 160ms ease, box-shadow 160ms ease",
                 "&:hover": {
                   transform: "translateY(-1px)"
@@ -382,8 +384,8 @@ function IconRail() {
                   color: item.color,
                   bgcolor: item.bg,
                   borderColor: item.color,
-                  boxShadow: `0 0 0 3px #fff, 0 0 0 6px ${item.bg}, 0 12px 26px rgba(35,52,59,0.16)`,
-                  transform: "translateY(-1px) scale(1.05)"
+                  boxShadow: `0 0 0 2px #fff, 0 0 0 4px ${item.bg}, 0 12px 18px rgba(35,52,59,0.14)`,
+                  transform: "translateY(-1px) scale(1.04)"
                 },
                 "&.active svg": {
                   color: item.color
