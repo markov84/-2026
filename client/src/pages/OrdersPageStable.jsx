@@ -256,6 +256,14 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                     placeholder="Сканирай или търси продукт"
                     helperText="Въведи име/SKU/barcode или сканирай директно тук"
                     size="small"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <QrCodeScannerRoundedIcon fontSize="small" />
+                        </InputAdornment>
+                      )
+                    }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
                       const code = String(e.currentTarget.value || "").trim();
