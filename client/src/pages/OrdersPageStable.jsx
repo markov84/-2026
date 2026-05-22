@@ -255,6 +255,30 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                     label="Продукт"
                     placeholder="Търси продукт"
                     size="small"
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      const code = String(e.currentTarget.value || "").trim();
+                      if (!code) return;
+                      const product = findProductByScanCode(products, code);
+                      if (!product) return;
+                      e.preventDefault();
+                      updateItem(item.key, {
+                        product: product._id,
+                        quantity: item.quantity || "1",
+                        unitPrice: String(product.price ?? item.unitPrice ?? "")
+                      });
+                    }}
+                    onPaste={(e) => {
+                      const pasted = (e.clipboardData || window.clipboardData).getData("text")?.trim();
+                      const product = pasted && findProductByScanCode(products, pasted);
+                      if (!product) return;
+                      e.preventDefault();
+                      updateItem(item.key, {
+                        product: product._id,
+                        quantity: item.quantity || "1",
+                        unitPrice: String(product.price ?? item.unitPrice ?? "")
+                      });
+                    }}
                   />
                 )}
               />
