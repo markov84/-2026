@@ -253,7 +253,8 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
                   <TextField
                     {...params}
                     label="Продукт"
-                    placeholder="Търси продукт"
+                    placeholder="Сканирай или търси продукт"
+                    helperText="Въведи име/SKU/barcode или сканирай директно тук"
                     size="small"
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
