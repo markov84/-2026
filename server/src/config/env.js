@@ -10,7 +10,7 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   adminUsername: process.env.ADMIN_USERNAME || "admin",
-  adminPassword: process.env.ADMIN_PASSWORD || "change-this-password",
+  adminPassword: process.env.ADMIN_PASSWORD || "Markov8406162224",
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
     apiKey: process.env.CLOUDINARY_API_KEY || "",

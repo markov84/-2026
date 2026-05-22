@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
@@ -32,6 +32,7 @@ function validateEmployee(employee, isEdit = false) {
 export default function EmployeesPageStable() {
   const { user } = useAuth();
   const { data, loading, setData } = useFetch("/employees");
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialEmployee);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -118,6 +119,16 @@ export default function EmployeesPageStable() {
     }
   }
 
+  const filteredEmployees = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return data;
+    return data.filter((employee) =>
+      [employee.fullName, employee.username]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized))
+    );
+  }, [data, query]);
+
   const columns = [
     { field: "fullName", headerName: "Име", flex: 1.2, minWidth: 170 },
     { field: "username", headerName: "Потребител", flex: 0.9, minWidth: 140 },
@@ -149,12 +160,25 @@ export default function EmployeesPageStable() {
         title="Служители"
         subtitle={canManageEmployees ? "Потребители, роли и статус." : "Преглед на потребителите и ролите. Промените са ограничени само за админ."}
         icon={<BadgeRoundedIcon />}
+        toolbar={
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+            <TextField
+              placeholder="Търси по име или потребителско име"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              size="small"
+              sx={{ minWidth: 220, maxWidth: 320 }}
+            />
+            <Chip label={`Показани: ${filteredEmployees.length}`} variant="outlined" />
+            <Chip label={`Служители: ${data.length}`} color="secondary" variant="outlined" />
+          </Stack>
+        }
       >
         <ResponsiveTable>
           <DataGrid
             autoHeight
             loading={loading}
-            rows={data}
+            rows={filteredEmployees}
             getRowId={(row) => row._id || row.id}
             columns={columns}
             disableRowSelectionOnClick

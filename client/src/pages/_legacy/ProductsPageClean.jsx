@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, Stack, TextField } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
@@ -17,7 +17,18 @@ export default function ProductsPageClean() {
   const { data, loading, setData } = useFetch("/products");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [query, setQuery] = useState("");
   const isMobile = useMobileDetection();
+
+  const filteredProducts = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return data;
+    return data.filter((product) =>
+      [product.name, product.sku, product.category, product.barcode]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized))
+    );
+  }, [data, query]);
 
   async function handleCreate() {
     try {
@@ -43,6 +54,14 @@ export default function ProductsPageClean() {
         subtitle="Централен продуктов регистър с по-ясни действия и по-добра четимост."
         toolbar={
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+            <TextField
+              placeholder="Търси по име, SKU, категория или баркод"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              size="small"
+              sx={{ minWidth: 220, maxWidth: 320 }}
+            />
+            <Chip label={`Показани: ${filteredProducts.length}`} variant="outlined" />
             <Chip label={`Продукти: ${data.length}`} color="secondary" variant="outlined" />
             <Chip label="Подредени форми" color="primary" variant="outlined" />
             <Chip label="Мобилна версия" color="success" variant="outlined" />
@@ -54,7 +73,7 @@ export default function ProductsPageClean() {
           <DataGrid
             autoHeight
             loading={loading}
-            rows={data}
+            rows={filteredProducts}
             getRowId={(row) => row._id}
             columns={[
               { field: "name", headerName: "Име", flex: 1.4, minWidth: 180 },
