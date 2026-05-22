@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AddBoxRoundedIcon from "@mui/icons-material/AddBoxRounded";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
 import { Button, Chip, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
@@ -28,21 +29,51 @@ function validateInventoryPayload(payload) {
   return null;
 }
 
+function normalizeScanCode(value) {
+  return String(value || "").replace(/[\r\n\t]/g, "").trim();
+}
+
+function findProductByScanCode(products, code) {
+  const normalized = normalizeScanCode(code).toLowerCase();
+  if (!normalized) return null;
+
+  return (products || []).find((product) =>
+    [product.productNumber, product.barcode, product.sku]
+      .filter(Boolean)
+      .some((value) => String(value).trim().toLowerCase() === normalized)
+  );
+}
+
 export default function InventoryPageReady() {
   const { data, loading, setData } = useFetch("/inventory/summary");
   const { data: products } = useFetch("/products?compact=1");
   const { data: stores } = useFetch("/stores");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialStockForm);
+  const [scanCode, setScanCode] = useState("");
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
   const [query, setQuery] = useState("");
   const [storeFilter, setStoreFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const scanFieldRef = useRef(null);
   const isMobile = useMobileDetection();
 
   const previewItem = editingItem || form;
   const existingInventory = useMemo(() => data.find((item) => item.product?._id === previewItem.product && item.store?._id === previewItem.store), [data, previewItem.product, previewItem.store]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const scanParam = params.get("scan");
+    if (scanParam === "1" || scanParam?.toLowerCase() === "true") {
+      setOpen(true);
+      const timer = window.setTimeout(() => scanFieldRef.current?.focus(), 120);
+      params.delete("scan");
+      window.history.replaceState({}, document.title, `${window.location.pathname}?${params.toString()}`);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, []);
   const filteredInventory = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -149,6 +180,21 @@ export default function InventoryPageReady() {
     }
   }
 
+  function applyScannedProduct() {
+    const code = normalizeScanCode(scanCode);
+    if (!code) return;
+
+    const product = findProductByScanCode(products, code);
+    if (!product) {
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
+      return;
+    }
+
+    setForm((current) => ({ ...current, product: product._id }));
+    setScanCode("");
+    toast.success(`Продуктът ${product.name} е готов за добавяне.`);
+  }
+
   async function handleDelete() {
     if (!deletingItem?._id) return;
 
@@ -233,6 +279,34 @@ export default function InventoryPageReady() {
         <DialogContent dividers>
           <Stack spacing={2.5}>
             <FormGrid min={230}>
+              <TextField
+                fullWidth
+                label="Сканирай продукт"
+                value={scanCode}
+                inputRef={scanFieldRef}
+                onChange={(e) => setScanCode(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyScannedProduct();
+                  }
+                }}
+                helperText="Сканирай баркод или SKU, за да избереш продукт за добавяне."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <QrCodeScannerRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Button size="small" onClick={applyScannedProduct}>
+                        Приложи
+                      </Button>
+                    </InputAdornment>
+                  )
+                }}
+              />
               <TextField select label="Продукт" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}>
                 {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | {product.sku}</MenuItem>)}
               </TextField>

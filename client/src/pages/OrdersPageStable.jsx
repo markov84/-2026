@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
@@ -364,8 +365,25 @@ export default function OrdersPageStable() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [orderQuery, setOrderQuery] = useState("");
+  const scanFieldRef = useRef(null);
+  const editScanFieldRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const scanParam = params.get("scan");
+    const shouldOpenScanDialog = scanParam === "1" || scanParam?.toLowerCase() === "true";
+
+    if (!shouldOpenScanDialog || open) return;
+
+    openCreateDialog();
+    const timer = window.setTimeout(() => scanFieldRef.current?.focus(), 120);
+    navigate("/orders", { replace: true });
+    return () => window.clearTimeout(timer);
+  }, [location.search, open, navigate]);
 
   const filteredOrders = useMemo(() => {
     const normalized = orderQuery.trim().toLowerCase();
@@ -573,13 +591,14 @@ export default function OrdersPageStable() {
     applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
   }
 
-  function renderSharedOrderFields(order, setOrder, scanValue, setScanValue) {
+  function renderSharedOrderFields(order, setOrder, scanValue, setScanValue, scanFieldRef) {
     return (
       <Stack spacing={2.5}>
         <TextField
           fullWidth
           label="Сканирай баркод или SKU"
           value={scanValue}
+          inputRef={scanFieldRef}
           onChange={(event) => setScanValue(event.target.value)}
           onKeyDown={(event) => handleScanKeyDown(event, setOrder, setScanValue, order)}
           helperText="Сканирай продукт, за да го добавиш в продажбата. Повторно сканиране увеличава количеството."
@@ -694,13 +713,13 @@ export default function OrdersPageStable() {
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Нова продажба</DialogTitle>
-        <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode)}</DialogContent>
+        <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode, scanFieldRef)}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
 
       <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Редактиране на продажба</DialogTitle>
-        <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode) : null}</DialogContent>
+        <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode, editScanFieldRef) : null}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingOrder(null)} onConfirm={handleUpdate} />
       </Dialog>
 

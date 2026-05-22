@@ -19,7 +19,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStable";
@@ -37,6 +37,7 @@ const navItems = [
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
   { label: "Наличности", path: "/inventory", iconKey: "inventory", color: "#0ca678", bg: "rgba(12,166,120,0.16)" },
   { label: "Продажби", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
+  { label: "Сканиране", path: "/scan", iconKey: "scan", color: "#f59f00", bg: "rgba(245,159,0,0.16)", action: "scan" },
   { label: "Финанси", path: "/finance", iconKey: "finance", color: "#2f9e44", bg: "rgba(47,158,68,0.16)" },
   { label: "Фактури", path: "/invoices", iconKey: "invoices", color: "#15aabf", bg: "rgba(21,170,191,0.16)" },
   { label: "ДДС отчети", path: "/vat-reports", iconKey: "vat", color: "#9c36b5", bg: "rgba(156,54,181,0.16)" },
@@ -141,6 +142,16 @@ function ModernModuleIcon({ type, size }) {
           <path {...common} d="M7 8h9M7 8l3-3M7 8l3 3" opacity="0.75" />
         </>
       ) : null}
+      {type === "scan" ? (
+        <>
+          <path {...common} d="M9 8H7v4" />
+          <path {...common} d="M23 8h2v4" />
+          <path {...common} d="M9 24H7v-4" />
+          <path {...common} d="M23 24h2v-4" />
+          <rect x="10" y="11" width="12" height="10" rx="2" fill="currentColor" opacity="0.16" />
+          <path {...common} d="M12 14h8M12 17h8M12 20h8" />
+        </>
+      ) : null}
     </Box>
   );
 }
@@ -170,6 +181,7 @@ function ColorIcon({ item, compact = false }) {
 
 function Navigation({ onNavigate }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const visibleNavItems = getVisibleNavItems(user);
   const navItemRefs = useRef([]);
 
@@ -193,6 +205,12 @@ function Navigation({ onNavigate }) {
     if (event.key === "Tab" && !event.shiftKey) {
       event.preventDefault();
       navItemRefs.current[index]?.click();
+    }
+  }
+
+  function handleNavAction(item) {
+    if (item.action === "scan") {
+      navigate("/inventory?scan=1");
     }
   }
 
@@ -235,13 +253,21 @@ function Navigation({ onNavigate }) {
       <List sx={{ p: 1.5, flexGrow: 1, overflowY: "auto" }}>
         {visibleNavItems.map((item, index) => (
           <ListItemButton
-            key={item.path}
+            key={item.label}
             ref={(element) => {
               navItemRefs.current[index] = element;
             }}
-            component={NavLink}
-            to={item.path}
-            onClick={onNavigate}
+            component={item.action ? undefined : NavLink}
+            to={item.action ? undefined : item.path}
+            onClick={(event) => {
+              if (item.action) {
+                event.preventDefault();
+                handleNavAction(item);
+              }
+              if (onNavigate) {
+                onNavigate();
+              }
+            }}
             onKeyDown={(event) => handleNavItemKeyDown(event, index)}
             sx={{
               mb: 0.75,
@@ -294,6 +320,7 @@ function Navigation({ onNavigate }) {
 
 function IconRail() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const visibleNavItems = getVisibleNavItems(user);
   const railItemRefs = useRef([]);
 
@@ -319,6 +346,10 @@ function IconRail() {
       railItemRefs.current[index]?.click();
     }
   }
+
+  function handleRailAction(item) {
+    if (item.action === "scan") {
+        navigate("/inventory?scan=1");
 
   return (
     <Stack
@@ -367,9 +398,15 @@ function IconRail() {
               ref={(element) => {
                 railItemRefs.current[index] = element;
               }}
-              component={NavLink}
-              to={item.path}
+              component={item.action ? undefined : NavLink}
+              to={item.action ? undefined : item.path}
               aria-label={item.label}
+              onClick={(event) => {
+                if (item.action) {
+                  event.preventDefault();
+                  handleRailAction(item);
+                }
+              }}
               onKeyDown={(event) => handleRailItemKeyDown(event, index)}
               sx={{
                 width: 44,
