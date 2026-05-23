@@ -190,9 +190,47 @@ export default function InventoryPageReady() {
       return;
     }
 
-    setForm((current) => ({ ...current, product: product._id }));
+    setForm((current) => ({ ...current, product: product._id, quantity: current.quantity || "1" }));
     setScanCode("");
     toast.success(`Продуктът ${product.name} е готов за добавяне.`);
+  }
+
+  async function quickAddScannedProduct() {
+    const productId = form.product || (findProductByScanCode(products, scanCode) || {})._id;
+    if (!productId) {
+      toast.error("Избери или сканирай продукт.");
+      return;
+    }
+
+    const storeId = form.store || (stores && stores.length === 1 ? stores[0]._id : "");
+    if (!storeId) {
+      toast.error("Избери магазин преди бързо добавяне.");
+      return;
+    }
+
+    const quantity = Number(form.quantity || 1);
+
+    try {
+      const response = await api.post("/inventory/summary", {
+        product: productId,
+        store: storeId,
+        quantity: quantity,
+        reorderLevel: Number(form.reorderLevel || 0),
+        mode: "increment"
+      });
+      const nextRow = buildRow(response.data, productId, storeId);
+      setData((current) => {
+        const hasExisting = current.some((item) => item.product?._id === productId && item.store?._id === storeId);
+        if (!hasExisting) return [nextRow, ...current];
+        return current.map((item) => (item.product?._id === productId && item.store?._id === storeId ? nextRow : item));
+      });
+      setForm(initialStockForm);
+      setScanCode("");
+      setOpen(false);
+      toast.success("Наличността е добавена.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно добавяне на наличност.");
+    }
   }
 
   async function handleDelete() {
@@ -316,6 +354,14 @@ export default function InventoryPageReady() {
               <TextField label="Нови бройки" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
               <TextField label="Минимална наличност" type="number" value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })} />
             </FormGrid>
+            <Stack direction="row" spacing={1}>
+              <Button variant="contained" size="small" onClick={quickAddScannedProduct} disabled={!form.product && !scanCode}>
+                Добави към склад
+              </Button>
+              <Button size="small" onClick={() => applyScannedProduct()} disabled={!scanCode}>
+                Приложи
+              </Button>
+            </Stack>
             <FormGridFull>
               <Typography variant="body2" fontWeight={700}>
                 Наличност след добавяне: {(Number(existingInventory?.quantity || 0) + Number(form.quantity || 0)).toFixed(0)} бр.
