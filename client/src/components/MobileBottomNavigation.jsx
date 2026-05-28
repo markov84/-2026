@@ -4,6 +4,7 @@ import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const items = [
@@ -11,7 +12,8 @@ const items = [
   { label: "Продукти", value: "/products", icon: <Inventory2RoundedIcon /> },
   { label: "Клиенти", value: "/customers", icon: <PeopleAltRoundedIcon /> },
   { label: "Продажби", value: "/orders", icon: <ReceiptLongRoundedIcon /> },
-  { label: "Финанси", value: "/finance", icon: <AccountBalanceWalletRoundedIcon /> }
+  { label: "Финанси", value: "/finance", icon: <AccountBalanceWalletRoundedIcon /> },
+  { label: "Трансфери", value: "/transfers", icon: <CompareArrowsRoundedIcon /> }
 ];
 
 export default function MobileBottomNavigationBar() {
