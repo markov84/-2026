@@ -188,7 +188,7 @@ export default function CommandCenterShellPolished({ children }) {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", lg: "none" },
-          "& .MuiDrawer-paper": { width: drawerWidth, border: "none" }
+          "& .MuiDrawer-paper": { width: drawerWidth, border: "none", pb: 10 }
         }}
       >
         <Navigation onNavigate={() => setMobileOpen(false)} />
