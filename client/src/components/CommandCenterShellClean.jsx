@@ -241,7 +241,7 @@ function Navigation({ onNavigate }) {
                 borderRadius: 0
               }}
             />
-            <Typography variant="body2" color="rgba(255,255,255,0.68)" sx={{ lineHeight: 1.35 }}>
+            <Typography variant="body2" color="rgba(255,255,255,0.86)" sx={{ lineHeight: 1.35 }}>
               Управление на търговска мрежа на MARK LIGHT LTD
             </Typography>
           </Stack>
@@ -303,7 +303,7 @@ function Navigation({ onNavigate }) {
           <Typography variant="subtitle2" noWrap>
             {user?.fullName || "Потребител"}
           </Typography>
-          <Typography variant="body2" color="rgba(255,255,255,0.68)">
+          <Typography variant="body2" color="rgba(255,255,255,0.86)">
             {user?.role || "Профил"}
           </Typography>
           <ListItemButton onClick={logout} sx={{ px: 0, color: "#fff", borderRadius: 2 }}>

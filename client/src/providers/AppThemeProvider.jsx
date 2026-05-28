@@ -170,7 +170,7 @@ function createAppTheme(mode) {
       },
       text: {
         primary: isDark ? "#eef4f8" : ink,
-        secondary: isDark ? "#c1d0e7" : mist
+        secondary: isDark ? "#d6e4f1" : mist
       },
       divider: isDark ? "rgba(197, 215, 226, 0.14)" : "rgba(90, 118, 138, 0.16)"
     },
