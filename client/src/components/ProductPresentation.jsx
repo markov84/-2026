@@ -1,4 +1,5 @@
 import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import { useEffect, useState } from "react";
 import api from "../lib/api";
@@ -155,6 +156,8 @@ export function ProductIdentity({ product, compact = false, showSku = true, onIm
 }
 
 export function ProductPreviewCard({ product }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const imageUrl = useProductImage(product);
   const canOpenImage = Boolean(imageUrl);
 
@@ -162,10 +165,10 @@ export function ProductPreviewCard({ product }) {
     return (
       <Box
         sx={{
-          border: "1px dashed rgba(39,86,107,0.18)",
+          border: isDark ? "1px dashed rgba(255,255,255,0.16)" : "1px dashed rgba(39,86,107,0.18)",
           borderRadius: 3,
           p: 2,
-          bgcolor: "rgba(255,255,255,0.55)"
+          bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.55)"
         }}
       >
         <Typography variant="body2" color="text.secondary">
@@ -181,9 +184,9 @@ export function ProductPreviewCard({ product }) {
       spacing={2}
       sx={{
         p: 2,
-        border: "1px solid rgba(39,86,107,0.12)",
+        border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(39,86,107,0.12)",
         borderRadius: 3,
-        bgcolor: "rgba(255,255,255,0.72)"
+        bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)"
       }}
     >
       <Avatar

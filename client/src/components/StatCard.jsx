@@ -1,4 +1,5 @@
 import { Card, CardActionArea, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 const accentMap = {
   primary: "#315c73",
@@ -9,12 +10,17 @@ const accentMap = {
 };
 
 export default function StatCard({ label, value, trend, accent = "primary", onClick, icon }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Card
       sx={{
         height: "100%",
         borderRadius: 5,
-        background: `linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,250,0.96)), radial-gradient(circle at top right, ${accentMap[accent]}18, transparent 38%)`
+        background: isDark
+          ? `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)), radial-gradient(circle at top right, ${accentMap[accent]}14, transparent 38%)`
+          : `linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,250,0.96)), radial-gradient(circle at top right, ${accentMap[accent]}18, transparent 38%)`
       }}
     >
       <CardActionArea
