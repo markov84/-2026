@@ -250,7 +250,7 @@ function Navigation({ onNavigate }) {
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
-      <List sx={{ p: 1.5, flexGrow: 1, overflowY: "auto" }}>
+      <List sx={{ p: 1.5, pb: 10, flexGrow: 1, overflowY: "auto" }}>
         {visibleNavItems.map((item, index) => (
           <ListItemButton
             key={item.label}
