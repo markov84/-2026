@@ -30,7 +30,7 @@ export default function MobileBottomNavigationBar() {
         left: 12,
         right: 12,
         bottom: 12,
-        zIndex: 1300,
+        zIndex: (theme) => theme.zIndex.drawer - 1,
         borderRadius: 4,
         display: { xs: "block", xl: "none" },
         overflow: "hidden",

@@ -22,6 +22,7 @@ export default function MobileQuickActions() {
         position: "fixed",
         bottom: 92,
         right: 18,
+        zIndex: (theme) => theme.zIndex.drawer - 1,
         display: { xs: "flex", xl: "none" },
         "& .MuiSpeedDialAction-staticTooltipLabel": { fontWeight: 700 }
       }}
