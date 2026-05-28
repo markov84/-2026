@@ -349,7 +349,9 @@ function IconRail() {
 
   function handleRailAction(item) {
     if (item.action === "scan") {
-        navigate("/inventory?scan=1");
+      navigate("/inventory?scan=1");
+    }
+  }
 
   return (
     <Stack
