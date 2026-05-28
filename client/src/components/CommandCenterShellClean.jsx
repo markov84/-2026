@@ -473,7 +473,7 @@ export default function CommandCenterShellClean({ children }) {
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
-        sx={{ display: { xs: "block", lg: "none" }, "& .MuiDrawer-paper": { width: drawerWidth, border: "none", pb: 10 } }}
+        sx={{ display: { xs: "block", lg: "none" }, "& .MuiDrawer-paper": { width: drawerWidth, border: "none", bgcolor: "transparent", height: "100%" } }}
       >
         <Navigation onNavigate={() => setMobileOpen(false)} />
       </Drawer>

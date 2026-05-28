@@ -12,8 +12,7 @@ const items = [
   { label: "Продукти", value: "/products", icon: <Inventory2RoundedIcon /> },
   { label: "Клиенти", value: "/customers", icon: <PeopleAltRoundedIcon /> },
   { label: "Продажби", value: "/orders", icon: <ReceiptLongRoundedIcon /> },
-  { label: "Финанси", value: "/finance", icon: <AccountBalanceWalletRoundedIcon /> },
-  { label: "Трансфери", value: "/transfers", icon: <CompareArrowsRoundedIcon /> }
+  { label: "Финанси", value: "/finance", icon: <AccountBalanceWalletRoundedIcon /> }
 ];
 
 export default function MobileBottomNavigationBar() {
