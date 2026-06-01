@@ -358,8 +358,8 @@ export default function OrdersPageStable() {
   const { data: orders, loading, setData } = useFetch("/orders");
   const { data: stores } = useFetch("/stores");
   const { data: customers } = useFetch("/customers");
-  const { data: products } = useFetch("/products");
-  const { data: inventory } = useFetch("/inventory/summary");
+  const { data: products, refresh: refreshProducts } = useFetch("/products");
+  const { data: inventory, refresh: refreshInventory } = useFetch("/inventory/summary");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialOrder);
   const [scanCode, setScanCode] = useState("");
@@ -374,6 +374,17 @@ export default function OrdersPageStable() {
   const navigate = useNavigate();
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
+
+  useEffect(() => {
+    refreshProducts();
+    refreshInventory();
+    const handleFocus = () => {
+      refreshProducts();
+      refreshInventory();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshProducts, refreshInventory]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

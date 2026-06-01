@@ -7,6 +7,29 @@ export function useFetch(path) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(path);
+      setData(response.data);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearAuthToken();
+        toast.error("Сесията е изтекла. Влез отново.");
+        return;
+      }
+
+      if (error.code === "ECONNABORTED" || error.code === "ERR_NETWORK" || !error.response) {
+        toast.error("Сървърът не отговаря. Провери връзката към базата данни.");
+        return;
+      }
+
+      toast.error(error.response?.data?.message || "Неуспешно зареждане на данните.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -38,5 +61,5 @@ export function useFetch(path) {
     };
   }, [path]);
 
-  return { data, loading, setData };
+  return { data, loading, setData, refresh };
 }

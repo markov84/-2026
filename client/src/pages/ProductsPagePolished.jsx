@@ -137,6 +137,14 @@ export default function ProductsPagePolished() {
   const fileInputRef = useRef(null);
   const canViewCost = ["admin", "manager"].includes(user?.role);
 
+  useEffect(() => {
+    const handleFocus = () => {
+      window.dispatchEvent(new CustomEvent("productsUpdated"));
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   const filteredProducts = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const sortedProducts = sortProductsNewestFirst(data);

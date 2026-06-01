@@ -44,7 +44,7 @@ function findProductByScanCode(products, code) {
 
 export default function InventoryPageReady() {
   const { data, loading, setData } = useFetch("/inventory/summary");
-  const { data: products } = useFetch("/products?compact=1");
+  const { data: products, refresh: refreshProducts } = useFetch("/products?compact=1");
   const { data: stores } = useFetch("/stores");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialStockForm);
@@ -61,6 +61,13 @@ export default function InventoryPageReady() {
 
   const previewItem = editingItem || form;
   const existingInventory = useMemo(() => data.find((item) => item.product?._id === previewItem.product && item.store?._id === previewItem.store), [data, previewItem.product, previewItem.store]);
+
+  useEffect(() => {
+    refreshProducts();
+    const handleFocus = () => refreshProducts();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshProducts]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
