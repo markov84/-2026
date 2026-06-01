@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, CircularProgress, Box } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, CircularProgress, Box, TextField } from "@mui/material";
 
 export default function BarcodeScannerDialog({ open, onClose, onDetected, onError, title = "Сканирай баркод или QR", description = "Насочи камерата към баркод или QR код и изчакай резултата." }) {
   const [status, setStatus] = useState("initializing");
   const [message, setMessage] = useState("Подготвям камерата...");
+  const [manualCode, setManualCode] = useState("");
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
 
@@ -28,6 +29,12 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
           const code = result.getText();
           setStatus("detected");
           setMessage(`Сканирано: ${code}`);
+          active = false;
+          try {
+            codeReader.reset();
+          } catch {
+            // ignore reset errors
+          }
           onDetected?.(code);
           return;
         }
@@ -92,9 +99,39 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
               {message}
             </Typography>
           </Stack>
+          <TextField
+            size="small"
+            fullWidth
+            label="Код, ако камерата не работи"
+            placeholder="Въведи или постави код тук"
+            value={manualCode}
+            onChange={(event) => setManualCode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                const value = String(manualCode || "").trim();
+                if (value) {
+                  onDetected?.(value);
+                  setManualCode("");
+                }
+              }
+            }}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>
+        <Button
+          onClick={() => {
+            const value = String(manualCode || "").trim();
+            if (value) {
+              onDetected?.(value);
+              setManualCode("");
+            }
+          }}
+          disabled={!manualCode.trim()}
+        >
+          Използвай ръчно
+        </Button>
         <Button onClick={onClose} color="inherit">
           Затвори
         </Button>

@@ -19,6 +19,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
+import { parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -30,12 +31,8 @@ function validateInventoryPayload(payload) {
   return null;
 }
 
-function normalizeScanCode(value) {
-  return String(value || "").replace(/[\r\n\t]/g, "").trim();
-}
-
 function findProductByScanCode(products, code) {
-  const normalized = normalizeScanCode(code).toLowerCase();
+  const normalized = parseScannedInput(code).toLowerCase();
   if (!normalized) return null;
 
   return (products || []).find((product) =>
@@ -60,6 +57,7 @@ export default function InventoryPageReady() {
   const [stockFilter, setStockFilter] = useState("all");
   const scanFieldRef = useRef(null);
   const isMobile = useMobileDetection();
+  const scannedProduct = useMemo(() => findProductByScanCode(products, scanCode), [products, scanCode]);
 
   const previewItem = editingItem || form;
   const existingInventory = useMemo(() => data.find((item) => item.product?._id === previewItem.product && item.store?._id === previewItem.store), [data, previewItem.product, previewItem.store]);
@@ -183,7 +181,7 @@ export default function InventoryPageReady() {
   }
 
   function applyScannedProduct(rawCode = scanCode) {
-    const code = normalizeScanCode(rawCode);
+    const code = parseScannedInput(rawCode);
     if (!code) return;
 
     const product = findProductByScanCode(products, code);
@@ -347,6 +345,14 @@ export default function InventoryPageReady() {
                   )
                 }}
               />
+              {scannedProduct ? (
+                <Box sx={{ p: 1, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)", bgcolor: "rgba(39,86,107,0.04)" }}>
+                  <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+                    Открит продукт:
+                  </Typography>
+                  <ProductIdentity product={scannedProduct} />
+                </Box>
+              ) : null}
               <TextField select label="Продукт" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}>
                 {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | {product.sku}</MenuItem>)}
               </TextField>

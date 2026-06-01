@@ -24,6 +24,7 @@ import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 import { printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
+import { parseScannedInput } from "../lib/scanCode";
 
 const initialOrder = {
   orderNumber: "Генерира се автоматично",
@@ -102,12 +103,8 @@ function validateOrder(order) {
   return "";
 }
 
-function normalizeScanCode(value) {
-  return String(value || "").replace(/[\r\n\t]/g, "").trim();
-}
-
 function findProductByScanCode(products, code) {
-  const normalized = normalizeScanCode(code).toLowerCase();
+  const normalized = parseScannedInput(code).toLowerCase();
   if (!normalized) return null;
 
   return products.find((product) =>
@@ -266,7 +263,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
-                      const code = String(e.currentTarget.value || "").trim();
+                      const code = parseScannedInput(e.currentTarget.value || "");
                       if (!code) return;
                       const product = findProductByScanCode(products, code);
                       if (!product) return;
@@ -278,8 +275,9 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                       });
                     }}
                     onPaste={(e) => {
-                      const pasted = (e.clipboardData || window.clipboardData).getData("text")?.trim();
-                      const product = pasted && findProductByScanCode(products, pasted);
+                      const pasted = (e.clipboardData || window.clipboardData).getData("text");
+                      const code = parseScannedInput(pasted);
+                      const product = code && findProductByScanCode(products, code);
                       if (!product) return;
                       e.preventDefault();
                       updateItem(item.key, {
@@ -557,7 +555,7 @@ export default function OrdersPageStable() {
   }
 
   function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
-    const code = normalizeScanCode(rawCode);
+    const code = parseScannedInput(rawCode);
     if (!code) return;
 
     const product = findProductByScanCode(products, code);
@@ -591,7 +589,7 @@ export default function OrdersPageStable() {
   }
 
   function handleOrderScannerDetected(rawCode) {
-    const code = normalizeScanCode(rawCode);
+    const code = parseScannedInput(rawCode);
     if (!code) return;
 
     const product = findProductByScanCode(products, code);

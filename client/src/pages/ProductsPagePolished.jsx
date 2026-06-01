@@ -46,6 +46,7 @@ import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR } from "../lib/currency";
 import api from "../lib/api";
+import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
 const HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY = "hiddenProductNameSuggestions";
@@ -318,9 +319,37 @@ export default function ProductsPagePolished() {
     }
   }
 
+  const existingProductByBarcode = useMemo(() => {
+    const normalizedCode = parseScannedInput(form.barcode);
+    if (!normalizedCode) return null;
+
+    return data.find((product) =>
+      [product.barcode, product.sku, product.productNumber]
+        .filter(Boolean)
+        .some((value) => normalizeScanCode(value).toLowerCase() === normalizedCode.toLowerCase())
+    );
+  }, [data, form.barcode]);
+
   function handleProductBarcodeDetected(code) {
-    updateField("barcode", code);
-    toast.success(`Сканиран баркод: ${code}`);
+    const normalizedCode = parseScannedInput(code);
+    if (!normalizedCode) {
+      toast.error("Невалиден баркод или QR код.");
+      return;
+    }
+
+    updateField("barcode", normalizedCode);
+    const duplicateProduct = data.find((product) =>
+      [product.barcode, product.sku, product.productNumber]
+        .filter(Boolean)
+        .some((value) => normalizeScanCode(value).toLowerCase() === normalizedCode.toLowerCase())
+    );
+
+    if (duplicateProduct && duplicateProduct._id !== editingProductId) {
+      toast.error(`Този баркод вече е записан за продукт '${duplicateProduct.name || duplicateProduct.sku}'.`);
+    } else {
+      toast.success(`Сканиран баркод: ${normalizedCode}`);
+    }
+
     setScanBarcodeOpen(false);
   }
 
@@ -520,6 +549,22 @@ export default function ProductsPagePolished() {
                     )
                   }}
                 />
+                {existingProductByBarcode ? (
+                  <Box sx={{ p: 1.25, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)", bgcolor: "rgba(39,86,107,0.03)" }}>
+                    <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+                      Този код вече е записан за продукт:
+                    </Typography>
+                    <ProductIdentity product={existingProductByBarcode} />
+                  </Box>
+                ) : null}
+                {existingProductByBarcode ? (
+                  <Box sx={{ p: 1.25, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)", bgcolor: "rgba(39,86,107,0.03)" }}>
+                    <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
+                      Този код вече съществува за продукт:
+                    </Typography>
+                    <ProductIdentity product={existingProductByBarcode} />
+                  </Box>
+                ) : null}
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minHeight: 56 }}>
                   <Typography variant="body2" fontWeight={700}>Активен продукт</Typography>
                   <Switch checked={form.isActive} onChange={(e) => updateField("isActive", e.target.checked)} />
