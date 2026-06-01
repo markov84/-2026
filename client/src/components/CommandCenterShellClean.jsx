@@ -477,31 +477,31 @@ export default function CommandCenterShellClean({ children }) {
         activeElement?.tagName === "TEXTAREA" ||
         activeElement?.contentEditable === "true";
 
-      if (isInputField) {
-        const inputValue = activeElement?.value || "";
-        if (inputValue.includes("Код") || inputValue.includes("Сканирай") || inputValue.includes("код")) {
-          return;
-        }
-      }
+      // Don't intercept if we're in an input field
+      if (isInputField) return;
 
+      // Only capture on Enter when we have a buffer
       if (event.key === "Enter") {
         const buffer = scanBufferRef.current.trim();
-        if (buffer.length > 4) {
+        if (buffer.length > 5 && /^[A-Za-z0-9-_]+$/.test(buffer)) {
           event.preventDefault();
           navigate("/inventory?scan=1");
           scanBufferRef.current = "";
           if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
         }
-      } else if (event.key.length === 1 || event.key.length > 1) {
-        if (!isInputField || event.key.length > 1) {
-          scanBufferRef.current += event.key;
-          
-          if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
-          scanTimeoutRef.current = setTimeout(() => {
-            scanBufferRef.current = "";
-          }, 150);
-        }
+        return;
       }
+
+      // Only collect alphanumeric and common barcode characters
+      const isValidCharacter = /^[A-Za-z0-9\-_|*]$/.test(event.key);
+      if (!isValidCharacter) return;
+
+      scanBufferRef.current += event.key;
+      
+      if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = setTimeout(() => {
+        scanBufferRef.current = "";
+      }, 500);
     }
 
     window.addEventListener("keydown", handleGlobalKeyDown);
