@@ -1,4 +1,4 @@
- import { useRef, useState } from "react";
+ import { useRef, useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -464,7 +464,52 @@ export default function CommandCenterShellClean({ children }) {
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
   const isDarkMode = mode === "dark";
+  const navigate = useNavigate();
+  const scanBufferRef = useRef("");
+  const scanTimeoutRef = useRef(null);
   useRealtimeNotifications(true);
+
+  useEffect(() => {
+    function handleGlobalKeyDown(event) {
+      const activeElement = document.activeElement;
+      const isInputField = 
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.contentEditable === "true";
+
+      if (isInputField) {
+        const inputValue = activeElement?.value || "";
+        if (inputValue.includes("Код") || inputValue.includes("Сканирай") || inputValue.includes("код")) {
+          return;
+        }
+      }
+
+      if (event.key === "Enter") {
+        const buffer = scanBufferRef.current.trim();
+        if (buffer.length > 4) {
+          event.preventDefault();
+          navigate("/inventory?scan=1");
+          scanBufferRef.current = "";
+          if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+        }
+      } else if (event.key.length === 1 || event.key.length > 1) {
+        if (!isInputField || event.key.length > 1) {
+          scanBufferRef.current += event.key;
+          
+          if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+          scanTimeoutRef.current = setTimeout(() => {
+            scanBufferRef.current = "";
+          }, 150);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+      if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+    };
+  }, [navigate]);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
