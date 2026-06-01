@@ -375,16 +375,8 @@ export default function OrdersPageStable() {
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
 
-  useEffect(() => {
-    refreshProducts();
-    refreshInventory();
-    const handleFocus = () => {
-      refreshProducts();
-      refreshInventory();
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [refreshProducts, refreshInventory]);
+  // Automatic refresh disabled to prevent infinite loops
+  // Manual refresh available via refreshProducts() and refreshInventory() if needed
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

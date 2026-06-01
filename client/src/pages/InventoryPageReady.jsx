@@ -62,12 +62,8 @@ export default function InventoryPageReady() {
   const previewItem = editingItem || form;
   const existingInventory = useMemo(() => data.find((item) => item.product?._id === previewItem.product && item.store?._id === previewItem.store), [data, previewItem.product, previewItem.store]);
 
-  useEffect(() => {
-    refreshProducts();
-    const handleFocus = () => refreshProducts();
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [refreshProducts]);
+  // Automatic refresh disabled to prevent infinite loops
+  // Manual refresh available via refreshProducts() if needed
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
