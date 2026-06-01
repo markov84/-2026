@@ -79,10 +79,15 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 
+// Rate limiting: 1000 requests per 15 minutes per IP
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500
+    max: 1000,
+    skip: (req) => {
+      // Skip rate limiting for health checks
+      return req.path === "/health" || req.path === "/api/health";
+    }
   })
 );
 
