@@ -4,6 +4,7 @@ import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRound
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
+import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { Autocomplete, Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -164,7 +165,7 @@ function OrderProductsCell({ items }) {
   );
 }
 
-function OrderItemsEditor({ value, products, inventory, store, onChange }) {
+function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner }) {
   const items = value?.length ? value : [createOrderItem()];
 
   function updateItem(key, patch) {
@@ -189,6 +190,9 @@ function OrderItemsEditor({ value, products, inventory, store, onChange }) {
         <Typography variant="subtitle1" fontWeight={900}>
           Продукти в продажбата
         </Typography>
+        <Button size="small" variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={onOpenScanner}>
+          Сканирай с камера
+        </Button>
       </Stack>
 
       <Stack spacing={0.75}>
@@ -364,6 +368,7 @@ export default function OrdersPageStable() {
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderQuery, setOrderQuery] = useState("");
   const scanFieldRef = useRef(null);
   const editScanFieldRef = useRef(null);
@@ -585,6 +590,41 @@ export default function OrdersPageStable() {
     toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
   }
 
+  function handleOrderScannerDetected(rawCode) {
+    const code = normalizeScanCode(rawCode);
+    if (!code) return;
+
+    const product = findProductByScanCode(products, code);
+    if (!product) {
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
+      return;
+    }
+
+    setForm((current) => {
+      const nextItems = withTrailingOrderRow(current.items || []);
+      const emptyIndex = nextItems.findIndex((item) => !item.product);
+
+      if (emptyIndex === -1) {
+        return {
+          ...current,
+          items: [...nextItems, createOrderItem(product)]
+        };
+      }
+
+      return {
+        ...current,
+        items: nextItems.map((item, index) =>
+          index === emptyIndex
+            ? { ...item, product: product._id, quantity: item.quantity || "1", unitPrice: String(product.price ?? item.unitPrice ?? "") }
+            : item
+        )
+      };
+    });
+
+    toast.success(`Сканиран продукт: ${product.name}`);
+    setOrderScanOpen(false);
+  }
+
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
     if (event.key !== "Enter") return;
     event.preventDefault();
@@ -655,7 +695,7 @@ export default function OrdersPageStable() {
           </TextField>
         </FormGrid>
         <FormGridFull>
-          <OrderItemsEditor value={order.items} products={products} inventory={inventory} store={order.store} onChange={(items) => setOrder((current) => ({ ...current, items }))} />
+          <OrderItemsEditor value={order.items} products={products} inventory={inventory} store={order.store} onChange={(items) => setOrder((current) => ({ ...current, items }))} onOpenScanner={() => setOrderScanOpen(true)} />
         </FormGridFull>
         <FormGridFull>
           <OrderTotals order={order} />
@@ -716,6 +756,14 @@ export default function OrdersPageStable() {
         <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode, scanFieldRef)}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
+
+      <BarcodeScannerDialog
+        open={orderScanOpen}
+        onClose={() => setOrderScanOpen(false)}
+        onDetected={handleOrderScannerDetected}
+        onError={() => setOrderScanOpen(false)}
+        title="Сканирай продукт за поръчката"
+      />
 
       <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Редактиране на продажба</DialogTitle>

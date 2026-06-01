@@ -41,6 +41,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
+import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR } from "../lib/currency";
@@ -130,6 +131,7 @@ export default function ProductsPagePolished() {
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [scanBarcodeOpen, setScanBarcodeOpen] = useState(false);
   const isMobile = useMobileDetection();
   const fileInputRef = useRef(null);
   const canViewCost = ["admin", "manager"].includes(user?.role);
@@ -314,6 +316,12 @@ export default function ProductsPagePolished() {
           (editingProductId ? "Неуспешно обновяване на продукт." : "Неуспешно създаване на продукт.")
       );
     }
+  }
+
+  function handleProductBarcodeDetected(code) {
+    updateField("barcode", code);
+    toast.success(`Сканиран баркод: ${code}`);
+    setScanBarcodeOpen(false);
   }
 
   async function handleDelete() {
@@ -502,6 +510,13 @@ export default function ProductsPagePolished() {
                       <InputAdornment position="start">
                         <QrCodeScannerRoundedIcon fontSize="small" />
                       </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Button size="small" onClick={() => setScanBarcodeOpen(true)}>
+                          Камера
+                        </Button>
+                      </InputAdornment>
                     )
                   }}
                 />
@@ -590,6 +605,13 @@ export default function ProductsPagePolished() {
           confirmLabel={editingProductId ? "Запази промените" : "Запази"}
         />
       </Dialog>
+      <BarcodeScannerDialog
+        open={scanBarcodeOpen}
+        onClose={() => setScanBarcodeOpen(false)}
+        onDetected={handleProductBarcodeDetected}
+        onError={() => setScanBarcodeOpen(false)}
+        title="Сканирай баркод за продукта"
+      />
       <ConfirmDeleteDialogStable
         open={deleteOpen}
         title="Изтриване на продукт"

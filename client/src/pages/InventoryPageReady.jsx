@@ -6,6 +6,7 @@ import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
 import { Button, Chip, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
+import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
 import Dialog from "../components/DraggableDialog";
@@ -51,6 +52,7 @@ export default function InventoryPageReady() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialStockForm);
   const [scanCode, setScanCode] = useState("");
+  const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
   const [query, setQuery] = useState("");
@@ -180,8 +182,8 @@ export default function InventoryPageReady() {
     }
   }
 
-  function applyScannedProduct() {
-    const code = normalizeScanCode(scanCode);
+  function applyScannedProduct(rawCode = scanCode) {
+    const code = normalizeScanCode(rawCode);
     if (!code) return;
 
     const product = findProductByScanCode(products, code);
@@ -354,7 +356,10 @@ export default function InventoryPageReady() {
               <TextField label="Нови бройки" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
               <TextField label="Минимална наличност" type="number" value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })} />
             </FormGrid>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button variant="outlined" size="small" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanCameraOpen(true)}>
+                Сканирай с камера
+              </Button>
               <Button variant="contained" size="small" onClick={quickAddScannedProduct} disabled={!form.product && !scanCode}>
                 Добави към склад
               </Button>
@@ -371,6 +376,18 @@ export default function InventoryPageReady() {
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
+
+      <BarcodeScannerDialog
+        open={scanCameraOpen}
+        onClose={() => setScanCameraOpen(false)}
+        onDetected={(code) => {
+          applyScannedProduct(code);
+          setScanCameraOpen(false);
+        }}
+        onError={() => {
+          setScanCameraOpen(false);
+        }}
+      />
 
       <Dialog open={Boolean(editingItem)} onClose={() => setEditingItem(null)} fullWidth maxWidth="md" fullScreen={isMobile}>
         <DialogTitle>Редактиране на наличност</DialogTitle>
