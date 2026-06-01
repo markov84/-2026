@@ -470,43 +470,9 @@ export default function CommandCenterShellClean({ children }) {
   useRealtimeNotifications(true);
 
   useEffect(() => {
-    function handleGlobalKeyDown(event) {
-      const activeElement = document.activeElement;
-      const isInputField = 
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.contentEditable === "true";
-
-      // Don't intercept if we're in an input field
-      if (isInputField) return;
-
-      // Only capture on Enter when we have a buffer
-      if (event.key === "Enter") {
-        const buffer = scanBufferRef.current.trim();
-        if (buffer.length > 5 && /^[A-Za-z0-9-_]+$/.test(buffer)) {
-          event.preventDefault();
-          navigate("/inventory?scan=1");
-          scanBufferRef.current = "";
-          if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
-        }
-        return;
-      }
-
-      // Only collect alphanumeric and common barcode characters
-      const isValidCharacter = /^[A-Za-z0-9\-_|*]$/.test(event.key);
-      if (!isValidCharacter) return;
-
-      scanBufferRef.current += event.key;
-      
-      if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = setTimeout(() => {
-        scanBufferRef.current = "";
-      }, 500);
-    }
-
-    window.addEventListener("keydown", handleGlobalKeyDown);
+    // Global barcode scanner disabled temporarily due to rate limiting issues
+    // Re-enable when we have a proper debouncing mechanism
     return () => {
-      window.removeEventListener("keydown", handleGlobalKeyDown);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
   }, [navigate]);
