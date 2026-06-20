@@ -71,6 +71,12 @@ export default function ScanAndActionDialog({
   const [searchProductName, setSearchProductName] = useState("");
   const [manuallySelectedProduct, setManuallySelectedProduct] = useState(null);
   const [showNewProductDialog, setShowNewProductDialog] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    sku: "",
+    price: "",
+    cost: "",
+  });
   const scanInputRef = useRef(null);
   const isMobile = useMobileDetection();
 
@@ -201,6 +207,7 @@ export default function ScanAndActionDialog({
     setScannedCode("");
     setManuallySelectedProduct(null);
     setSearchProductName("");
+    setNewProduct({ name: "", sku: "", price: "", cost: "" });
     setActionTab(0);
     // Focus scanner for next scan
     setTimeout(() => scanInputRef.current?.focus(), 100);
