@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, CircularProgress, Box, TextField, LinearProgress } from "@mui/material";
+import { useMobileDetection } from "../hooks/useMobileDetection";
 
 function getCameraErrorMessage(error) {
   const name = String(error?.name || "");
@@ -23,6 +24,7 @@ function getCameraErrorMessage(error) {
 }
 
 export default function BarcodeScannerDialog({ open, onClose, onDetected, onError, title = "Сканирай баркод или QR", description = "Насочи камерата към баркод или QR код и изчакай резултата." }) {
+  const isMobile = useMobileDetection();
   const [status, setStatus] = useState("initializing");
   const [message, setMessage] = useState("Подготвям камерата...");
   const [manualCode, setManualCode] = useState("");
@@ -54,7 +56,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
   }
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || !isMobile) return undefined;
 
     const codeReader = new BrowserMultiFormatReader();
     codeReaderRef.current = codeReader;
@@ -158,40 +160,48 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
       active = false;
       stopScanner();
     };
-  }, [open, onDetected, onError]);
+  }, [open, isMobile, onDetected, onError]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <Typography variant="body2" color="text.secondary">
-            {description}
-          </Typography>
-          <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", bgcolor: "rgba(0,0,0,0.06)", minHeight: 260 }}>
-            <video 
-              ref={videoRef} 
-              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-              muted 
-              playsInline 
-              autoPlay
-            />
-            <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none", border: "2px dashed rgba(255,255,255,0.9)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45)" }} />
-          </Box>
-          {status === "initializing" && (
-            <Box>
-              <LinearProgress variant="determinate" value={initProgress} sx={{ mb: 1 }} />
-              <Typography variant="caption" color="text.secondary">
-                Инициализиране {initProgress}%...
-              </Typography>
-            </Box>
-          )}
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {status === "error" ? null : <CircularProgress size={18} />}
-            <Typography variant="body2" color={status === "error" ? "error.main" : "text.secondary"}>
-              {message}
+          {!isMobile ? (
+            <Typography variant="body2" color="text.secondary">
+              💡 Камерата е налична само на мобилни устройства. Сканирай с телефона си или въведи баркод ръчно тук.
             </Typography>
-          </Stack>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary">
+                {description}
+              </Typography>
+              <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", bgcolor: "rgba(0,0,0,0.06)", minHeight: 260 }}>
+                <video 
+                  ref={videoRef} 
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                  muted 
+                  playsInline 
+                  autoPlay
+                />
+                <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none", border: "2px dashed rgba(255,255,255,0.9)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45)" }} />
+              </Box>
+              {status === "initializing" && (
+                <Box>
+                  <LinearProgress variant="determinate" value={initProgress} sx={{ mb: 1 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Инициализиране {initProgress}%...
+                  </Typography>
+                </Box>
+              )}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                {status === "error" ? null : <CircularProgress size={18} />}
+                <Typography variant="body2" color={status === "error" ? "error.main" : "text.secondary"}>
+                  {message}
+                </Typography>
+              </Stack>
+            </>
+          )}
           <TextField
             size="small"
             fullWidth

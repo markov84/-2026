@@ -29,6 +29,7 @@ import BarcodeScannerDialog from "./BarcodeScannerDialog";
 import { ProductIdentity } from "./ProductPresentation";
 import { findProductByScanCode } from "../lib/scanCode";
 import { formatCurrencyEUR } from "../lib/currency";
+import { useMobileDetection } from "../hooks/useMobileDetection";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -68,6 +69,7 @@ export default function ScanAndActionDialog({
   });
   const [loading, setLoading] = useState(false);
   const scanInputRef = useRef(null);
+  const isMobile = useMobileDetection();
 
   const scannedProduct = useMemo(
     () => findProductByScanCode(products, scannedCode),
@@ -211,17 +213,21 @@ export default function ScanAndActionDialog({
                   }
                 }
               }}
-              InputProps={{
-                endAdornment: (
-                  <Button
-                    size="small"
-                    onClick={() => setScanCameraOpen(true)}
-                    sx={{ textTransform: "none" }}
-                  >
-                    📷
-                  </Button>
-                ),
-              }}
+              InputProps={
+                isMobile
+                  ? {
+                      endAdornment: (
+                        <Button
+                          size="small"
+                          onClick={() => setScanCameraOpen(true)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          📷
+                        </Button>
+                      ),
+                    }
+                  : undefined
+              }
             />
 
             {/* Product Info */}
