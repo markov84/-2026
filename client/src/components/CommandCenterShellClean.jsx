@@ -484,6 +484,18 @@ export default function CommandCenterShellClean({ children }) {
   useRealtimeNotifications(true);
 
   useEffect(() => {
+    if (!location.pathname.startsWith("/orders")) return;
+    setScanDialogOpen(false);
+    setPendingScannedCode("");
+    scanBufferRef.current = "";
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/orders")) {
+      scanBufferRef.current = "";
+      return undefined;
+    }
+
     function onGlobalScanKeydown(event) {
       if (location.pathname.startsWith("/orders")) return;
 
