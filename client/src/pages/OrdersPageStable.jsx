@@ -172,14 +172,15 @@ function OrderProductsCell({ items }) {
   );
 }
 
-function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner, onScanSuccess, onScanError }) {
+function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner, onScanSuccess, onScanError, resolveScannedProduct }) {
   const items = value?.length ? value : [createOrderItem()];
 
-  function applyScannedCodeToItems(rawCode, targetKey) {
+  async function applyScannedCodeToItems(rawCode, targetKey) {
     const code = parseScannedInput(rawCode);
     if (!code) return false;
 
-    const product = findProductByScanCode(products, code);
+    const resolved = await resolveScannedProduct?.(code);
+    const product = resolved?.product || findProductByScanCode(products, code);
     if (!product) {
       onScanError?.();
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
@@ -343,16 +344,17 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter" && e.key !== "Tab") return;
-                      const handled = applyScannedCodeToItems(e.currentTarget.value || "", item.key);
-                      if (!handled) return;
+                      const inputElement = e.currentTarget;
+                      const rawValue = inputElement.value || "";
                       e.preventDefault();
-                      e.currentTarget.value = "";
+                      void applyScannedCodeToItems(rawValue, item.key).then((handled) => {
+                        if (handled) inputElement.value = "";
+                      });
                     }}
                     onPaste={(e) => {
                       const pasted = (e.clipboardData || window.clipboardData).getData("text");
-                      const handled = applyScannedCodeToItems(pasted, item.key);
-                      if (!handled) return;
                       e.preventDefault();
+                      void applyScannedCodeToItems(pasted, item.key);
                     }}
                   />
                 )}
@@ -719,11 +721,41 @@ export default function OrdersPageStable() {
     }
   }
 
-  function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
+  async function resolveScannedProduct(rawCode) {
     const code = parseScannedInput(rawCode);
+    if (!code) return { code: "", product: null };
+
+    const localProduct = findProductByScanCode(products, code);
+    if (localProduct) {
+      return { code, product: localProduct };
+    }
+
+    try {
+      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+      const payload = response?.data;
+      const remoteProducts = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
+      if (remoteProduct) {
+        return { code, product: remoteProduct };
+      }
+    } catch {
+      // Ignore network errors here and let caller show a single toast.
+    }
+
+    return { code, product: null };
+  }
+
+  async function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
+    const { code, product } = await resolveScannedProduct(rawCode);
     if (!code) return;
 
-    const product = findProductByScanCode(products, code);
     if (!product) {
       playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
@@ -762,11 +794,10 @@ export default function OrdersPageStable() {
     toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
   }
 
-  function handleOrderScannerDetected(rawCode) {
-    const code = parseScannedInput(rawCode);
+  async function handleOrderScannerDetected(rawCode) {
+    const { code, product } = await resolveScannedProduct(rawCode);
     if (!code) return;
 
-    const product = findProductByScanCode(products, code);
     if (!product) {
       playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
@@ -813,7 +844,7 @@ export default function OrdersPageStable() {
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
     if (event.key !== "Enter" && event.key !== "Tab") return;
     event.preventDefault();
-    applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
+    void applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
   }
 
   useEffect(() => {
@@ -854,12 +885,12 @@ export default function OrdersPageStable() {
         event.preventDefault();
 
         if (editingOrderRef.current) {
-          applyScannedProduct(rawCode, setEditingOrder, setEditScanCode, editingOrderRef.current);
+          void applyScannedProduct(rawCode, setEditingOrder, setEditScanCode, editingOrderRef.current);
           return;
         }
 
         if (openRef.current) {
-          applyScannedProduct(rawCode, setForm, setScanCode, formRef.current);
+          void applyScannedProduct(rawCode, setForm, setScanCode, formRef.current);
         }
         return;
       }
@@ -943,6 +974,7 @@ export default function OrdersPageStable() {
             onChange={(items) => setOrder((current) => ({ ...current, items }))}
             onScanSuccess={() => playScanFeedback("success")}
             onScanError={() => playScanFeedback("error")}
+            resolveScannedProduct={resolveScannedProduct}
             onOpenScanner={() => {
               setOrderScanTarget(order === editingOrder ? "edit" : "create");
               setOrderScanOpen(true);

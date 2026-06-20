@@ -30,7 +30,7 @@ import { ProductIdentity } from "./ProductPresentation";
 import { findProductByScanCode } from "../lib/scanCode";
 import { formatCurrencyEUR } from "../lib/currency";
 import { useMobileDetection } from "../hooks/useMobileDetection";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -61,6 +61,7 @@ export default function ScanAndActionDialog({
   onOpenProductsPage,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [actionTab, setActionTab] = useState(0);
@@ -75,6 +76,10 @@ export default function ScanAndActionDialog({
   const [manuallySelectedProduct, setManuallySelectedProduct] = useState(null);
   const scanInputRef = useRef(null);
   const isMobile = useMobileDetection();
+
+  if (location.pathname.startsWith("/orders")) {
+    return null;
+  }
 
   const scannedProduct = useMemo(
     () => findProductByScanCode(products, scannedCode),
