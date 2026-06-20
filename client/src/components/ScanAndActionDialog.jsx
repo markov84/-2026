@@ -68,6 +68,9 @@ export default function ScanAndActionDialog({
     quantity: "1",
   });
   const [loading, setLoading] = useState(false);
+  const [searchProductName, setSearchProductName] = useState("");
+  const [manuallySelectedProduct, setManuallySelectedProduct] = useState(null);
+  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const scanInputRef = useRef(null);
   const isMobile = useMobileDetection();
 
@@ -75,6 +78,17 @@ export default function ScanAndActionDialog({
     () => findProductByScanCode(products, scannedCode),
     [products, scannedCode]
   );
+
+  const filteredProducts = useMemo(() => {
+    const query = (searchProductName || "").toLowerCase().trim();
+    if (!query) return [];
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(query) ||
+      p.sku?.toLowerCase().includes(query)
+    );
+  }, [products, searchProductName]);
+
+  const displayProduct = scannedProduct || manuallySelectedProduct;
 
   useEffect(() => {
     if (!open) return;
@@ -88,15 +102,26 @@ export default function ScanAndActionDialog({
   }, [open, initialScannedCode]);
 
   const productInventory = useMemo(() => {
-    if (!scannedProduct) return [];
-    return inventory.filter((item) => item.product?._id === scannedProduct._id);
-  }, [scannedProduct, inventory]);
+    if (!displayProduct) return [];
+    return inventory.filter((item) => item.product?._id === displayProduct._id);
+  }, [displayProduct, inventory]);
 
   const totalStock = useMemo(
     () =>
       productInventory.reduce((sum, item) => sum + (item.quantity || 0), 0),
     [productInventory]
   );
+
+  const handleProductSelect = (product) => {
+    setManuallySelectedProduct(product);
+    setSearchProductName("");
+  };
+
+  const handleResetSearch = () => {
+    setSearchProductName("");
+    setManuallySelectedProduct(null);
+    setScannedCode("");
+  };
 
   const handleScanDetected = (code) => {
     setScannedCode(code);
@@ -105,8 +130,8 @@ export default function ScanAndActionDialog({
   };
 
   const handleAddToInventory = async () => {
-    if (!scannedProduct) {
-      toast.error("Няма сканиран продукт");
+    if (!displayProduct) {
+      toast.error("Няма избран продукт");
       return;
     }
     if (!formData.store) {
@@ -121,12 +146,12 @@ export default function ScanAndActionDialog({
     setLoading(true);
     try {
       await onAddToInventory?.({
-        product: scannedProduct._id,
+        product: displayProduct._id,
         store: formData.store,
         quantity: Number(formData.quantity),
       });
       toast.success(
-        `Добавихме ${formData.quantity} бр. ${scannedProduct.name}`
+        `Добавихме ${formData.quantity} бр. ${displayProduct.name}`
       );
       resetForm();
     } catch (error) {
@@ -137,8 +162,8 @@ export default function ScanAndActionDialog({
   };
 
   const handleAddToOrder = async () => {
-    if (!scannedProduct) {
-      toast.error("Няма сканиран продукт");
+    if (!displayProduct) {
+      toast.error("Няма избран продукт");
       return;
     }
     if (!orderFormData.store) {
@@ -153,14 +178,14 @@ export default function ScanAndActionDialog({
     setLoading(true);
     try {
       await onAddToOrder?.({
-        product: scannedProduct._id,
+        product: displayProduct._id,
         store: orderFormData.store,
         customer: orderFormData.customer || null,
         quantity: Number(orderFormData.quantity),
-        unitPrice: scannedProduct.price,
+        unitPrice: displayProduct.price,
       });
       toast.success(
-        `Добавихме ${orderFormData.quantity} бр. ${scannedProduct.name} към поръчката`
+        `Добавихме ${orderFormData.quantity} бр. ${displayProduct.name} към поръчката`
       );
       resetForm();
     } catch (error) {
@@ -174,6 +199,8 @@ export default function ScanAndActionDialog({
     setFormData({ store: "", quantity: "1" });
     setOrderFormData({ store: "", customer: "", quantity: "1" });
     setScannedCode("");
+    setManuallySelectedProduct(null);
+    setSearchProductName("");
     setActionTab(0);
     // Focus scanner for next scan
     setTimeout(() => scanInputRef.current?.focus(), 100);
@@ -231,11 +258,11 @@ export default function ScanAndActionDialog({
             />
 
             {/* Product Info */}
-            {scannedProduct ? (
+            {displayProduct ? (
               <Paper elevation={0} sx={{ p: 2, bgcolor: "action.hover" }}>
                 <Stack spacing={2}>
                   <Box>
-                    <ProductIdentity product={scannedProduct} />
+                    <ProductIdentity product={displayProduct} />
                   </Box>
 
                   {/* Stock Display */}
@@ -295,7 +322,7 @@ export default function ScanAndActionDialog({
                         Цена
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrencyEUR(scannedProduct.price)}
+                        {formatCurrencyEUR(displayProduct.price)}
                       </Typography>
                     </Box>
                     <Box flex={1}>
@@ -303,22 +330,93 @@ export default function ScanAndActionDialog({
                         Себестойност
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrencyEUR(scannedProduct.cost)}
+                        {formatCurrencyEUR(displayProduct.cost)}
                       </Typography>
                     </Box>
                   </Box>
                 </Stack>
               </Paper>
             ) : scannedCode ? (
-              <Box sx={{ p: 2, textAlign: "center", color: "error.main" }}>
-                <Typography variant="body2">
-                  ❌ Продукт не намерен. Провери кода.
-                </Typography>
-              </Box>
+              <Paper elevation={0} sx={{ p: 2, bgcolor: "error.50" }}>
+                <Stack spacing={2}>
+                  <Typography variant="body2" color="error.main" sx={{ fontWeight: 600 }}>
+                    ❌ Продукт "<strong>{scannedCode}</strong>" не намерен
+                  </Typography>
+
+                  {/* Search by name */}
+                  <TextField
+                    size="small"
+                    label="Потърси по име или SKU"
+                    placeholder="Напр. Кола Пепси..."
+                    fullWidth
+                    value={searchProductName}
+                    onChange={(e) => setSearchProductName(e.target.value)}
+                    autoFocus
+                  />
+
+                  {/* Product list */}
+                  {filteredProducts.length > 0 ? (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+                        Намерени продукти ({filteredProducts.length}):
+                      </Typography>
+                      <Stack spacing={1}>
+                        {filteredProducts.slice(0, 5).map((p) => (
+                          <Button
+                            key={p._id}
+                            variant="outlined"
+                            onClick={() => handleProductSelect(p)}
+                            sx={{
+                              textAlign: "left",
+                              justifyContent: "flex-start",
+                              p: 1,
+                              border: "1px solid #e0e0e0",
+                            }}
+                          >
+                            <Stack spacing={0.5} alignItems="flex-start" width="100%">
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {p.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                SKU: {p.sku || "N/A"} | Цена: {formatCurrencyEUR(p.price)}
+                              </Typography>
+                            </Stack>
+                          </Button>
+                        ))}
+                      </Stack>
+                    </Box>
+                  ) : searchProductName ? (
+                    <Typography variant="body2" color="text.secondary">
+                      Няма намерени продукти
+                    </Typography>
+                  ) : null}
+
+                  {/* Action buttons */}
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setShowNewProductDialog(true)}
+                      fullWidth
+                      size="small"
+                    >
+                      ➕ Добави нов продукт
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={handleResetSearch}
+                      color="inherit"
+                      fullWidth
+                      size="small"
+                    >
+                      Нов баркод
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Paper>
             ) : null}
 
             {/* Action Tabs */}
-            {scannedProduct && (
+            {displayProduct && (
               <>
                 <Tabs
                   value={actionTab}
@@ -426,7 +524,7 @@ export default function ScanAndActionDialog({
         </DialogContent>
 
         <DialogActions>
-          {scannedProduct && (
+          {displayProduct && (
             <Button
               variant="contained"
               onClick={actionTab === 0 ? handleAddToInventory : handleAddToOrder}
@@ -438,6 +536,59 @@ export default function ScanAndActionDialog({
           )}
           <Button onClick={onClose} color="inherit">
             Затвори
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* New Product Dialog */}
+      <Dialog open={showNewProductDialog} onClose={() => setShowNewProductDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Добави нов продукт</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              fullWidth
+              label="Название"
+              placeholder="Напр. Кола Пепси 0.5L"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="SKU/Баркод"
+              placeholder="Напр. 8903201920"
+              value={newProduct.sku}
+              onChange={(e) => setNewProduct((prev) => ({ ...prev, sku: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              type="number"
+              label="Цена (EUR)"
+              placeholder="1.50"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct((prev) => ({ ...prev, price: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              type="number"
+              label="Себестойност (EUR)"
+              placeholder="0.80"
+              value={newProduct.cost}
+              onChange={(e) => setNewProduct((prev) => ({ ...prev, cost: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowNewProductDialog(false)} color="inherit">
+            Отмени
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              toast.info("⚠️ Функция за добавяне на продукт еще не е свързана. Добави го от Продукти раздела.");
+              setShowNewProductDialog(false);
+            }}
+          >
+            Добави продукт
           </Button>
         </DialogActions>
       </Dialog>
