@@ -19,6 +19,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
@@ -26,6 +27,9 @@ import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStabl
 import MobileBottomNavigationBar from "./MobileBottomNavigation";
 import MobileQuickActions from "./MobileQuickActions";
 import { useMobileDetection } from "../hooks/useMobileDetection";
+import ScanAndActionDialog from "./ScanAndActionDialog";
+import { useFetch } from "../hooks/useFetch";
+import api from "../lib/api";
 
 const drawerWidth = 240;
 const iconRailHeight = 64;
@@ -460,6 +464,7 @@ function IconRail() {
 
 export default function CommandCenterShellClean({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const isMobile = useMobileDetection();
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
@@ -467,6 +472,13 @@ export default function CommandCenterShellClean({ children }) {
   const navigate = useNavigate();
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
+  
+  // Fetch data for scan dialog
+  const { data: products = [] } = useFetch("/products?compact=1");
+  const { data: stores = [] } = useFetch("/stores");
+  const { data: inventory = [] } = useFetch("/inventory/summary");
+  const { data: customers = [] } = useFetch("/customers?compact=1");
+  
   useRealtimeNotifications(true);
 
   useEffect(() => {
@@ -476,6 +488,26 @@ export default function CommandCenterShellClean({ children }) {
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
   }, [navigate]);
+
+  const handleAddToInventory = async (payload) => {
+    const response = await api.post("/inventory", payload);
+    return response;
+  };
+
+  const handleAddToOrder = async (payload) => {
+    const response = await api.post("/orders", {
+      store: payload.store,
+      customer: payload.customer,
+      items: [{
+        product: payload.product,
+        quantity: payload.quantity,
+        unitPrice: payload.unitPrice
+      }],
+      status: "pending",
+      paymentStatus: "unpaid"
+    });
+    return response;
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -536,6 +568,22 @@ export default function CommandCenterShellClean({ children }) {
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <Chip label="Готово за мобилно приложение" color="secondary" variant="outlined" sx={{ bgcolor: "rgba(111,133,149,0.10)", display: { xs: "none", sm: "inline-flex" } }} />
+            <Tooltip title="Сканирай и действай" arrow>
+              <IconButton
+                aria-label="Сканирай и действай"
+                onClick={() => setScanDialogOpen(true)}
+                sx={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper"
+                }}
+              >
+                <QrCodeScannerRoundedIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={isDarkMode ? "Светла тема" : "Тъмна тема"} arrow>
               <IconButton
                 aria-label={isDarkMode ? "Включи светла тема" : "Включи тъмна тема"}
@@ -569,6 +617,17 @@ export default function CommandCenterShellClean({ children }) {
 
       {isMobile ? <MobileQuickActions /> : null}
       {isMobile ? <MobileBottomNavigationBar /> : null}
+
+      <ScanAndActionDialog
+        open={scanDialogOpen}
+        onClose={() => setScanDialogOpen(false)}
+        products={products}
+        stores={stores}
+        inventory={inventory}
+        customers={customers}
+        onAddToInventory={handleAddToInventory}
+        onAddToOrder={handleAddToOrder}
+      />
     </Box>
   );
 }
