@@ -28,7 +28,7 @@ router.get("/", asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .populate("fromStore", "name city")
     .populate("toStore", "name city")
-    .populate("items.product", "name sku imageUrl price")
+    .populate("items.product", "name sku imageUrl price vatRate")
     .lean();
 
   return res.json(transfers);
@@ -89,7 +89,7 @@ router.post(
     const populated = await StoreTransfer.findById(transfer._id)
       .populate("fromStore", "name city")
       .populate("toStore", "name city")
-      .populate("items.product", "name sku imageUrl price")
+      .populate("items.product", "name sku imageUrl price vatRate")
       .lean();
 
     return res.status(201).json(populated);
@@ -171,7 +171,7 @@ router.put(
     )
       .populate("fromStore", "name city")
       .populate("toStore", "name city")
-      .populate("items.product", "name sku imageUrl price")
+      .populate("items.product", "name sku imageUrl price vatRate")
       .lean();
 
     clearCachedJson("inventory:");

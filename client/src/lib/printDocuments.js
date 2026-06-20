@@ -246,6 +246,18 @@ export function printInvoice(invoice) {
 
 export function printOrder(order) {
   const items = order.items?.length ? order.items : [];
+  const subtotal = items.reduce((sum, item) => {
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+    return sum + quantity * unitPrice;
+  }, 0);
+  const vatAmount = items.reduce((sum, item) => {
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+    const vatRate = Number(item.vatRate ?? item.product?.vatRate ?? 0);
+    return sum + quantity * unitPrice * (vatRate / 100);
+  }, 0);
+  const totalAmount = Number(order.totalAmount ?? subtotal + vatAmount);
 
   printHtml(
     `Продажба ${order.orderNumber || ""}`,
@@ -280,7 +292,9 @@ export function printOrder(order) {
         <tbody>${getItemRows(items)}</tbody>
       </table>
       <section class="totals">
-        <p class="total"><span>Общо:</span><span>${formatCurrencyEUR(order.totalAmount || 0)}</span></p>
+        <p><span>Сума без ДДС:</span><strong>${formatCurrencyEUR(subtotal)}</strong></p>
+        <p><span>ДДС:</span><strong>${formatCurrencyEUR(vatAmount)}</strong></p>
+        <p class="total"><span>Общо с ДДС:</span><span>${formatCurrencyEUR(totalAmount)}</span></p>
       </section>
       <section class="footer">
         <div class="signature">Продавач</div>
@@ -293,7 +307,12 @@ export function printOrder(order) {
 export function printTransfer(transfer) {
   const items = transfer.items || [];
   const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const totalAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.product?.price || 0), 0);
+  const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.product?.price || 0), 0);
+  const vatAmount = items.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.product?.price || 0) * (Number(item.product?.vatRate ?? 20) / 100),
+    0
+  );
+  const totalAmount = subtotal + vatAmount;
 
   printHtml(
     `Трансфер ${transfer.transferNumber || ""}`,
@@ -326,11 +345,13 @@ export function printTransfer(transfer) {
         <thead>
           <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: Number(item.product?.price || 0) })))}</tbody>
+        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: Number(item.product?.price || 0), vatRate: Number(item.product?.vatRate ?? 20) })))}</tbody>
       </table>
       <section class="totals">
         <p><span>Общо бройки:</span><strong>${quantity}</strong></p>
-        <p class="total"><span>Общо:</span><span>${formatCurrencyEUR(totalAmount)}</span></p>
+        <p><span>Сума без ДДС:</span><strong>${formatCurrencyEUR(subtotal)}</strong></p>
+        <p><span>ДДС:</span><strong>${formatCurrencyEUR(vatAmount)}</strong></p>
+        <p class="total"><span>Общо с ДДС:</span><span>${formatCurrencyEUR(totalAmount)}</span></p>
       </section>
       <h2>Детайли</h2>
       <p><strong>Заявил:</strong> ${escapeHtml(transfer.requestedBy || "-")}</p>

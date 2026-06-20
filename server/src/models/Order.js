@@ -4,7 +4,8 @@ const orderItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
     quantity: { type: Number, required: true, min: 1 },
-    unitPrice: { type: Number, required: true, min: 0 }
+    unitPrice: { type: Number, required: true, min: 0 },
+    vatRate: { type: Number, default: 20, min: 0 }
   },
   { _id: false }
 );
@@ -26,6 +27,8 @@ const orderSchema = new mongoose.Schema(
       enum: ["unpaid", "partial", "paid"],
       default: "unpaid"
     },
+    subtotal: { type: Number, default: 0, min: 0 },
+    vatAmount: { type: Number, default: 0, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 }
   },
   { timestamps: true }

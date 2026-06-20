@@ -54,6 +54,7 @@ function createOrderItem(product = null, overrides = {}) {
     product: product?._id || "",
     quantity: product ? "1" : "",
     unitPrice: product ? String(product.price ?? "") : "",
+    vatRate: String(product?.vatRate ?? 20),
     ...overrides
   };
 }
@@ -63,7 +64,8 @@ function normalizeOrderItems(items = []) {
     createOrderItem(null, {
       product: item.product?._id || item.product || "",
       quantity: String(item.quantity ?? 1),
-      unitPrice: String(item.unitPrice ?? item.product?.price ?? "")
+      unitPrice: String(item.unitPrice ?? item.product?.price ?? ""),
+      vatRate: String(item.vatRate ?? item.product?.vatRate ?? 20)
     })
   );
 }
@@ -73,13 +75,25 @@ function getCleanOrderItems(order) {
     .map((item) => ({
       product: item.product,
       quantity: Number(item.quantity || 0),
-      unitPrice: Number(item.unitPrice || 0)
+      unitPrice: Number(item.unitPrice || 0),
+      vatRate: Number(item.vatRate || 0)
     }))
     .filter((item) => item.product && item.quantity > 0);
 }
 
-function getOrderTotal(order) {
-  return getCleanOrderItems(order).reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+function getOrderTotals(order) {
+  return getCleanOrderItems(order).reduce(
+    (totals, item) => {
+      const lineBase = item.quantity * item.unitPrice;
+      const lineVat = lineBase * (item.vatRate / 100);
+      return {
+        subtotal: totals.subtotal + lineBase,
+        vatAmount: totals.vatAmount + lineVat,
+        totalAmount: totals.totalAmount + lineBase + lineVat
+      };
+    },
+    { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+  );
 }
 
 function getCustomerDisplayName(customer) {
@@ -97,9 +111,10 @@ function validateOrder(order) {
     if (!item.product) return `Избери продукт на ред ${row}.`;
     if (Number(item.quantity || 0) <= 0) return `Количеството на ред ${row} трябва да е по-голямо от 0.`;
     if (Number(item.unitPrice || 0) < 0) return `Единичната цена на ред ${row} не може да е отрицателна.`;
+    if (Number(item.vatRate || 0) < 0) return `ДДС ставката на ред ${row} не може да е отрицателна.`;
   }
 
-  if (getOrderTotal(order) <= 0) return "Крайната сума трябва да е по-голяма от 0.";
+  if (getOrderTotals(order).totalAmount <= 0) return "Крайната сума трябва да е по-голяма от 0.";
   return "";
 }
 
@@ -117,7 +132,12 @@ function getProductOptionLabel(product) {
 }
 
 function isOrderItemFilled(item) {
-  return Boolean(item?.product || Number(item?.quantity || 0) > 0 || Number(item?.unitPrice || 0) > 0);
+  return Boolean(
+    item?.product ||
+      Number(item?.quantity || 0) > 0 ||
+      Number(item?.unitPrice || 0) > 0 ||
+      Number(item?.vatRate || 0) > 0
+  );
 }
 
 function withTrailingOrderRow(items) {
@@ -185,7 +205,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
         <Box
           sx={{
             display: { xs: "none", md: "grid" },
-            gridTemplateColumns: "28px minmax(150px, 1fr) 56px 82px 132px 96px 30px",
+            gridTemplateColumns: "28px minmax(150px, 1fr) 56px 82px 66px 116px 132px 96px 30px",
             gap: 0.5,
             px: 0.35,
             color: "text.secondary",
@@ -197,7 +217,9 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
           <Box>Наименование</Box>
           <Box textAlign="right">Брой</Box>
           <Box textAlign="right">Ед. цена</Box>
-          <Box textAlign="right">Общо</Box>
+          <Box textAlign="right">ДДС %</Box>
+          <Box textAlign="right">ДДС</Box>
+          <Box textAlign="right">Общо с ДДС</Box>
           <Box textAlign="right">Наличност</Box>
           <Box />
         </Box>
@@ -206,6 +228,9 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
           const selectedInventory = getInventoryForItem(inventory, item.product, store);
           const quantity = Number(item.quantity || 0);
           const unitPrice = Number(item.unitPrice || 0);
+          const vatRate = Number(item.vatRate || 0);
+          const lineSubtotal = quantity * unitPrice;
+          const lineVat = lineSubtotal * (vatRate / 100);
           const hasLowStockRisk = selectedInventory && quantity > Number(selectedInventory.quantity || 0);
 
           return (
@@ -213,7 +238,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "28px minmax(150px, 1fr) 56px 82px 132px 96px 30px" },
+                gridTemplateColumns: { xs: "1fr", md: "28px minmax(150px, 1fr) 56px 82px 66px 116px 132px 96px 30px" },
                 gap: 0.5,
                 alignItems: "center",
                 p: 0.35,
@@ -235,7 +260,8 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                   updateItem(item.key, {
                     product: product?._id || "",
                     quantity: item.quantity || "1",
-                    unitPrice: String(product?.price ?? item.unitPrice ?? "")
+                    unitPrice: String(product?.price ?? item.unitPrice ?? ""),
+                    vatRate: String(product?.vatRate ?? item.vatRate ?? 20)
                   });
                 }}
                 isOptionEqualToValue={(option, value) => option._id === value._id}
@@ -260,7 +286,8 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                       updateItem(item.key, {
                         product: product._id,
                         quantity: item.quantity || "1",
-                        unitPrice: String(product.price ?? item.unitPrice ?? "")
+                        unitPrice: String(product.price ?? item.unitPrice ?? ""),
+                        vatRate: String(product.vatRate ?? item.vatRate ?? 20)
                       });
                     }}
                     onPaste={(e) => {
@@ -272,7 +299,8 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                       updateItem(item.key, {
                         product: product._id,
                         quantity: item.quantity || "1",
-                        unitPrice: String(product.price ?? item.unitPrice ?? "")
+                        unitPrice: String(product.price ?? item.unitPrice ?? ""),
+                        vatRate: String(product.vatRate ?? item.vatRate ?? 20)
                       });
                     }}
                   />
@@ -294,9 +322,22 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                 onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
                 inputProps={{ min: 0 }}
               />
+              <TextField
+                size="small"
+                aria-label="ДДС процент"
+                type="number"
+                value={item.vatRate}
+                onChange={(event) => updateItem(item.key, { vatRate: event.target.value })}
+                inputProps={{ min: 0 }}
+              />
+              <Box sx={{ minWidth: 0, textAlign: "right" }}>
+                <Typography variant="body2" fontWeight={800} noWrap>
+                  {formatCurrencyEUR(lineVat)}
+                </Typography>
+              </Box>
               <Box sx={{ minWidth: 0, textAlign: "right" }}>
                 <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
-                  {formatCurrencyEUR(quantity * unitPrice)}
+                  {formatCurrencyEUR(lineSubtotal + lineVat)}
                 </Typography>
               </Box>
               <Box sx={{ minWidth: 0, textAlign: "right" }}>
@@ -322,7 +363,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
 function OrderTotals({ order }) {
   const rows = getCleanOrderItems(order);
   const totalQuantity = rows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const totalAmount = getOrderTotal(order);
+  const totals = getOrderTotals(order);
 
   return (
     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}>
@@ -335,8 +376,16 @@ function OrderTotals({ order }) {
         <Typography fontWeight={900}>{totalQuantity} бр.</Typography>
       </Box>
       <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо</Typography>
-        <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totalAmount)}</Typography>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+        <Typography fontWeight={900}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+        <Typography fontWeight={900}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+        <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
       </Box>
     </Stack>
   );
@@ -444,10 +493,27 @@ export default function OrdersPageStable() {
         valueFormatter: (params) => paymentStatusLabels[params?.value ?? params] || "-"
       },
       {
+        field: "vatAmount",
+        headerName: "ДДС",
+        flex: 0.7,
+        minWidth: 120,
+        valueGetter: (_, row) => {
+          if (row?.vatAmount != null) return row.vatAmount;
+          const totals = getOrderTotals(row);
+          return totals.vatAmount;
+        },
+        valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0)
+      },
+      {
         field: "totalAmount",
-        headerName: "Общо",
+        headerName: "Общо с ДДС",
         flex: 0.75,
         minWidth: 140,
+        valueGetter: (_, row) => {
+          if (row?.totalAmount != null) return row.totalAmount;
+          const totals = getOrderTotals(row);
+          return totals.totalAmount;
+        },
         valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0)
       },
       {
@@ -483,12 +549,15 @@ export default function OrdersPageStable() {
   }
 
   function buildOrderPayload(order, { includeOrderNumber = false } = {}) {
+    const totals = getOrderTotals(order);
     const payload = {
       store: order.store,
       customer: order.customer || undefined,
       status: order.status,
       paymentStatus: order.paymentStatus,
-      totalAmount: getOrderTotal(order),
+      subtotal: totals.subtotal,
+      vatAmount: totals.vatAmount,
+      totalAmount: totals.totalAmount,
       items: getCleanOrderItems(order)
     };
 
@@ -564,7 +633,14 @@ export default function OrdersPageStable() {
         return {
           ...current,
           items: withTrailingOrderRow(currentItems.map((item) =>
-            item.key === existingItem.key ? { ...item, quantity: String(Number(item.quantity || 0) + 1), unitPrice: item.unitPrice || String(product.price ?? "") } : item
+            item.key === existingItem.key
+              ? {
+                  ...item,
+                  quantity: String(Number(item.quantity || 0) + 1),
+                  unitPrice: item.unitPrice || String(product.price ?? ""),
+                  vatRate: item.vatRate || String(product.vatRate ?? 20)
+                }
+              : item
           ))
         };
       }
@@ -605,7 +681,13 @@ export default function OrdersPageStable() {
         ...current,
         items: nextItems.map((item, index) =>
           index === emptyIndex
-            ? { ...item, product: product._id, quantity: item.quantity || "1", unitPrice: String(product.price ?? item.unitPrice ?? "") }
+            ? {
+                ...item,
+                product: product._id,
+                quantity: item.quantity || "1",
+                unitPrice: String(product.price ?? item.unitPrice ?? ""),
+                vatRate: String(product.vatRate ?? item.vatRate ?? 20)
+              }
             : item
         )
       };

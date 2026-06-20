@@ -14,6 +14,35 @@ const router = Router();
 
 router.use(requireAuth);
 
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeOrderItems(items = []) {
+  return items.map((item) => ({
+    product: item.product,
+    quantity: toNumber(item.quantity, 0),
+    unitPrice: toNumber(item.unitPrice, 0),
+    vatRate: toNumber(item.vatRate, 20)
+  }));
+}
+
+function calculateOrderTotals(items = []) {
+  return items.reduce(
+    (totals, item) => {
+      const lineBase = toNumber(item.quantity, 0) * toNumber(item.unitPrice, 0);
+      const lineVat = lineBase * (toNumber(item.vatRate, 20) / 100);
+      return {
+        subtotal: totals.subtotal + lineBase,
+        vatAmount: totals.vatAmount + lineVat,
+        totalAmount: totals.totalAmount + lineBase + lineVat
+      };
+    },
+    { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+  );
+}
+
 async function reserveCounter(counterValue) {
   await Counter.updateOne(
     {
@@ -88,7 +117,7 @@ router.get(
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name productNumber sku barcode imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price vatRate")
       .lean();
 
     return res.json(orders);
@@ -122,17 +151,19 @@ router.post(
       return res.status(404).json({ message: "One or more products were not found." });
     }
 
-    const totalAmount =
-      req.body.totalAmount ??
-      req.body.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+    const normalizedItems = normalizeOrderItems(req.body.items || []);
+    const { subtotal, vatAmount, totalAmount } = calculateOrderTotals(normalizedItems);
 
     let order;
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         order = await Order.create({
           ...req.body,
+          items: normalizedItems,
           createdBy: req.user._id,
           orderNumber: req.body.orderNumber?.trim() || (await getNextOrderNumber()),
+          subtotal,
+          vatAmount,
           totalAmount
         });
         break;
@@ -162,7 +193,7 @@ router.post(
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name productNumber sku barcode imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price vatRate")
       .lean();
 
     return res.status(201).json(populated);
@@ -220,19 +251,18 @@ router.put(
       });
     }
 
-    const totalAmount =
-      req.body.totalAmount ??
-      nextItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+    const normalizedItems = normalizeOrderItems(nextItems);
+    const { subtotal, vatAmount, totalAmount } = calculateOrderTotals(normalizedItems);
 
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, store: nextStoreId, items: nextItems, totalAmount },
+      { ...req.body, store: nextStoreId, items: normalizedItems, subtotal, vatAmount, totalAmount },
       { new: true, runValidators: true }
     )
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
       .populate("createdBy", "fullName username")
-      .populate("items.product", "name productNumber sku barcode imageUrl price")
+      .populate("items.product", "name productNumber sku barcode imageUrl price vatRate")
       .lean();
 
     clearCachedJson("inventory:");

@@ -130,6 +130,24 @@ function getTransferUnitPrice(product) {
   return Number(product?.price || 0);
 }
 
+function getTransferVatRate(product) {
+  return Number(product?.vatRate ?? 20);
+}
+
+function getTransferLineTotals(product, quantity) {
+  const unitPrice = getTransferUnitPrice(product);
+  const vatRate = getTransferVatRate(product);
+  const subtotal = Number(quantity || 0) * unitPrice;
+  const vatAmount = subtotal * (vatRate / 100);
+  return {
+    unitPrice,
+    vatRate,
+    subtotal,
+    vatAmount,
+    totalAmount: subtotal + vatAmount
+  };
+}
+
 function getProductById(products, productId) {
   return products.find((product) => product._id === productId) || null;
 }
@@ -143,7 +161,23 @@ function getTransferQuantity(transfer) {
 function getTransferTotal(transfer) {
   return getTransferItems(transfer)
     .filter((item) => item.product)
-    .reduce((sum, item) => sum + Number(item.quantity || 0) * getTransferUnitPrice(item.product), 0);
+    .reduce((sum, item) => sum + getTransferLineTotals(item.product, item.quantity).totalAmount, 0);
+}
+
+function getTransferTotals(transfer) {
+  return getTransferItems(transfer)
+    .filter((item) => item.product)
+    .reduce(
+      (totals, item) => {
+        const lineTotals = getTransferLineTotals(item.product, item.quantity);
+        return {
+          subtotal: totals.subtotal + lineTotals.subtotal,
+          vatAmount: totals.vatAmount + lineTotals.vatAmount,
+          totalAmount: totals.totalAmount + lineTotals.totalAmount
+        };
+      },
+      { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+    );
 }
 
 function getStoreName(stores, storeId) {
@@ -220,7 +254,7 @@ function TransferProductsCell({ items }) {
         width: "100%",
         py: 0.75,
         display: "grid",
-        gridTemplateColumns: "minmax(220px, 1fr) 74px 108px 112px",
+        gridTemplateColumns: "minmax(200px, 1fr) 68px 92px 66px 96px 112px",
         gap: 0.75,
         alignItems: "center"
       }}
@@ -228,10 +262,12 @@ function TransferProductsCell({ items }) {
       <Typography variant="caption" color="text.secondary" fontWeight={900}>Продукт</Typography>
       <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">Бр.</Typography>
       <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">Ед. цена</Typography>
-      <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">Сума</Typography>
+      <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">ДДС %</Typography>
+      <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">ДДС</Typography>
+      <Typography variant="caption" color="text.secondary" fontWeight={900} textAlign="right">Общо с ДДС</Typography>
       {getTransferItems({ items }).map((item, index) => {
         const quantity = Number(item.quantity || 0);
-        const unitPrice = getTransferUnitPrice(item.product);
+        const lineTotals = getTransferLineTotals(item.product, quantity);
 
         return (
           <Box key={`${item.product?._id || index}-${index}`} sx={{ display: "contents" }}>
@@ -239,8 +275,10 @@ function TransferProductsCell({ items }) {
               <ProductIdentity compact product={item.product} />
             </Box>
             <Typography variant="body2" textAlign="right" fontWeight={800}>{quantity}</Typography>
-            <Typography variant="body2" textAlign="right">{formatCurrencyEUR(unitPrice)}</Typography>
-            <Typography variant="body2" textAlign="right" fontWeight={900}>{formatCurrencyEUR(quantity * unitPrice)}</Typography>
+            <Typography variant="body2" textAlign="right">{formatCurrencyEUR(lineTotals.unitPrice)}</Typography>
+            <Typography variant="body2" textAlign="right">{lineTotals.vatRate}%</Typography>
+            <Typography variant="body2" textAlign="right">{formatCurrencyEUR(lineTotals.vatAmount)}</Typography>
+            <Typography variant="body2" textAlign="right" fontWeight={900}>{formatCurrencyEUR(lineTotals.totalAmount)}</Typography>
           </Box>
         );
       })}
@@ -301,10 +339,12 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 28, fontWeight: 900 }}>№</TableCell>
-              <TableCell sx={{ width: 300, fontWeight: 900 }}>Продукт</TableCell>
+              <TableCell sx={{ width: 260, fontWeight: 900 }}>Продукт</TableCell>
               <TableCell align="right" sx={{ width: 76, fontWeight: 900 }}>Бройки</TableCell>
-              <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Ед. цена</TableCell>
-              <TableCell align="right" sx={{ width: 96, fontWeight: 900 }}>Сума</TableCell>
+              <TableCell align="right" sx={{ width: 84, fontWeight: 900 }}>Ед. цена</TableCell>
+              <TableCell align="right" sx={{ width: 62, fontWeight: 900 }}>ДДС %</TableCell>
+              <TableCell align="right" sx={{ width: 92, fontWeight: 900 }}>ДДС</TableCell>
+              <TableCell align="right" sx={{ width: 108, fontWeight: 900 }}>Общо с ДДС</TableCell>
               <TableCell align="right" sx={{ width: 86, fontWeight: 900 }}>Наличност</TableCell>
               <TableCell align="center" sx={{ width: 34, fontWeight: 900 }} />
             </TableRow>
@@ -314,7 +354,7 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
               const selectedProduct = getProductById(products, item.product);
               const sourceInventory = getInventoryForItem(inventory, item.product, fromStore);
               const quantity = Number(item.quantity || 0);
-              const unitPrice = getTransferUnitPrice(selectedProduct);
+              const lineTotals = getTransferLineTotals(selectedProduct, quantity);
               const hasLowStockRisk = sourceInventory && quantity > Number(sourceInventory.quantity || 0);
 
               return (
@@ -364,12 +404,22 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight={800} noWrap>
-                      {selectedProduct ? formatCurrencyEUR(unitPrice) : "-"}
+                      {selectedProduct ? formatCurrencyEUR(lineTotals.unitPrice) : "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" fontWeight={800} noWrap>
+                      {selectedProduct ? `${lineTotals.vatRate}%` : "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" noWrap>
+                      {selectedProduct ? formatCurrencyEUR(lineTotals.vatAmount) : "-"}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
-                      {selectedProduct ? formatCurrencyEUR(quantity * unitPrice) : "-"}
+                      {selectedProduct ? formatCurrencyEUR(lineTotals.totalAmount) : "-"}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
@@ -409,7 +459,17 @@ function TransferTotals({ transfer, products, inventory, stores }) {
       productData: products.find((product) => product._id === item.product)
     }));
   const totalQuantity = enrichedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const totalAmount = enrichedItems.reduce((sum, item) => sum + Number(item.quantity || 0) * getTransferUnitPrice(item.productData), 0);
+  const totals = enrichedItems.reduce(
+    (acc, item) => {
+      const lineTotals = getTransferLineTotals(item.productData, Number(item.quantity || 0));
+      return {
+        subtotal: acc.subtotal + lineTotals.subtotal,
+        vatAmount: acc.vatAmount + lineTotals.vatAmount,
+        totalAmount: acc.totalAmount + lineTotals.totalAmount
+      };
+    },
+    { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+  );
   const lowStockRows = enrichedItems.filter((item) => {
     const sourceInventory = getInventoryForItem(inventory, item.product, transfer.fromStore);
     return sourceInventory && Number(item.quantity || 0) > Number(sourceInventory.quantity || 0);
@@ -436,8 +496,16 @@ function TransferTotals({ transfer, products, inventory, stores }) {
           <Typography variant="h6">{totalQuantity || 0} бр.</Typography>
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={800}>Обща стойност</Typography>
-          <Typography variant="h6" color="primary.main">{formatCurrencyEUR(totalAmount)}</Typography>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+          <Typography variant="h6">{formatCurrencyEUR(totals.subtotal)}</Typography>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+          <Typography variant="h6">{formatCurrencyEUR(totals.vatAmount)}</Typography>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+          <Typography variant="h6" color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
         </Box>
       </Stack>
 
@@ -468,7 +536,20 @@ export default function TransfersPageStable() {
   const [deletingTransfer, setDeletingTransfer] = useState(null);
   const isMobile = useMobileDetection();
 
-  const rows = useMemo(() => transfers.map((transfer) => ({ ...transfer, totalQuantity: getTransferQuantity(transfer), totalAmount: getTransferTotal(transfer) })), [transfers]);
+  const rows = useMemo(
+    () =>
+      transfers.map((transfer) => {
+        const totals = getTransferTotals(transfer);
+        return {
+          ...transfer,
+          totalQuantity: getTransferQuantity(transfer),
+          subtotal: totals.subtotal,
+          vatAmount: totals.vatAmount,
+          totalAmount: totals.totalAmount
+        };
+      }),
+    [transfers]
+  );
 
   async function handleCreate() {
     const validationMessage = validateTransfer(form);
@@ -555,7 +636,9 @@ export default function TransfersPageStable() {
               { field: "toStore", headerName: "Към", flex: 0.75, minWidth: 120, valueGetter: (_, row) => row.toStore?.name || "-" },
               { field: "products", headerName: "Продукти", flex: 2.8, minWidth: 560, sortable: false, renderCell: (params) => <TransferProductsCell items={params?.row?.items || []} /> },
               { field: "totalQuantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
-              { field: "totalAmount", headerName: "Общо", flex: 0.7, minWidth: 125, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              { field: "subtotal", headerName: "Без ДДС", flex: 0.7, minWidth: 115, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              { field: "vatAmount", headerName: "ДДС", flex: 0.6, minWidth: 105, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              { field: "totalAmount", headerName: "Общо с ДДС", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 105, renderCell: (params) => <Chip label={params?.value || "-"} size="small" color={params?.value === "completed" ? "success" : "warning"} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
               { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} /> }
