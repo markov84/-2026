@@ -38,13 +38,27 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
     const codeReader = new BrowserMultiFormatReader();
     codeReaderRef.current = codeReader;
-    const videoElement = videoRef.current;
     let active = true;
 
+    async function waitForVideoElement(maxAttempts = 25) {
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (!active) return null;
+        if (videoRef.current) return videoRef.current;
+        // Dialog content may mount after the effect starts
+        await new Promise((resolve) => window.setTimeout(resolve, 40));
+      }
+      return null;
+    }
+
     async function startScanner() {
-      if (!videoElement) return;
       updateStatus("initializing", "Подготвям камерата...");
       setInitProgress(0);
+
+      const videoElement = await waitForVideoElement();
+      if (!videoElement) {
+        updateStatus("error", "Камерата не може да бъде стартирана. Опитай да затвориш и отвориш скенера отново.");
+        return;
+      }
 
       const callback = (result, error) => {
         if (!active) return;
@@ -86,6 +100,9 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         setInitProgress(30);
 
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+        if (!devices.length) {
+          throw new Error("Не е открита камера. Провери разрешенията на браузъра.");
+        }
         const preferred =
           devices.find((device) => /back|rear|environment|trasera|traseira|arriere|задна/i.test(device?.label || "")) ||
           devices[devices.length - 1] ||
