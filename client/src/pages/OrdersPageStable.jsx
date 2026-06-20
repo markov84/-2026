@@ -24,7 +24,7 @@ import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 import { printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
-import { parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialOrder = {
   orderNumber: "Генерира се автоматично",
@@ -101,17 +101,6 @@ function validateOrder(order) {
 
   if (getOrderTotal(order) <= 0) return "Крайната сума трябва да е по-голяма от 0.";
   return "";
-}
-
-function findProductByScanCode(products, code) {
-  const normalized = parseScannedInput(code).toLowerCase();
-  if (!normalized) return null;
-
-  return products.find((product) =>
-    [product.productNumber, product.barcode, product.sku]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toLowerCase() === normalized)
-  );
 }
 
 function getProductById(products, productId) {

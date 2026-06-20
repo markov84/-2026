@@ -19,7 +19,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -29,17 +29,6 @@ function validateInventoryPayload(payload) {
   if (!Number.isInteger(Number(payload.quantity)) || Number(payload.quantity) < 0) return "Количеството трябва да е цяло число 0 или повече.";
   if (!Number.isInteger(Number(payload.reorderLevel)) || Number(payload.reorderLevel) < 0) return "Минималната наличност трябва да е цяло число 0 или повече.";
   return null;
-}
-
-function findProductByScanCode(products, code) {
-  const normalized = parseScannedInput(code).toLowerCase();
-  if (!normalized) return null;
-
-  return (products || []).find((product) =>
-    [product.productNumber, product.barcode, product.sku]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toLowerCase() === normalized)
-  );
 }
 
 export default function InventoryPageReady() {

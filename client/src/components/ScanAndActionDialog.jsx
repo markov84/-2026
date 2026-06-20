@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -23,13 +23,11 @@ import {
   Tabs,
 } from "@mui/material";
 import toast from "react-hot-toast";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
 import BarcodeScannerDialog from "./BarcodeScannerDialog";
 import { ProductIdentity } from "./ProductPresentation";
-import { parseScannedInput } from "../lib/scanCode";
-import api from "../lib/api";
+import { findProductByScanCode } from "../lib/scanCode";
 import { formatCurrencyEUR } from "../lib/currency";
 
 function TabPanel(props) {
@@ -44,16 +42,6 @@ function TabPanel(props) {
     >
       {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
     </div>
-  );
-}
-
-function findProductByScanCode(products, code) {
-  const normalized = parseScannedInput(code).toLowerCase();
-  if (!normalized) return null;
-  return (products || []).find((product) =>
-    [product.productNumber, product.barcode, product.sku]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toLowerCase() === normalized)
   );
 }
 
