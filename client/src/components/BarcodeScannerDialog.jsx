@@ -129,8 +129,8 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         setInitProgress(45);
         probeStream.getTracks().forEach((track) => track.stop());
 
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-        if (!devices.length) {
+        const devices = (await BrowserMultiFormatReader.listVideoInputDevices()) || [];
+        if (!Array.isArray(devices) || devices.length === 0) {
           throw new Error("Не е открита камера. Провери разрешенията на браузъра.");
         }
         const preferred =

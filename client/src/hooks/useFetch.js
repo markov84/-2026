@@ -11,7 +11,7 @@ export function useFetch(path) {
     try {
       setLoading(true);
       const response = await api.get(path);
-      setData(response.data);
+      setData(response.data === undefined ? [] : response.data);
     } catch (error) {
       if (error.response?.status === 401) {
         clearAuthToken();
@@ -36,7 +36,7 @@ export function useFetch(path) {
     api
       .get(path)
       .then((response) => {
-        if (active) setData(response.data);
+        if (active) setData(response.data === undefined ? [] : response.data);
       })
       .catch((error) => {
         if (error.response?.status === 401) {
