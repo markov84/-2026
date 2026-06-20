@@ -16,7 +16,7 @@ function formatDate(value) {
   return date.toLocaleDateString("bg-BG");
 }
 
-function getItemRows(items = []) {
+function getItemRows(items = [], { priceIncludesVat = false } = {}) {
   return items
     .map((item, index) => {
       const productName = item.product?.name || item.description || "-";
@@ -24,8 +24,10 @@ function getItemRows(items = []) {
       const quantity = Number(item.quantity || 0);
       const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
       const vatRate = Number(item.vatRate ?? 0);
-      const subtotal = quantity * unitPrice;
-      const total = subtotal + subtotal * (vatRate / 100);
+      const grossAmount = quantity * unitPrice;
+      const vatDivider = 1 + vatRate / 100;
+      const subtotal = priceIncludesVat && vatDivider > 0 ? grossAmount / vatDivider : grossAmount;
+      const total = priceIncludesVat ? grossAmount : subtotal + subtotal * (vatRate / 100);
 
       return `
         <tr>
@@ -249,13 +251,19 @@ export function printOrder(order) {
   const subtotal = items.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
     const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
-    return sum + quantity * unitPrice;
+    const vatRate = Number(item.vatRate ?? item.product?.vatRate ?? 0);
+    const grossAmount = quantity * unitPrice;
+    const vatDivider = 1 + vatRate / 100;
+    return sum + (vatDivider > 0 ? grossAmount / vatDivider : grossAmount);
   }, 0);
   const vatAmount = items.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
     const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
     const vatRate = Number(item.vatRate ?? item.product?.vatRate ?? 0);
-    return sum + quantity * unitPrice * (vatRate / 100);
+    const grossAmount = quantity * unitPrice;
+    const vatDivider = 1 + vatRate / 100;
+    const lineBase = vatDivider > 0 ? grossAmount / vatDivider : grossAmount;
+    return sum + (grossAmount - lineBase);
   }, 0);
   const totalAmount = Number(order.totalAmount ?? subtotal + vatAmount);
 
@@ -289,7 +297,7 @@ export function printOrder(order) {
         <thead>
           <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows(items)}</tbody>
+        <tbody>${getItemRows(items, { priceIncludesVat: true })}</tbody>
       </table>
       <section class="totals">
         <p><span>Сума без ДДС:</span><strong>${formatCurrencyEUR(subtotal)}</strong></p>
@@ -307,9 +315,24 @@ export function printOrder(order) {
 export function printTransfer(transfer) {
   const items = transfer.items || [];
   const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.product?.price || 0), 0);
+  const subtotal = items.reduce((sum, item) => {
+    const quantityValue = Number(item.quantity || 0);
+    const unitPrice = Number(item.product?.price || 0);
+    const vatRate = Number(item.product?.vatRate ?? 20);
+    const grossAmount = quantityValue * unitPrice;
+    const vatDivider = 1 + vatRate / 100;
+    return sum + (vatDivider > 0 ? grossAmount / vatDivider : grossAmount);
+  }, 0);
   const vatAmount = items.reduce(
-    (sum, item) => sum + Number(item.quantity || 0) * Number(item.product?.price || 0) * (Number(item.product?.vatRate ?? 20) / 100),
+    (sum, item) => {
+      const quantityValue = Number(item.quantity || 0);
+      const unitPrice = Number(item.product?.price || 0);
+      const vatRate = Number(item.product?.vatRate ?? 20);
+      const grossAmount = quantityValue * unitPrice;
+      const vatDivider = 1 + vatRate / 100;
+      const lineBase = vatDivider > 0 ? grossAmount / vatDivider : grossAmount;
+      return sum + (grossAmount - lineBase);
+    },
     0
   );
   const totalAmount = subtotal + vatAmount;
@@ -345,7 +368,7 @@ export function printTransfer(transfer) {
         <thead>
           <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: Number(item.product?.price || 0), vatRate: Number(item.product?.vatRate ?? 20) })))}</tbody>
+        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: Number(item.product?.price || 0), vatRate: Number(item.product?.vatRate ?? 20) })), { priceIncludesVat: true })}</tbody>
       </table>
       <section class="totals">
         <p><span>Общо бройки:</span><strong>${quantity}</strong></p>

@@ -84,12 +84,14 @@ function getCleanOrderItems(order) {
 function getOrderTotals(order) {
   return getCleanOrderItems(order).reduce(
     (totals, item) => {
-      const lineBase = item.quantity * item.unitPrice;
-      const lineVat = lineBase * (item.vatRate / 100);
+      const lineGross = item.quantity * item.unitPrice;
+      const vatDivider = 1 + item.vatRate / 100;
+      const lineBase = vatDivider > 0 ? lineGross / vatDivider : lineGross;
+      const lineVat = lineGross - lineBase;
       return {
         subtotal: totals.subtotal + lineBase,
         vatAmount: totals.vatAmount + lineVat,
-        totalAmount: totals.totalAmount + lineBase + lineVat
+        totalAmount: totals.totalAmount + lineGross
       };
     },
     { subtotal: 0, vatAmount: 0, totalAmount: 0 }
@@ -229,8 +231,10 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
           const quantity = Number(item.quantity || 0);
           const unitPrice = Number(item.unitPrice || 0);
           const vatRate = Number(item.vatRate || 0);
-          const lineSubtotal = quantity * unitPrice;
-          const lineVat = lineSubtotal * (vatRate / 100);
+          const lineGross = quantity * unitPrice;
+          const vatDivider = 1 + vatRate / 100;
+          const lineSubtotal = vatDivider > 0 ? lineGross / vatDivider : lineGross;
+          const lineVat = lineGross - lineSubtotal;
           const hasLowStockRisk = selectedInventory && quantity > Number(selectedInventory.quantity || 0);
 
           return (
@@ -337,7 +341,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
               </Box>
               <Box sx={{ minWidth: 0, textAlign: "right" }}>
                 <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
-                  {formatCurrencyEUR(lineSubtotal + lineVat)}
+                  {formatCurrencyEUR(lineGross)}
                 </Typography>
               </Box>
               <Box sx={{ minWidth: 0, textAlign: "right" }}>

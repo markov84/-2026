@@ -137,14 +137,16 @@ function getTransferVatRate(product) {
 function getTransferLineTotals(product, quantity) {
   const unitPrice = getTransferUnitPrice(product);
   const vatRate = getTransferVatRate(product);
-  const subtotal = Number(quantity || 0) * unitPrice;
-  const vatAmount = subtotal * (vatRate / 100);
+  const grossAmount = Number(quantity || 0) * unitPrice;
+  const vatDivider = 1 + vatRate / 100;
+  const subtotal = vatDivider > 0 ? grossAmount / vatDivider : grossAmount;
+  const vatAmount = grossAmount - subtotal;
   return {
     unitPrice,
     vatRate,
     subtotal,
     vatAmount,
-    totalAmount: subtotal + vatAmount
+    totalAmount: grossAmount
   };
 }
 

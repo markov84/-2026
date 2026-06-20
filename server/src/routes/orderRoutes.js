@@ -31,12 +31,15 @@ function normalizeOrderItems(items = []) {
 function calculateOrderTotals(items = []) {
   return items.reduce(
     (totals, item) => {
-      const lineBase = toNumber(item.quantity, 0) * toNumber(item.unitPrice, 0);
-      const lineVat = lineBase * (toNumber(item.vatRate, 20) / 100);
+      const lineGross = toNumber(item.quantity, 0) * toNumber(item.unitPrice, 0);
+      const vatRate = toNumber(item.vatRate, 20);
+      const vatDivider = 1 + vatRate / 100;
+      const lineBase = vatDivider > 0 ? lineGross / vatDivider : lineGross;
+      const lineVat = lineGross - lineBase;
       return {
         subtotal: totals.subtotal + lineBase,
         vatAmount: totals.vatAmount + lineVat,
-        totalAmount: totals.totalAmount + lineBase + lineVat
+        totalAmount: totals.totalAmount + lineGross
       };
     },
     { subtotal: 0, vatAmount: 0, totalAmount: 0 }
