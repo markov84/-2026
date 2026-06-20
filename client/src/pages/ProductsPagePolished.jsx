@@ -495,7 +495,7 @@ export default function ProductsPagePolished() {
               <FormGrid min={230}>
                 <Autocomplete
                   freeSolo
-                  options={productNameOptions}
+                  options={Array.isArray(productNameOptions) ? productNameOptions : []}
                   value={form.name}
                   onInputChange={(_, value) => updateField("name", value)}
                   renderOption={(props, option) => (
@@ -534,14 +534,14 @@ export default function ProductsPagePolished() {
                 />
                 <Autocomplete
                   freeSolo
-                  options={categoryOptions}
+                  options={Array.isArray(categoryOptions) ? categoryOptions : []}
                   value={form.category}
                   onInputChange={(_, value) => updateField("category", value)}
                   renderInput={(params) => <TextField {...params} label="Категория" />}
                 />
                 <Autocomplete
                   freeSolo
-                  options={brandOptions}
+                  options={Array.isArray(brandOptions) ? brandOptions : []}
                   value={form.brand}
                   onInputChange={(_, value) => updateField("brand", value)}
                   renderInput={(params) => <TextField {...params} label="Марка" />}

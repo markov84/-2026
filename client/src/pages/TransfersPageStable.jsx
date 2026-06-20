@@ -326,7 +326,7 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
                   </TableCell>
                   <TableCell>
                     <Autocomplete
-                      options={products}
+                      options={Array.isArray(products) ? products : []}
                       value={selectedProduct}
                       onChange={(_, product) =>
                         updateItem(item.key, {

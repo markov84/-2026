@@ -228,7 +228,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
               </Typography>
               <Autocomplete
                 size="small"
-                options={products}
+                options={Array.isArray(products) ? products : []}
                 getOptionLabel={getProductOptionLabel}
                 value={selectedProduct}
                 onChange={(_, product) => {
