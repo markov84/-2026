@@ -176,6 +176,61 @@ function OrderProductsCell({ items }) {
 function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner }) {
   const items = value?.length ? value : [createOrderItem()];
 
+  function applyScannedCodeToItems(rawCode, targetKey) {
+    const code = parseScannedInput(rawCode);
+    if (!code) return false;
+
+    const product = findProductByScanCode(products, code);
+    if (!product) return false;
+
+    const filledItems = items.filter(isOrderItemFilled);
+    const existingItem = filledItems.find((row) => row.product === product._id);
+
+    if (existingItem) {
+      onChange(
+        withTrailingOrderRow(
+          filledItems.map((row) =>
+            row.key === existingItem.key
+              ? {
+                  ...row,
+                  quantity: String(Number(row.quantity || 0) + 1),
+                  unitPrice: row.unitPrice || String(product.price ?? ""),
+                  vatRate: row.vatRate || String(product.vatRate ?? 20)
+                }
+              : row
+          )
+        )
+      );
+      toast.success(`Количество +1: ${product.name}`);
+      return true;
+    }
+
+    const targetIndex = items.findIndex((row) => row.key === targetKey && !row.product);
+    if (targetIndex !== -1) {
+      onChange(
+        withTrailingOrderRow(
+          items.map((row, index) =>
+            index === targetIndex
+              ? {
+                  ...row,
+                  product: product._id,
+                  quantity: row.quantity || "1",
+                  unitPrice: String(product.price ?? row.unitPrice ?? ""),
+                  vatRate: String(product.vatRate ?? row.vatRate ?? 20)
+                }
+              : row
+          )
+        )
+      );
+      toast.success(`Добавен продукт: ${product.name}`);
+      return true;
+    }
+
+    onChange(withTrailingOrderRow([...filledItems, createOrderItem(product)]));
+    toast.success(`Добавен продукт: ${product.name}`);
+    return true;
+  }
+
   function updateItem(key, patch) {
     onChange(withTrailingOrderRow(items.map((item) => (item.key === key ? { ...item, ...patch } : item))));
   }
@@ -282,30 +337,15 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
-                      const code = parseScannedInput(e.currentTarget.value || "");
-                      if (!code) return;
-                      const product = findProductByScanCode(products, code);
-                      if (!product) return;
+                      const handled = applyScannedCodeToItems(e.currentTarget.value || "", item.key);
+                      if (!handled) return;
                       e.preventDefault();
-                      updateItem(item.key, {
-                        product: product._id,
-                        quantity: item.quantity || "1",
-                        unitPrice: String(product.price ?? item.unitPrice ?? ""),
-                        vatRate: String(product.vatRate ?? item.vatRate ?? 20)
-                      });
                     }}
                     onPaste={(e) => {
                       const pasted = (e.clipboardData || window.clipboardData).getData("text");
-                      const code = parseScannedInput(pasted);
-                      const product = code && findProductByScanCode(products, code);
-                      if (!product) return;
+                      const handled = applyScannedCodeToItems(pasted, item.key);
+                      if (!handled) return;
                       e.preventDefault();
-                      updateItem(item.key, {
-                        product: product._id,
-                        quantity: item.quantity || "1",
-                        unitPrice: String(product.price ?? item.unitPrice ?? ""),
-                        vatRate: String(product.vatRate ?? item.vatRate ?? 20)
-                      });
                     }}
                   />
                 )}
@@ -703,6 +743,8 @@ export default function OrdersPageStable() {
         items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
       };
     });
+
+    setOrderScanOpen(false);
   }
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
