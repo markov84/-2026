@@ -149,9 +149,17 @@ export default function ProductsPagePolished() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const newProductSku = params.get("newProductSku");
-    if (newProductSku) {
-      setForm((current) => ({ ...current, sku: newProductSku }));
+    const openCreateProduct = params.get("openCreateProduct") === "1";
+    const rawScannedCode = params.get("newProductCode") || params.get("newProductSku") || "";
+    const parsedCode = parseScannedInput(rawScannedCode);
+
+    if (openCreateProduct || parsedCode) {
+      setEditingProductId(null);
+      setForm({
+        ...initialForm,
+        sku: parsedCode || "",
+        barcode: parsedCode || ""
+      });
       setOpen(true);
       window.history.replaceState({}, document.title, window.location.pathname);
     }

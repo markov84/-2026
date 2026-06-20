@@ -402,7 +402,7 @@ export default function ScanAndActionDialog({
                         if (onOpenProductsPage) {
                           onOpenProductsPage(scannedCode);
                         } else {
-                          navigate("/products?newProductSku=" + encodeURIComponent(scannedCode));
+                          navigate(`/products?openCreateProduct=1&newProductCode=${encodeURIComponent(scannedCode)}`);
                         }
                       }}
                       fullWidth

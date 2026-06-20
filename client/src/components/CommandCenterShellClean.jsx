@@ -548,7 +548,8 @@ export default function CommandCenterShellClean({ children }) {
   };
 
   const handleOpenProductsPage = (barcode) => {
-    navigate(`/products?newProductSku=${encodeURIComponent(barcode)}`);
+    const value = encodeURIComponent(String(barcode || "").trim());
+    navigate(`/products?openCreateProduct=1&newProductCode=${value}`);
   };
 
   return (
