@@ -453,10 +453,21 @@ export default function OrdersPageStable() {
   const [orderQuery, setOrderQuery] = useState("");
   const scanFieldRef = useRef(null);
   const editScanFieldRef = useRef(null);
+  const scannerBufferRef = useRef("");
+  const scannerLastKeyAtRef = useRef(0);
+  const openRef = useRef(false);
+  const formRef = useRef(initialOrder);
+  const editingOrderRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useMobileDetection();
   const canSeeOrderAuthor = user?.role === "admin";
+
+  useEffect(() => {
+    openRef.current = open;
+    formRef.current = form;
+    editingOrderRef.current = editingOrder;
+  }, [open, form, editingOrder]);
 
   // Automatic refresh disabled to prevent infinite loops
   // Manual refresh available via refreshProducts() and refreshInventory() if needed
@@ -752,6 +763,58 @@ export default function OrdersPageStable() {
     event.preventDefault();
     applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
   }
+
+  useEffect(() => {
+    if (!open && !editingOrder) return undefined;
+
+    function isTypingTarget(target) {
+      if (!target) return false;
+      if (target instanceof HTMLInputElement) return true;
+      if (target instanceof HTMLTextAreaElement) return true;
+      if (target instanceof HTMLSelectElement) return true;
+      if (target.isContentEditable) return true;
+      return Boolean(target.closest?.("[contenteditable='true']"));
+    }
+
+    function onWindowKeyDown(event) {
+      if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (isTypingTarget(event.target)) return;
+
+      const now = Date.now();
+      if (now - scannerLastKeyAtRef.current > 120) {
+        scannerBufferRef.current = "";
+      }
+      scannerLastKeyAtRef.current = now;
+
+      if (event.key === "Enter") {
+        const rawCode = scannerBufferRef.current;
+        scannerBufferRef.current = "";
+        if (!rawCode) return;
+
+        event.preventDefault();
+
+        if (editingOrderRef.current) {
+          applyScannedProduct(rawCode, setEditingOrder, setEditScanCode, editingOrderRef.current);
+          return;
+        }
+
+        if (openRef.current) {
+          applyScannedProduct(rawCode, setForm, setScanCode, formRef.current);
+        }
+        return;
+      }
+
+      if (event.key.length === 1) {
+        scannerBufferRef.current += event.key;
+        if (scannerBufferRef.current.length > 220) {
+          scannerBufferRef.current = "";
+        }
+      }
+    }
+
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+  }, [open, editingOrder]);
 
   function renderSharedOrderFields(order, setOrder, scanValue, setScanValue, scanFieldRef) {
     return (
