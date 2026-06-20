@@ -8,6 +8,7 @@ import { InventoryItem } from "../models/InventoryItem.js";
 import { applyInventoryDelta } from "../lib/inventory.js";
 import { getNextDocumentNumber } from "../lib/documentNumbers.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { clearCachedJson } from "../lib/routeCache.js";
 
 const router = Router();
 
@@ -78,6 +79,8 @@ router.post(
         quantityDelta: Number(item.quantity || 0)
       });
     }
+
+    clearCachedJson("inventory:");
 
     const transfer = await StoreTransfer.create({
       ...req.body,
@@ -171,6 +174,8 @@ router.put(
       .populate("items.product", "name sku imageUrl price")
       .lean();
 
+    clearCachedJson("inventory:");
+
     return res.json(transfer);
   })
 );
@@ -210,6 +215,8 @@ router.delete("/:id", asyncHandler(async (req, res) => {
         quantityDelta: -Number(item.quantity || 0)
       });
     }
+
+    clearCachedJson("inventory:");
   }
 
   await StoreTransfer.findByIdAndDelete(req.params.id);

@@ -8,6 +8,7 @@ import { Store } from "../models/Store.js";
 import { Counter } from "../models/Counter.js";
 import { applyInventoryDelta } from "../lib/inventory.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { clearCachedJson } from "../lib/routeCache.js";
 
 const router = Router();
 
@@ -155,6 +156,8 @@ router.post(
       }
     }
 
+    clearCachedJson("inventory:");
+
     const populated = await Order.findById(order._id)
       .populate("store", "name city")
       .populate("customer", "customerType fullName company")
@@ -232,6 +235,8 @@ router.put(
       .populate("items.product", "name productNumber sku barcode imageUrl price")
       .lean();
 
+    clearCachedJson("inventory:");
+
     return res.json(order);
   })
 );
@@ -251,6 +256,8 @@ router.delete(
         quantityDelta: Number(item.quantity || 0)
       });
     }
+
+    clearCachedJson("inventory:");
 
     await Order.findByIdAndDelete(req.params.id);
     return res.status(204).send();
