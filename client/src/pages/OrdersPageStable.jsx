@@ -862,6 +862,13 @@ export default function OrdersPageStable() {
     function onWindowKeyDown(event) {
       if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
       const typingTarget = isTypingTarget(event.target);
+      const isSubmitKey =
+        event.key === "Enter" ||
+        event.key === "Tab" ||
+        event.key === "Process" ||
+        event.code === "Enter" ||
+        event.code === "NumpadEnter" ||
+        event.code === "Tab";
 
       const now = Date.now();
       if (now - scannerLastKeyAtRef.current > 120) {
@@ -877,7 +884,7 @@ export default function OrdersPageStable() {
         return;
       }
 
-      if (event.key === "Enter" || event.key === "Tab") {
+      if (isSubmitKey) {
         const rawCode = scannerBufferRef.current;
         scannerBufferRef.current = "";
         if (!rawCode || rawCode.length < 4) return;
@@ -898,8 +905,8 @@ export default function OrdersPageStable() {
       if (typingTarget) return;
     }
 
-    window.addEventListener("keydown", onWindowKeyDown);
-    return () => window.removeEventListener("keydown", onWindowKeyDown);
+    window.addEventListener("keydown", onWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
   }, [open, editingOrder]);
 
   function renderSharedOrderFields(order, setOrder, scanValue, setScanValue, scanFieldRef) {

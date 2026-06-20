@@ -463,6 +463,7 @@ function IconRail() {
 }
 
 export default function CommandCenterShellClean({ children }) {
+  const AUTO_OPEN_SCAN_DIALOG = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState("");
@@ -492,6 +493,7 @@ export default function CommandCenterShellClean({ children }) {
   }, [isOrdersRoute]);
 
   useEffect(() => {
+    if (!AUTO_OPEN_SCAN_DIALOG) return undefined;
     if (isOrdersRoute) {
       scanBufferRef.current = "";
       return undefined;
@@ -536,7 +538,7 @@ export default function CommandCenterShellClean({ children }) {
       window.removeEventListener("keydown", onGlobalScanKeydown, true);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
-  }, [isOrdersRoute]);
+  }, [AUTO_OPEN_SCAN_DIALOG, isOrdersRoute]);
 
   const handleAddToInventory = async (payload) => {
     const response = await api.post("/inventory/summary", {
