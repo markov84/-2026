@@ -137,8 +137,7 @@ function isOrderItemFilled(item) {
   return Boolean(
     item?.product ||
       Number(item?.quantity || 0) > 0 ||
-      Number(item?.unitPrice || 0) > 0 ||
-      Number(item?.vatRate || 0) > 0
+      Number(item?.unitPrice || 0) > 0
   );
 }
 
