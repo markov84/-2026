@@ -6,6 +6,46 @@ export function normalizeScanCode(rawValue) {
     .trim();
 }
 
+function collapseRepeatedCode(value) {
+  const normalized = normalizeScanCode(value).replace(/\s+/g, "");
+  if (!normalized || normalized.length < 8) return normalized;
+
+  const length = normalized.length;
+  for (let unitLength = 4; unitLength <= Math.floor(length / 2); unitLength += 1) {
+    const repeats = Math.floor(length / unitLength);
+    if (repeats < 2) continue;
+
+    const unit = normalized.slice(0, unitLength);
+    const repeated = unit.repeat(repeats);
+    const tail = normalized.slice(repeated.length);
+    if (repeated + unit.slice(0, tail.length) === normalized) {
+      return unit;
+    }
+  }
+
+  return normalized;
+}
+
+function pickLikelyCodeToken(value) {
+  const cleaned = normalizeScanCode(value);
+  if (!cleaned) return "";
+
+  const parts = cleaned
+    .split(/[|\s]+/)
+    .map((part) => normalizeScanCode(part))
+    .filter(Boolean);
+
+  if (!parts.length) return cleaned;
+
+  const numericLike = parts.filter((part) => part.replace(/\D/g, "").length >= 8);
+  if (numericLike.length) return numericLike[numericLike.length - 1];
+
+  const skuLike = parts.filter((part) => /[a-z]/i.test(part) && /\d/.test(part));
+  if (skuLike.length) return skuLike[skuLike.length - 1];
+
+  return parts[parts.length - 1];
+}
+
 export function parseScannedInput(rawValue) {
   const cleaned = normalizeScanCode(rawValue);
   if (!cleaned) return "";
@@ -59,10 +99,11 @@ export function parseScannedInput(rawValue) {
 
   const queryMatch = cleaned.match(/(?:barcode|sku|product|code|newProductCode|newProductSku|productNumber|ean|gtin)=([^&]+)/i);
   if (queryMatch) {
-    return normalizeScanCode(safeDecode(queryMatch[1]));
+    return collapseRepeatedCode(normalizeScanCode(safeDecode(queryMatch[1])));
   }
 
-  return cleaned;
+  const likelyToken = pickLikelyCodeToken(cleaned);
+  return collapseRepeatedCode(likelyToken);
 }
 
 function toComparableCode(value) {
@@ -91,11 +132,20 @@ function getCodeCandidates(rawValue) {
 
   candidates.add(direct.toLowerCase());
 
+  const collapsed = collapseRepeatedCode(direct);
+  if (collapsed) candidates.add(collapsed.toLowerCase());
+
   const decoded = normalizeScanCode(safeDecode(direct));
   if (decoded) candidates.add(decoded.toLowerCase());
 
+  const likelyToken = pickLikelyCodeToken(direct);
+  if (likelyToken) candidates.add(normalizeScanCode(likelyToken).toLowerCase());
+
   const compact = toComparableCode(direct);
   if (compact) candidates.add(compact);
+
+  const compactCollapsed = toComparableCode(collapsed);
+  if (compactCollapsed) candidates.add(compactCollapsed);
 
   const compactDecoded = toComparableCode(decoded);
   if (compactDecoded) candidates.add(compactDecoded);
