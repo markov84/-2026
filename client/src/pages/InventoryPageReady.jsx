@@ -19,7 +19,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -182,11 +182,28 @@ export default function InventoryPageReady() {
     }
   }
 
-  function applyScannedProduct(rawCode = scanCode) {
+  async function applyScannedProduct(rawCode = scanCode) {
     const code = parseScannedInput(rawCode);
     if (!code) return;
 
-    const product = findProductByScanCode(products, code);
+    let product = findProductByScanCode(products, code);
+    if (!product) {
+      try {
+        const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+        const searchedProducts = Array.isArray(response.data) ? response.data : [];
+        product =
+          findProductByScanCode(searchedProducts, code) ||
+          searchedProducts.find((item) =>
+            [item?.barcode, item?.productNumber, item?.sku]
+              .map((value) => normalizeScanCode(value))
+              .filter(Boolean)
+              .includes(normalizeScanCode(code))
+          );
+      } catch {
+        // Keep local-flow fallback and show not-found message below.
+      }
+    }
+
     if (!product) {
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;

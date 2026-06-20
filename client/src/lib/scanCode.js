@@ -1,16 +1,38 @@
 export function normalizeScanCode(rawValue) {
   if (rawValue == null) return "";
-  return String(rawValue).replace(/[\t\n\r]+/g, "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+  return String(rawValue)
+    .replace(/[\u0000-\u001F\u007F]+/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim();
 }
 
 export function parseScannedInput(rawValue) {
   const cleaned = normalizeScanCode(rawValue);
   if (!cleaned) return "";
 
+  const queryKeys = [
+    "barcode",
+    "sku",
+    "product",
+    "code",
+    "newProductCode",
+    "newProductSku",
+    "productNumber",
+    "ean",
+    "gtin"
+  ];
+
+  const getFirstQueryValue = (searchParams) => {
+    for (const key of queryKeys) {
+      const value = searchParams.get(key);
+      if (value) return value;
+    }
+    return "";
+  };
+
   try {
     const url = new URL(cleaned);
-    const query = url.searchParams;
-    const codeFromQuery = query.get("barcode") || query.get("sku") || query.get("product") || query.get("code");
+    const codeFromQuery = getFirstQueryValue(url.searchParams);
     if (codeFromQuery) return normalizeScanCode(codeFromQuery);
 
     const pathSegments = url.pathname.split("/").filter(Boolean);
@@ -35,9 +57,9 @@ export function parseScannedInput(rawValue) {
     // not JSON
   }
 
-  const queryMatch = cleaned.match(/(?:barcode|sku|product|code)=([^&]+)/i);
+  const queryMatch = cleaned.match(/(?:barcode|sku|product|code|newProductCode|newProductSku|productNumber|ean|gtin)=([^&]+)/i);
   if (queryMatch) {
-    return normalizeScanCode(decodeURIComponent(queryMatch[1]));
+    return normalizeScanCode(safeDecode(queryMatch[1]));
   }
 
   return cleaned;
@@ -53,6 +75,14 @@ function trimNumericLeadingZeros(value) {
   return trimmed || "0";
 }
 
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function getCodeCandidates(rawValue) {
   const parsed = parseScannedInput(rawValue);
   const candidates = new Set();
@@ -61,7 +91,7 @@ function getCodeCandidates(rawValue) {
 
   candidates.add(direct.toLowerCase());
 
-  const decoded = normalizeScanCode(decodeURIComponent(direct));
+  const decoded = normalizeScanCode(safeDecode(direct));
   if (decoded) candidates.add(decoded.toLowerCase());
 
   const compact = toComparableCode(direct);
@@ -85,7 +115,7 @@ export function findProductByScanCode(products, rawCode) {
 
   const items = Array.isArray(products) ? products : [];
   for (const product of items) {
-    const fields = [product?.productNumber, product?.barcode, product?.sku].filter(Boolean);
+    const fields = [product?.productNumber, product?.barcode, product?.sku, product?.qrCode].filter(Boolean);
     for (const field of fields) {
       const productCandidates = getCodeCandidates(field);
       for (const candidate of productCandidates) {
