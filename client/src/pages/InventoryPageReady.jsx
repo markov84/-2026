@@ -292,6 +292,13 @@ export default function InventoryPageReady() {
             getRowId={(row) => row._id}
             columns={[
               { field: "product", headerName: "Продукт", flex: 2, minWidth: 280, renderCell: (params) => <ProductIdentity product={params?.row?.product} /> },
+              {
+                field: "productCode",
+                headerName: "Баркод / QR",
+                flex: 1,
+                minWidth: 180,
+                valueGetter: (_, row) => row?.product?.barcode || row?.product?.productNumber || "-"
+              },
               { field: "storeName", headerName: "Магазин", flex: 0.8, minWidth: 120, valueGetter: (_, row) => row.store?.name },
               { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
               { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },

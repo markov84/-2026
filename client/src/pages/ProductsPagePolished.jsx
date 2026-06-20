@@ -157,7 +157,6 @@ export default function ProductsPagePolished() {
       setEditingProductId(null);
       setForm({
         ...initialForm,
-        sku: parsedCode || "",
         barcode: parsedCode || ""
       });
       setOpen(true);
