@@ -343,10 +343,11 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                       ...params.InputProps
                     }}
                     onKeyDown={(e) => {
-                      if (e.key !== "Enter") return;
+                      if (e.key !== "Enter" && e.key !== "Tab") return;
                       const handled = applyScannedCodeToItems(e.currentTarget.value || "", item.key);
                       if (!handled) return;
                       e.preventDefault();
+                      e.currentTarget.value = "";
                     }}
                     onPaste={(e) => {
                       const pasted = (e.clipboardData || window.clipboardData).getData("text");
@@ -691,6 +692,11 @@ export default function OrdersPageStable() {
       }
 
       const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {
+          // Ignore resume errors.
+        });
+      }
       const now = ctx.currentTime;
       const oscillator = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -806,7 +812,7 @@ export default function OrdersPageStable() {
   }
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
-    if (event.key !== "Enter") return;
+    if (event.key !== "Enter" && event.key !== "Tab") return;
     event.preventDefault();
     applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
   }
@@ -833,7 +839,7 @@ export default function OrdersPageStable() {
       }
       scannerLastKeyAtRef.current = now;
 
-      if (event.key === "Enter") {
+      if (event.key === "Enter" || event.key === "Tab") {
         const rawCode = scannerBufferRef.current;
         scannerBufferRef.current = "";
         if (!rawCode) return;
