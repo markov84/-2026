@@ -2,6 +2,26 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, CircularProgress, Box, TextField, LinearProgress } from "@mui/material";
 
+function getCameraErrorMessage(error) {
+  const name = String(error?.name || "");
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return "Няма достъп до камера. Разреши Camera за сайта от настройките на браузъра.";
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "Не е открита камера на устройството.";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "Камерата е заета от друго приложение. Затвори другите приложения и опитай пак.";
+  }
+  if (name === "SecurityError") {
+    return "Камерата е блокирана от настройките за сигурност на браузъра.";
+  }
+  if (name === "OverconstrainedError") {
+    return "Камерата не поддържа избрания режим. Опитвам с алтернативни настройки.";
+  }
+  return error?.message || "Камерата не може да бъде стартирана. Провери достъпа на браузъра.";
+}
+
 export default function BarcodeScannerDialog({ open, onClose, onDetected, onError, title = "Сканирай баркод или QR", description = "Насочи камерата към баркод или QR код и изчакай резултата." }) {
   const [status, setStatus] = useState("initializing");
   const [message, setMessage] = useState("Подготвям камерата...");
@@ -99,6 +119,14 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         setMessage("Проверявам камерата...");
         setInitProgress(30);
 
+        // Trigger permission prompt first for better mobile compatibility
+        const probeStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        setInitProgress(45);
+        probeStream.getTracks().forEach((track) => track.stop());
+
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
         if (!devices.length) {
           throw new Error("Не е открита камера. Провери разрешенията на браузъра.");
@@ -118,7 +146,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         }
       } catch (error) {
         if (!active) return;
-        const fallbackMessage = error?.message || "Камерата не може да бъде стартирана. Провери достъпа на браузъра.";
+        const fallbackMessage = getCameraErrorMessage(error);
         updateStatus("error", fallbackMessage);
         onError?.(error);
       }
