@@ -173,7 +173,7 @@ function OrderProductsCell({ items }) {
   );
 }
 
-function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner }) {
+function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner, onScanSuccess, onScanError }) {
   const items = value?.length ? value : [createOrderItem()];
 
   function applyScannedCodeToItems(rawCode, targetKey) {
@@ -181,7 +181,11 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
     if (!code) return false;
 
     const product = findProductByScanCode(products, code);
-    if (!product) return false;
+    if (!product) {
+      onScanError?.();
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
+      return false;
+    }
 
     const filledItems = items.filter(isOrderItemFilled);
     const existingItem = filledItems.find((row) => row.product === product._id);
@@ -201,6 +205,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
           )
         )
       );
+      onScanSuccess?.();
       toast.success(`Количество +1: ${product.name}`);
       return true;
     }
@@ -222,11 +227,13 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
           )
         )
       );
+      onScanSuccess?.();
       toast.success(`Добавен продукт: ${product.name}`);
       return true;
     }
 
     onChange(withTrailingOrderRow([...filledItems, createOrderItem(product)]));
+    onScanSuccess?.();
     toast.success(`Добавен продукт: ${product.name}`);
     return true;
   }
@@ -455,6 +462,7 @@ export default function OrdersPageStable() {
   const editScanFieldRef = useRef(null);
   const scannerBufferRef = useRef("");
   const scannerLastKeyAtRef = useRef(0);
+  const audioContextRef = useRef(null);
   const openRef = useRef(false);
   const formRef = useRef(initialOrder);
   const editingOrderRef = useRef(null);
@@ -671,12 +679,48 @@ export default function OrdersPageStable() {
     }
   }
 
+  function playScanFeedback(type = "success") {
+    if (typeof window === "undefined") return;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      const ctx = audioContextRef.current;
+      const now = ctx.currentTime;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(type === "success" ? 920 : 240, now);
+      if (type !== "success") {
+        oscillator.frequency.linearRampToValueAtTime(170, now + 0.09);
+      }
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.055, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "success" ? 0.08 : 0.12));
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + (type === "success" ? 0.09 : 0.13));
+    } catch {
+      // Ignore audio feedback failures to avoid blocking scan flow.
+    }
+  }
+
   function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
     const code = parseScannedInput(rawCode);
     if (!code) return;
 
     const product = findProductByScanCode(products, code);
     if (!product) {
+      playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;
     }
@@ -708,6 +752,7 @@ export default function OrdersPageStable() {
     });
 
     clearScan("");
+    playScanFeedback("success");
     const alreadyInCart = activeDraft?.items?.some((item) => item.product === product._id);
     toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
   }
@@ -718,6 +763,7 @@ export default function OrdersPageStable() {
 
     const product = findProductByScanCode(products, code);
     if (!product) {
+      playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;
     }
@@ -755,6 +801,7 @@ export default function OrdersPageStable() {
       };
     });
 
+    playScanFeedback("success");
     setOrderScanOpen(false);
   }
 
@@ -886,6 +933,8 @@ export default function OrdersPageStable() {
             inventory={inventory}
             store={order.store}
             onChange={(items) => setOrder((current) => ({ ...current, items }))}
+            onScanSuccess={() => playScanFeedback("success")}
+            onScanError={() => playScanFeedback("error")}
             onOpenScanner={() => {
               setOrderScanTarget(order === editingOrder ? "edit" : "create");
               setOrderScanOpen(true);
