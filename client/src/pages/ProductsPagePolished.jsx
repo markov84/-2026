@@ -125,7 +125,7 @@ export default function ProductsPagePolished() {
   const { data, loading, setData } = useFetch("/products");
   const { data: stores } = useFetch("/stores");
   const [open, setOpen] = useState(false);
-    const location = useLocation();
+  const location = useLocation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -147,8 +147,6 @@ export default function ProductsPagePolished() {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  const filteredProducts = useMemo(() => {
-
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const newProductSku = params.get("newProductSku");
@@ -158,6 +156,8 @@ export default function ProductsPagePolished() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [location.search]);
+
+  const filteredProducts = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const sortedProducts = sortProductsNewestFirst(data);
     if (!normalized) return sortedProducts;
