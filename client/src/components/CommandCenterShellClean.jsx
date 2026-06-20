@@ -547,6 +547,10 @@ export default function CommandCenterShellClean({ children }) {
     return response;
   };
 
+  const handleOpenProductsPage = (barcode) => {
+    navigate(`/products?newProductSku=${encodeURIComponent(barcode)}`);
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       <Drawer
@@ -672,6 +676,7 @@ export default function CommandCenterShellClean({ children }) {
         customers={customers}
         onAddToInventory={handleAddToInventory}
         onAddToOrder={handleAddToOrder}
+        onOpenProductsPage={handleOpenProductsPage}
       />
     </Box>
   );

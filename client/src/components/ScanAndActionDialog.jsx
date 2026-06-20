@@ -30,6 +30,7 @@ import { ProductIdentity } from "./ProductPresentation";
 import { findProductByScanCode } from "../lib/scanCode";
 import { formatCurrencyEUR } from "../lib/currency";
 import { useMobileDetection } from "../hooks/useMobileDetection";
+import { useNavigate } from "react-router-dom";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -57,7 +58,9 @@ export default function ScanAndActionDialog({
   onAddToInventory,
   onAddToOrder,
   onRefresh,
+  onOpenProductsPage,
 }) {
+  const navigate = useNavigate();
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [actionTab, setActionTab] = useState(0);
@@ -70,13 +73,6 @@ export default function ScanAndActionDialog({
   const [loading, setLoading] = useState(false);
   const [searchProductName, setSearchProductName] = useState("");
   const [manuallySelectedProduct, setManuallySelectedProduct] = useState(null);
-  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    sku: "",
-    price: "",
-    cost: "",
-  });
   const scanInputRef = useRef(null);
   const isMobile = useMobileDetection();
 
@@ -207,7 +203,6 @@ export default function ScanAndActionDialog({
     setScannedCode("");
     setManuallySelectedProduct(null);
     setSearchProductName("");
-    setNewProduct({ name: "", sku: "", price: "", cost: "" });
     setActionTab(0);
     // Focus scanner for next scan
     setTimeout(() => scanInputRef.current?.focus(), 100);
@@ -402,7 +397,14 @@ export default function ScanAndActionDialog({
                   <Stack direction="row" spacing={1}>
                     <Button
                       variant="outlined"
-                      onClick={() => setShowNewProductDialog(true)}
+                      onClick={() => {
+                        onClose();
+                        if (onOpenProductsPage) {
+                          onOpenProductsPage(scannedCode);
+                        } else {
+                          navigate("/products?newProductSku=" + encodeURIComponent(scannedCode));
+                        }
+                      }}
                       fullWidth
                       size="small"
                     >
@@ -543,59 +545,6 @@ export default function ScanAndActionDialog({
           )}
           <Button onClick={onClose} color="inherit">
             Затвори
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* New Product Dialog */}
-      <Dialog open={showNewProductDialog} onClose={() => setShowNewProductDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Добави нов продукт</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Название"
-              placeholder="Напр. Кола Пепси 0.5L"
-              value={newProduct.name}
-              onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
-            />
-            <TextField
-              fullWidth
-              label="SKU/Баркод"
-              placeholder="Напр. 8903201920"
-              value={newProduct.sku}
-              onChange={(e) => setNewProduct((prev) => ({ ...prev, sku: e.target.value }))}
-            />
-            <TextField
-              fullWidth
-              type="number"
-              label="Цена (EUR)"
-              placeholder="1.50"
-              value={newProduct.price}
-              onChange={(e) => setNewProduct((prev) => ({ ...prev, price: e.target.value }))}
-            />
-            <TextField
-              fullWidth
-              type="number"
-              label="Себестойност (EUR)"
-              placeholder="0.80"
-              value={newProduct.cost}
-              onChange={(e) => setNewProduct((prev) => ({ ...prev, cost: e.target.value }))}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowNewProductDialog(false)} color="inherit">
-            Отмени
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              toast.info("⚠️ Функция за добавяне на продукт еще не е свързана. Добави го от Продукти раздела.");
-              setShowNewProductDialog(false);
-            }}
-          >
-            Добави продукт
           </Button>
         </DialogActions>
       </Dialog>
