@@ -20,7 +20,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStable";
@@ -467,6 +467,7 @@ export default function CommandCenterShellClean({ children }) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useMobileDetection();
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
@@ -484,6 +485,8 @@ export default function CommandCenterShellClean({ children }) {
 
   useEffect(() => {
     function onGlobalScanKeydown(event) {
+      if (location.pathname.startsWith("/orders")) return;
+
       const target = event.target;
       const tagName = target?.tagName?.toLowerCase?.() || "";
       const isTypingField =
@@ -520,7 +523,7 @@ export default function CommandCenterShellClean({ children }) {
       window.removeEventListener("keydown", onGlobalScanKeydown, true);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
-  }, []);
+  }, [location.pathname]);
 
   const handleAddToInventory = async (payload) => {
     const response = await api.post("/inventory/summary", {
