@@ -33,7 +33,7 @@ function validateInventoryPayload(payload) {
 
 export default function InventoryPageReady() {
   const { data, loading, setData } = useFetch("/inventory/summary");
-  const { data: products, refresh: refreshProducts } = useFetch("/products?compact=1");
+  const { data: products, refresh: refreshProducts } = useFetch("/products");
   const { data: stores } = useFetch("/stores");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialStockForm);

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -48,6 +48,7 @@ function TabPanel(props) {
 export default function ScanAndActionDialog({
   open,
   onClose,
+  initialScannedCode = "",
   products = [],
   stores = [],
   inventory = [],
@@ -72,6 +73,17 @@ export default function ScanAndActionDialog({
     () => findProductByScanCode(products, scannedCode),
     [products, scannedCode]
   );
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialScannedCode) {
+      setScannedCode(initialScannedCode);
+    }
+    const timer = window.setTimeout(() => {
+      scanInputRef.current?.focus();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [open, initialScannedCode]);
 
   const productInventory = useMemo(() => {
     if (!scannedProduct) return [];
@@ -184,6 +196,7 @@ export default function ScanAndActionDialog({
             {/* Scan Input */}
             <TextField
               ref={scanInputRef}
+              autoFocus
               label="Сканирай или въведи баркод"
               placeholder="Насочи камерата или въведи код"
               fullWidth

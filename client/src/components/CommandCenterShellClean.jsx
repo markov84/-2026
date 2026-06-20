@@ -20,7 +20,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotificationsStable";
@@ -465,16 +465,16 @@ function IconRail() {
 export default function CommandCenterShellClean({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [pendingScannedCode, setPendingScannedCode] = useState("");
   const isMobile = useMobileDetection();
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
   const isDarkMode = mode === "dark";
-  const navigate = useNavigate();
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
   
   // Fetch data for scan dialog
-  const { data: products = [] } = useFetch("/products?compact=1");
+  const { data: products = [] } = useFetch("/products");
   const { data: stores = [] } = useFetch("/stores");
   const { data: inventory = [] } = useFetch("/inventory/summary");
   const { data: customers = [] } = useFetch("/customers?compact=1");
@@ -482,15 +482,53 @@ export default function CommandCenterShellClean({ children }) {
   useRealtimeNotifications(true);
 
   useEffect(() => {
-    // Global barcode scanner disabled temporarily due to rate limiting issues
-    // Re-enable when we have a proper debouncing mechanism
+    function onGlobalScanKeydown(event) {
+      const target = event.target;
+      const tagName = target?.tagName?.toLowerCase?.() || "";
+      const isTypingField =
+        target?.isContentEditable ||
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select";
+
+      if (isTypingField || event.ctrlKey || event.metaKey || event.altKey) return;
+
+      if (event.key === "Enter") {
+        const value = String(scanBufferRef.current || "").trim();
+        if (value.length >= 4) {
+          event.preventDefault();
+          setPendingScannedCode(value);
+          setScanDialogOpen(true);
+        }
+        scanBufferRef.current = "";
+        return;
+      }
+
+      if (event.key.length === 1) {
+        scanBufferRef.current += event.key;
+        if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+        scanTimeoutRef.current = window.setTimeout(() => {
+          scanBufferRef.current = "";
+        }, 120);
+      }
+    }
+
+    window.addEventListener("keydown", onGlobalScanKeydown, true);
+
     return () => {
+      window.removeEventListener("keydown", onGlobalScanKeydown, true);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
-  }, [navigate]);
+  }, []);
 
   const handleAddToInventory = async (payload) => {
-    const response = await api.post("/inventory", payload);
+    const response = await api.post("/inventory/summary", {
+      product: payload.product,
+      store: payload.store,
+      quantity: Number(payload.quantity || 0),
+      reorderLevel: 0,
+      mode: "increment"
+    });
     return response;
   };
 
@@ -571,7 +609,10 @@ export default function CommandCenterShellClean({ children }) {
             <Tooltip title="Сканирай и действай" arrow>
               <IconButton
                 aria-label="Сканирай и действай"
-                onClick={() => setScanDialogOpen(true)}
+                onClick={() => {
+                  setPendingScannedCode("");
+                  setScanDialogOpen(true);
+                }}
                 sx={{
                   width: 46,
                   height: 46,
@@ -620,7 +661,11 @@ export default function CommandCenterShellClean({ children }) {
 
       <ScanAndActionDialog
         open={scanDialogOpen}
-        onClose={() => setScanDialogOpen(false)}
+        onClose={() => {
+          setScanDialogOpen(false);
+          setPendingScannedCode("");
+        }}
+        initialScannedCode={pendingScannedCode}
         products={products}
         stores={stores}
         inventory={inventory}
