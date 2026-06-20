@@ -472,6 +472,7 @@ export default function CommandCenterShellClean({ children }) {
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
   const isDarkMode = mode === "dark";
+  const isOrdersRoute = location.pathname.startsWith("/orders");
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
   
@@ -484,20 +485,20 @@ export default function CommandCenterShellClean({ children }) {
   useRealtimeNotifications(true);
 
   useEffect(() => {
-    if (!location.pathname.startsWith("/orders")) return;
+    if (!isOrdersRoute) return;
     setScanDialogOpen(false);
     setPendingScannedCode("");
     scanBufferRef.current = "";
-  }, [location.pathname]);
+  }, [isOrdersRoute]);
 
   useEffect(() => {
-    if (location.pathname.startsWith("/orders")) {
+    if (isOrdersRoute) {
       scanBufferRef.current = "";
       return undefined;
     }
 
     function onGlobalScanKeydown(event) {
-      if (location.pathname.startsWith("/orders")) return;
+      if (isOrdersRoute) return;
 
       const target = event.target;
       const tagName = target?.tagName?.toLowerCase?.() || "";
@@ -514,7 +515,7 @@ export default function CommandCenterShellClean({ children }) {
         if (value.length >= 4) {
           event.preventDefault();
           setPendingScannedCode(value);
-          setScanDialogOpen(true);
+          if (!isOrdersRoute) setScanDialogOpen(true);
         }
         scanBufferRef.current = "";
         return;
@@ -535,7 +536,7 @@ export default function CommandCenterShellClean({ children }) {
       window.removeEventListener("keydown", onGlobalScanKeydown, true);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
-  }, [location.pathname]);
+  }, [isOrdersRoute]);
 
   const handleAddToInventory = async (payload) => {
     const response = await api.post("/inventory/summary", {
@@ -631,6 +632,7 @@ export default function CommandCenterShellClean({ children }) {
               <IconButton
                 aria-label="Сканирай и действай"
                 onClick={() => {
+                  if (isOrdersRoute) return;
                   setPendingScannedCode("");
                   setScanDialogOpen(true);
                 }}
@@ -681,7 +683,7 @@ export default function CommandCenterShellClean({ children }) {
       {isMobile ? <MobileBottomNavigationBar /> : null}
 
       <ScanAndActionDialog
-        open={scanDialogOpen}
+        open={!isOrdersRoute && scanDialogOpen}
         onClose={() => {
           setScanDialogOpen(false);
           setPendingScannedCode("");

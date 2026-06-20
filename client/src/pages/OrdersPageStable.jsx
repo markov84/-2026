@@ -830,7 +830,7 @@ export default function OrdersPageStable() {
 
     function onWindowKeyDown(event) {
       if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
-      if (isTypingTarget(event.target)) return;
+      const typingTarget = isTypingTarget(event.target);
 
       const now = Date.now();
       if (now - scannerLastKeyAtRef.current > 120) {
@@ -838,10 +838,18 @@ export default function OrdersPageStable() {
       }
       scannerLastKeyAtRef.current = now;
 
+      if (event.key.length === 1) {
+        scannerBufferRef.current += event.key;
+        if (scannerBufferRef.current.length > 220) {
+          scannerBufferRef.current = "";
+        }
+        return;
+      }
+
       if (event.key === "Enter" || event.key === "Tab") {
         const rawCode = scannerBufferRef.current;
         scannerBufferRef.current = "";
-        if (!rawCode) return;
+        if (!rawCode || rawCode.length < 4) return;
 
         event.preventDefault();
 
@@ -856,12 +864,7 @@ export default function OrdersPageStable() {
         return;
       }
 
-      if (event.key.length === 1) {
-        scannerBufferRef.current += event.key;
-        if (scannerBufferRef.current.length > 220) {
-          scannerBufferRef.current = "";
-        }
-      }
+      if (typingTarget) return;
     }
 
     window.addEventListener("keydown", onWindowKeyDown);
