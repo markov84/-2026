@@ -46,7 +46,17 @@ export default function InventoryPageReady() {
   const [stockFilter, setStockFilter] = useState("all");
   const scanFieldRef = useRef(null);
   const isMobile = useMobileDetection();
+  const productsById = useMemo(
+    () => new Map((Array.isArray(products) ? products : []).map((product) => [product?._id, product])),
+    [products]
+  );
   const scannedProduct = useMemo(() => findProductByScanCode(products, scanCode), [products, scanCode]);
+
+  const getResolvedProduct = (row) => {
+    const rowProduct = row?.product;
+    const productId = rowProduct?._id || rowProduct;
+    return productsById.get(productId) || rowProduct || null;
+  };
 
   const previewItem = editingItem || form;
   const existingInventory = useMemo(() => data.find((item) => item.product?._id === previewItem.product && item.store?._id === previewItem.store), [data, previewItem.product, previewItem.store]);
@@ -297,7 +307,10 @@ export default function InventoryPageReady() {
                 headerName: "Баркод / QR",
                 flex: 1,
                 minWidth: 180,
-                valueGetter: (_, row) => row?.product?.barcode || row?.product?.productNumber || "-"
+                valueGetter: (_, row) => {
+                  const product = getResolvedProduct(row);
+                  return product?.barcode || product?.qrCode || product?.productNumber || "-";
+                }
               },
               { field: "storeName", headerName: "Магазин", flex: 0.8, minWidth: 120, valueGetter: (_, row) => row.store?.name },
               { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
