@@ -6,6 +6,7 @@ import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import {
   Avatar,
@@ -124,6 +125,7 @@ export default function ProductsPagePolished() {
   const { data, loading, setData } = useFetch("/products");
   const { data: stores } = useFetch("/stores");
   const [open, setOpen] = useState(false);
+    const location = useLocation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -146,6 +148,16 @@ export default function ProductsPagePolished() {
   }, []);
 
   const filteredProducts = useMemo(() => {
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const newProductSku = params.get("newProductSku");
+    if (newProductSku) {
+      setForm((current) => ({ ...current, sku: newProductSku }));
+      setOpen(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search]);
     const normalized = query.trim().toLowerCase();
     const sortedProducts = sortProductsNewestFirst(data);
     if (!normalized) return sortedProducts;
