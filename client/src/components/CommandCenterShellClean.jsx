@@ -466,6 +466,7 @@ export default function CommandCenterShellClean({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState("");
+  const navigate = useNavigate();
   const isMobile = useMobileDetection();
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
