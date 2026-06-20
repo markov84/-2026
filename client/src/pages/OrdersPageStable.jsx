@@ -409,6 +409,7 @@ export default function OrdersPageStable() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [orderScanOpen, setOrderScanOpen] = useState(false);
+  const [orderScanTarget, setOrderScanTarget] = useState("create");
   const [orderQuery, setOrderQuery] = useState("");
   const scanFieldRef = useRef(null);
   const editScanFieldRef = useRef(null);
@@ -670,35 +671,38 @@ export default function OrdersPageStable() {
       return;
     }
 
-    setForm((current) => {
-      const nextItems = withTrailingOrderRow(current.items || []);
-      const emptyIndex = nextItems.findIndex((item) => !item.product);
+    const targetSetter = orderScanTarget === "edit" && editingOrder ? setEditingOrder : setForm;
+    targetSetter((current) => {
+      if (!current) return current;
 
-      if (emptyIndex === -1) {
+      const currentItems = (current.items || []).filter(isOrderItemFilled);
+      const existingItem = currentItems.find((item) => item.product === product._id);
+
+      if (existingItem) {
+        toast.success(`Количество +1: ${product.name}`);
         return {
           ...current,
-          items: [...nextItems, createOrderItem(product)]
+          items: withTrailingOrderRow(
+            currentItems.map((item) =>
+              item.key === existingItem.key
+                ? {
+                    ...item,
+                    quantity: String(Number(item.quantity || 0) + 1),
+                    unitPrice: item.unitPrice || String(product.price ?? ""),
+                    vatRate: item.vatRate || String(product.vatRate ?? 20)
+                  }
+                : item
+            )
+          )
         };
       }
 
+      toast.success(`Добавен продукт: ${product.name}`);
       return {
         ...current,
-        items: nextItems.map((item, index) =>
-          index === emptyIndex
-            ? {
-                ...item,
-                product: product._id,
-                quantity: item.quantity || "1",
-                unitPrice: String(product.price ?? item.unitPrice ?? ""),
-                vatRate: String(product.vatRate ?? item.vatRate ?? 20)
-              }
-            : item
-        )
+        items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
       };
     });
-
-    toast.success(`Сканиран продукт: ${product.name}`);
-    setOrderScanOpen(false);
   }
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
@@ -771,7 +775,17 @@ export default function OrdersPageStable() {
           </TextField>
         </FormGrid>
         <FormGridFull>
-          <OrderItemsEditor value={order.items} products={products} inventory={inventory} store={order.store} onChange={(items) => setOrder((current) => ({ ...current, items }))} onOpenScanner={() => setOrderScanOpen(true)} />
+          <OrderItemsEditor
+            value={order.items}
+            products={products}
+            inventory={inventory}
+            store={order.store}
+            onChange={(items) => setOrder((current) => ({ ...current, items }))}
+            onOpenScanner={() => {
+              setOrderScanTarget(order === editingOrder ? "edit" : "create");
+              setOrderScanOpen(true);
+            }}
+          />
         </FormGridFull>
         <FormGridFull>
           <OrderTotals order={order} />
