@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -721,102 +721,59 @@ export default function OrdersPageStable() {
     }
   }
 
-  async function resolveScannedProduct(rawCode) {
-    const code = parseScannedInput(rawCode);
-    if (!code) return { code: "", product: null };
+  const resolveScannedProduct = useCallback(
+    async (rawCode) => {
+      const code = parseScannedInput(rawCode);
+      if (!code) return { code: "", product: null };
 
-    const localProduct = findProductByScanCode(products, code);
-    if (localProduct) {
-      return { code, product: localProduct };
-    }
-
-    try {
-      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
-      const payload = response?.data;
-      const remoteProducts = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
-
-      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
-      if (remoteProduct) {
-        return { code, product: remoteProduct };
-      }
-    } catch {
-      // Ignore network errors here and let caller show a single toast.
-    }
-
-    return { code, product: null };
-  }
-
-  async function applyScannedProduct(rawCode, setter, clearScan, activeDraft) {
-    const { code, product } = await resolveScannedProduct(rawCode);
-    if (!code) return;
-
-    if (!product) {
-      playScanFeedback("error");
-      toast.error(`Няма продукт с баркод/SKU ${code}.`);
-      return;
-    }
-
-    setter((current) => {
-      const currentItems = (current.items || []).filter(isOrderItemFilled);
-      const existingItem = currentItems.find((item) => item.product === product._id);
-
-      if (existingItem) {
-        return {
-          ...current,
-          items: withTrailingOrderRow(currentItems.map((item) =>
-            item.key === existingItem.key
-              ? {
-                  ...item,
-                  quantity: String(Number(item.quantity || 0) + 1),
-                  unitPrice: item.unitPrice || String(product.price ?? ""),
-                  vatRate: item.vatRate || String(product.vatRate ?? 20)
-                }
-              : item
-          ))
-        };
+      const localProduct = findProductByScanCode(products, code);
+      if (localProduct) {
+        return { code, product: localProduct };
       }
 
-      return {
-        ...current,
-        items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
-      };
-    });
+      try {
+        const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+        const payload = response?.data;
+        const remoteProducts = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
 
-    clearScan("");
-    playScanFeedback("success");
-    const alreadyInCart = activeDraft?.items?.some((item) => item.product === product._id);
-    toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
-  }
+        const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
+        if (remoteProduct) {
+          return { code, product: remoteProduct };
+        }
+      } catch {
+        // Ignore network errors here and let caller show a single toast.
+      }
 
-  async function handleOrderScannerDetected(rawCode) {
-    const { code, product } = await resolveScannedProduct(rawCode);
-    if (!code) return;
+      return { code, product: null };
+    },
+    [products]
+  );
 
-    if (!product) {
-      playScanFeedback("error");
-      toast.error(`Няма продукт с баркод/SKU ${code}.`);
-      return;
-    }
+  const applyScannedProduct = useCallback(
+    async (rawCode, setter, clearScan, activeDraft) => {
+      const { code, product } = await resolveScannedProduct(rawCode);
+      if (!code) return;
 
-    const targetSetter = orderScanTarget === "edit" && editingOrder ? setEditingOrder : setForm;
-    targetSetter((current) => {
-      if (!current) return current;
+      if (!product) {
+        playScanFeedback("error");
+        toast.error(`Няма продукт с баркод/SKU ${code}.`);
+        return;
+      }
 
-      const currentItems = (current.items || []).filter(isOrderItemFilled);
-      const existingItem = currentItems.find((item) => item.product === product._id);
+      setter((current) => {
+        const currentItems = (current.items || []).filter(isOrderItemFilled);
+        const existingItem = currentItems.find((item) => item.product === product._id);
 
-      if (existingItem) {
-        toast.success(`Количество +1: ${product.name}`);
-        return {
-          ...current,
-          items: withTrailingOrderRow(
-            currentItems.map((item) =>
+        if (existingItem) {
+          return {
+            ...current,
+            items: withTrailingOrderRow(currentItems.map((item) =>
               item.key === existingItem.key
                 ? {
                     ...item,
@@ -825,21 +782,73 @@ export default function OrdersPageStable() {
                     vatRate: item.vatRate || String(product.vatRate ?? 20)
                   }
                 : item
-            )
-          )
+            ))
+          };
+        }
+
+        return {
+          ...current,
+          items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
         };
+      });
+
+      clearScan("");
+      playScanFeedback("success");
+      const alreadyInCart = activeDraft?.items?.some((item) => item.product === product._id);
+      toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
+    },
+    [resolveScannedProduct]
+  );
+
+  const handleOrderScannerDetected = useCallback(
+    async (rawCode) => {
+      const { code, product } = await resolveScannedProduct(rawCode);
+      if (!code) return;
+
+      if (!product) {
+        playScanFeedback("error");
+        toast.error(`Няма продукт с баркод/SKU ${code}.`);
+        return;
       }
 
-      toast.success(`Добавен продукт: ${product.name}`);
-      return {
-        ...current,
-        items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
-      };
-    });
+      const targetSetter = orderScanTarget === "edit" && editingOrder ? setEditingOrder : setForm;
+      targetSetter((current) => {
+        if (!current) return current;
 
-    playScanFeedback("success");
-    setOrderScanOpen(false);
-  }
+        const currentItems = (current.items || []).filter(isOrderItemFilled);
+        const existingItem = currentItems.find((item) => item.product === product._id);
+
+        if (existingItem) {
+          toast.success(`Количество +1: ${product.name}`);
+          return {
+            ...current,
+            items: withTrailingOrderRow(
+              currentItems.map((item) =>
+                item.key === existingItem.key
+                  ? {
+                      ...item,
+                      quantity: String(Number(item.quantity || 0) + 1),
+                      unitPrice: item.unitPrice || String(product.price ?? ""),
+                      vatRate: item.vatRate || String(product.vatRate ?? 20)
+                    }
+                  : item
+              )
+            )
+          };
+        }
+
+        toast.success(`Добавен продукт: ${product.name}`);
+        return {
+          ...current,
+          items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
+        };
+      });
+
+      playScanFeedback("success");
+      setOrderScanOpen(false);
+    },
+    [resolveScannedProduct, orderScanTarget, editingOrder]
+  );
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft) {
     if (event.key !== "Enter" && event.key !== "Tab") return;
