@@ -42,7 +42,15 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
   function stopScanner() {
     try {
-      controlsRef.current?.stop?.();
+      if (controlsRef.current?.stream) {
+        controlsRef.current.stream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {
+            // ignore
+          }
+        });
+      }
     } catch {
       // ignore stop errors
     }
@@ -147,10 +155,25 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
           devices[0];
 
         setInitProgress(65);
-        const controls = await codeReader.decodeFromVideoDevice(preferred?.deviceId, videoElement, undefined);
-        controlsRef.current = controls;
         
-        console.log("decodeFromVideoDevice стартиран, чакам видеото да се играе...");
+        // Gebruik getUserMedia директно вместо decodeFromVideoDevice 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            deviceId: preferred?.deviceId,
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        // Присвой stream към видеото елемент
+        videoElement.srcObject = stream;
+        
+        // Съхрани stream за чистене
+        controlsRef.current = { stream };
+        
+        console.log("Видео stream стартиран, чакам видеото да се играе...");
 
         // Чакам видеото да се играе преди да стартирам continuous decode
         await new Promise((resolve) => {
@@ -195,6 +218,12 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
     return () => {
       active = false;
       scanLoopActive = false;
+      
+      // Прочисти видеото елемент
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      
       stopScanner();
     };
   }, [open, isMobile, onDetected, onError]);
