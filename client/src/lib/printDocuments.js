@@ -114,7 +114,7 @@ function printHtml(title, bodyHtml) {
           th,
           td {
             border: 1px solid #d1d5db;
-            padding: 8px;
+            padding: 5px 6px;
             text-align: left;
             vertical-align: top;
           }

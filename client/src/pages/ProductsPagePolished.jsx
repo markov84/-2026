@@ -440,6 +440,7 @@ export default function ProductsPagePolished() {
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             rowHeight={60}
+            columnHeaderHeight={54}
             sx={{
               "& .product-cell": {
                 pl: 0.5,

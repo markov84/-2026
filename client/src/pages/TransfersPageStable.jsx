@@ -316,12 +316,12 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
           overflowX: "auto",
           bgcolor: "background.paper",
           "& .MuiTableCell-root": {
-            px: 0.6,
-            py: 0.35,
+            px: 0.45,
+            py: 0.22,
             borderColor: "rgba(39,86,107,0.10)"
           },
           "& .MuiTableCell-head": {
-            py: 0.45,
+            py: 0.3,
             bgcolor: "rgba(39,86,107,0.04)",
             color: "text.secondary",
             fontSize: 12,

@@ -8,8 +8,8 @@ export default function ResponsiveTable({ children }) {
 
     return cloneElement(child, {
       autoHeight: false,
-      rowHeight: child.props.rowHeight ?? 68,
-      columnHeaderHeight: child.props.columnHeaderHeight ?? 54,
+      rowHeight: child.props.rowHeight ?? 60,
+      columnHeaderHeight: child.props.columnHeaderHeight ?? 46,
       initialState: {
         ...child.props.initialState,
         pagination: {
@@ -59,7 +59,7 @@ export default function ResponsiveTable({ children }) {
           borderTop: "1px solid rgba(40,53,64,0.08)"
         },
         "& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader": {
-          py: { xs: 1, md: 1.25 }
+          py: { xs: 0.7, md: 0.85 }
         },
         "& .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-cellContent": {
           fontSize: { xs: "0.82rem", md: "0.95rem" }

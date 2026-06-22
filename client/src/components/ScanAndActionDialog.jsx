@@ -279,7 +279,21 @@ export default function ScanAndActionDialog({
                       Наличности по магазини
                     </Typography>
                     {productInventory.length > 0 ? (
-                      <TableContainer>
+                      <TableContainer
+                        sx={{
+                          mt: 0.5,
+                          "& .MuiTableCell-root": {
+                            px: 0.45,
+                            py: 0.22,
+                            borderColor: "rgba(39,86,107,0.10)"
+                          },
+                          "& .MuiTableCell-head": {
+                            py: 0.3,
+                            bgcolor: "background.default",
+                            lineHeight: 1.15
+                          }
+                        }}
+                      >
                         <Table size="small">
                           <TableHead>
                             <TableRow sx={{ bgcolor: "background.default" }}>

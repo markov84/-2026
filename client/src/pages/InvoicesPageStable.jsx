@@ -228,11 +228,11 @@ function TotalsPreview({ totals }) {
     <Stack
       direction={{ xs: "column", md: "row" }}
       spacing={1.25}
-      justifyContent="space-between"
+      justifyContent="flex-end"
       alignItems={{ md: "flex-start" }}
-      sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
+      sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)", width: "100%" }}
     >
-      <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
+      <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" }, alignItems: { xs: "stretch", md: "flex-start" } }}>
         <Box>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
           <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>
@@ -365,12 +365,12 @@ function InvoiceForm({ invoice, setInvoice, stores, products = [] }) {
             overflowX: "auto",
             bgcolor: "background.paper",
             "& .MuiTableCell-root": {
-              px: 0.6,
-              py: 0.35,
+              px: 0.45,
+              py: 0.22,
               borderColor: "rgba(39,86,107,0.10)"
             },
             "& .MuiTableCell-head": {
-              py: 0.45,
+              py: 0.3,
               bgcolor: "rgba(39,86,107,0.04)",
               color: "text.secondary",
               fontSize: 12,
