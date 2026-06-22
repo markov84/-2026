@@ -545,51 +545,48 @@ function TransferTotals({ transfer, products, inventory, stores }) {
     return { code, product: null };
   }, [products]);
 
-  const handleTransferScannerDetected = useCallback(
-    async (rawCode) => {
-      const { code, product } = await resolveScannedProduct(rawCode);
-      if (!code) return;
+  async function handleTransferScannerDetected(rawCode) {
+    const { code, product } = await resolveScannedProduct(rawCode);
+    if (!code) return;
 
-      if (!product) {
-        playScanFeedback("error");
-        toast.error(`Няма продукт с баркод/SKU ${code}.`);
-        return;
-      }
+    if (!product) {
+      playScanFeedback("error");
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
+      return;
+    }
 
-      setForm((current) => {
-        const currentItems = (current.items || []).filter((item) => item.product || Number(item.quantity || 0) > 0);
-        const existingItem = currentItems.find((item) => item.product === product._id);
+    setForm((current) => {
+      const currentItems = (current.items || []).filter((item) => item.product || Number(item.quantity || 0) > 0);
+      const existingItem = currentItems.find((item) => item.product === product._id);
 
-        if (existingItem) {
-          toast.success(`Количество +1: ${product.name}`);
-          return {
-            ...current,
-            items: withTrailingTransferRow(
-              currentItems.map((item) =>
-                item.key === existingItem.key
-                  ? {
-                      ...item,
-                      quantity: String(Number(item.quantity || 0) + 1)
-                    }
-                  : item
-              )
-            )
-          };
-        }
-
+      if (existingItem) {
+        toast.success(`Количество +1: ${product.name}`);
         return {
           ...current,
-          items: withTrailingTransferRow([...currentItems, createTransferItem({ product: product._id, quantity: "1" })])
+          items: withTrailingTransferRow(
+            currentItems.map((item) =>
+              item.key === existingItem.key
+                ? {
+                    ...item,
+                    quantity: String(Number(item.quantity || 0) + 1)
+                  }
+                : item
+            )
+          )
         };
-      });
+      }
 
-      setScanCode("");
-      playScanFeedback("success");
-      toast.success(`Добавен продукт: ${product.name}`);
-      setScanCameraOpen(false);
-    },
-    [resolveScannedProduct]
-  );
+      return {
+        ...current,
+        items: withTrailingTransferRow([...currentItems, createTransferItem({ product: product._id, quantity: "1" })])
+      };
+    });
+
+    setScanCode("");
+    playScanFeedback("success");
+    toast.success(`Добавен продукт: ${product.name}`);
+    setScanCameraOpen(false);
+  }
 
   useBarcodeKeyboardScan((code) => {
     setScanCode(code);
