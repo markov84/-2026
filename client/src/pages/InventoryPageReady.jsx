@@ -45,6 +45,7 @@ export default function InventoryPageReady() {
   const [storeFilter, setStoreFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const scanFieldRef = useRef(null);
+  const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
   const productsById = useMemo(
     () => new Map((Array.isArray(products) ? products : []).map((product) => [product?._id, product])),
@@ -182,35 +183,82 @@ export default function InventoryPageReady() {
     }
   }
 
-  async function applyScannedProduct(rawCode = scanCode) {
-    const code = parseScannedInput(rawCode);
-    if (!code) return;
-
-    let product = findProductByScanCode(products, code);
-    if (!product) {
-      try {
-        const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
-        const searchedProducts = Array.isArray(response.data) ? response.data : [];
-        product =
-          findProductByScanCode(searchedProducts, code) ||
-          searchedProducts.find((item) =>
-            [item?.barcode, item?.productNumber, item?.sku]
-              .map((value) => normalizeScanCode(value))
-              .filter(Boolean)
-              .includes(normalizeScanCode(code))
-          );
-      } catch {
-        // Keep local-flow fallback and show not-found message below.
+  function playScanFeedback(type = "success") {
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
       }
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(type === "success" ? 920 : 240, now);
+      if (type !== "success") {
+        oscillator.frequency.linearRampToValueAtTime(170, now + 0.09);
+      }
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.055, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "success" ? 0.08 : 0.12));
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + (type === "success" ? 0.09 : 0.13));
+    } catch {
+      // Ignore audio feedback failures
+    }
+  }
+
+  const resolveScannedProduct = async (rawCode) => {
+    const code = parseScannedInput(rawCode);
+    if (!code) return { code: "", product: null };
+
+    const localProduct = findProductByScanCode(products, code);
+    if (localProduct) {
+      return { code, product: localProduct };
     }
 
+    try {
+      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+      const payload = response?.data;
+      const remoteProducts = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
+      if (remoteProduct) {
+        return { code, product: remoteProduct };
+      }
+    } catch {
+      // Ignore network errors
+    }
+
+    return { code, product: null };
+  };
+
+  async function applyScannedProduct(rawCode = scanCode) {
+    const { code, product } = await resolveScannedProduct(rawCode);
+    if (!code) return;
+
     if (!product) {
+      playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;
     }
 
     setForm((current) => ({ ...current, product: product._id, quantity: current.quantity || "1" }));
     setScanCode("");
+    playScanFeedback("success");
     toast.success(`Продуктът ${product.name} е готов за добавяне.`);
   }
 
