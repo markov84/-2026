@@ -507,7 +507,7 @@ function OrderTotals({ order }) {
       spacing={0.55}
       sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ md: "flex-start" }}>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "flex-start" }}>
         <Stack direction="row" spacing={2} sx={{ minWidth: 0 }}>
           <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
@@ -518,7 +518,7 @@ function OrderTotals({ order }) {
             <Typography fontWeight={900} sx={{ lineHeight: 1.15 }}>{totalQuantity} бр.</Typography>
           </Box>
         </Stack>
-        <Stack spacing={0.3} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
+        <Stack spacing={0.3} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" }, alignItems: "flex-start" }}>
           <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
             <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>

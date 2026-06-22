@@ -126,14 +126,14 @@ function printHtml(title, bodyHtml) {
             white-space: nowrap;
           }
           .totals {
-            width: 280px;
+            width: 240px;
             margin-left: auto;
             margin-top: 10px;
           }
           .totals p {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
+            gap: 6px;
             margin: 2px 0;
             line-height: 1.15;
           }

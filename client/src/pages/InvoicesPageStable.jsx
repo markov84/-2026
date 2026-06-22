@@ -228,10 +228,10 @@ function TotalsPreview({ totals }) {
     <Stack
       direction={{ xs: "column", md: "row" }}
       spacing={1.25}
+      justifyContent="space-between"
       alignItems={{ md: "flex-start" }}
       sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Box sx={{ minHeight: { md: 1 } }} />
       <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
         <Box>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>

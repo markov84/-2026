@@ -488,7 +488,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
         bgcolor: lowStockRows ? "rgba(183,138,77,0.08)" : "background.paper"
       }}
     >
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ md: "flex-start" }}>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "flex-start" }}>
         <Stack direction="row" spacing={2} sx={{ minWidth: 0 }}>
           <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
@@ -499,7 +499,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
             <Typography variant="h6" sx={{ lineHeight: 1.1 }}>{totalQuantity || 0} бр.</Typography>
           </Box>
         </Stack>
-        <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
+        <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" }, alignItems: "flex-start" }}>
           <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
             <Typography variant="h6" sx={{ lineHeight: 1.05 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>
