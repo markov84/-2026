@@ -19,6 +19,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
+import { formatCurrencyEUR } from "../lib/currency";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
@@ -54,6 +55,18 @@ export default function InventoryPageReady() {
     [products]
   );
   const scannedProduct = useMemo(() => findProductByScanCode(products, scanCode), [products, scanCode]);
+  const scannedProductInventoryRows = useMemo(
+    () =>
+      scannedProduct?._id
+        ? data.filter((item) => item.product?._id === scannedProduct._id)
+        : [],
+    [data, scannedProduct]
+  );
+  const scannedProductSummary = useMemo(() => {
+    const storeCount = new Set(scannedProductInventoryRows.map((item) => item.store?._id).filter(Boolean)).size;
+    const totalQuantity = scannedProductInventoryRows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    return { storeCount, totalQuantity };
+  }, [scannedProductInventoryRows]);
 
   const getResolvedProduct = (row) => {
     const rowProduct = row?.product;
@@ -71,7 +84,6 @@ export default function InventoryPageReady() {
     const params = new URLSearchParams(window.location.search);
     const scanParam = params.get("scan");
     if (scanParam === "1" || scanParam?.toLowerCase() === "true") {
-      setOpen(true);
       const timer = window.setTimeout(() => scanFieldRef.current?.focus(), 120);
       params.delete("scan");
       window.history.replaceState({}, document.title, `${window.location.pathname}?${params.toString()}`);
@@ -303,10 +315,6 @@ export default function InventoryPageReady() {
         scannerBufferRef.current = "";
         if (!rawCode || rawCode.length < 4) return;
 
-        if (!open) {
-          setOpen(true);
-        }
-
         setScanCode(rawCode);
         void applyScannedProduct(rawCode);
         event.preventDefault();
@@ -415,6 +423,43 @@ export default function InventoryPageReady() {
           </Stack>
         }
       >
+        {scannedProduct ? (
+          <Box sx={{ mb: 2, p: 2, borderRadius: 2, border: "1px solid", borderColor: "primary.main", bgcolor: "rgba(39,86,107,0.04)" }}>
+            <Stack spacing={1.25}>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" alignItems={{ md: "center" }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                    Сканиран продукт
+                  </Typography>
+                  <ProductIdentity product={scannedProduct} />
+                </Box>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Chip label={`Магазини: ${scannedProductSummary.storeCount}`} variant="outlined" />
+                  <Chip label={`Общо бройки: ${scannedProductSummary.totalQuantity}`} variant="outlined" />
+                  <Chip label={`Цена: ${formatCurrencyEUR(Number(scannedProduct.price || 0))}`} color="primary" variant="outlined" />
+                </Stack>
+              </Stack>
+
+              <ResponsiveTable>
+                <DataGrid
+                  autoHeight
+                  rows={scannedProductInventoryRows}
+                  getRowId={(row) => row._id}
+                  rowHeight={52}
+                  columnHeaderHeight={42}
+                  columns={[
+                    { field: "store", headerName: "Магазин", flex: 1.2, minWidth: 160, valueGetter: (_, row) => row.store?.name || "-" },
+                    { field: "quantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
+                    { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 90 },
+                    { field: "status", headerName: "Статус", flex: 0.7, minWidth: 110, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
+                  ]}
+                  disableRowSelectionOnClick
+                />
+              </ResponsiveTable>
+            </Stack>
+          </Box>
+        ) : null}
+
         <ResponsiveTable>
           <DataGrid
             autoHeight
