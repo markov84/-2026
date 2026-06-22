@@ -48,6 +48,8 @@ const orderStatusLabels = {
   cancelled: "Отказана"
 };
 
+const ORDER_ITEMS_GRID_COLUMNS = "24px minmax(160px, 1fr) 56px 82px 66px 102px 118px 82px 28px";
+
 function createOrderItem(product = null, overrides = {}) {
   return {
     key: globalThis.crypto?.randomUUID?.() || `order-item-${Date.now()}-${Math.random()}`,
@@ -269,7 +271,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
         <Box
           sx={{
             display: { xs: "none", md: "grid" },
-            gridTemplateColumns: "28px minmax(150px, 1fr) 56px 82px 66px 116px 132px 96px 30px",
+            gridTemplateColumns: ORDER_ITEMS_GRID_COLUMNS,
             gap: 0.5,
             px: 0.35,
             color: "text.secondary",
@@ -304,7 +306,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
               key={item.key}
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "28px minmax(150px, 1fr) 56px 82px 66px 116px 132px 96px 30px" },
+                gridTemplateColumns: { xs: "1fr", md: ORDER_ITEMS_GRID_COLUMNS },
                 gap: 0.5,
                 alignItems: "center",
                 p: 0.35,
@@ -419,27 +421,33 @@ function OrderTotals({ order }) {
   const totals = getOrderTotals(order);
 
   return (
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}>
-      <Box sx={{ flex: 1 }}>
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      spacing={1.5}
+      sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
         <Typography fontWeight={900}>{rows.length}</Typography>
       </Box>
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
         <Typography fontWeight={900}>{totalQuantity} бр.</Typography>
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
-        <Typography fontWeight={900}>{formatCurrencyEUR(totals.subtotal)}</Typography>
-      </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
-        <Typography fontWeight={900}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
-      </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
-        <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
-      </Box>
+      <Stack spacing={1} sx={{ width: { xs: "100%", md: 300 }, ml: { md: "auto" } }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.subtotal)}</Typography>
+        </Stack>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.vatAmount)}</Typography>
+        </Stack>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+          <Typography fontWeight={900} color="primary.main" textAlign="right">{formatCurrencyEUR(totals.totalAmount)}</Typography>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }
