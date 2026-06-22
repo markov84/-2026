@@ -58,7 +58,7 @@ export default function InventoryPageReady() {
 
   function getStoreDisplayLabel(store) {
     if (!store) return "-";
-    return [store.name, store.code, store.city]
+    return [store.name, store.code, store.city, store.address]
       .filter(Boolean)
       .join(" | ");
   }
@@ -75,6 +75,10 @@ export default function InventoryPageReady() {
     const totalQuantity = scannedProductInventoryRows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     return { storeCount, totalQuantity };
   }, [scannedProductInventoryRows]);
+  const scannedProductStoreLabels = useMemo(
+    () => Array.from(new Set(scannedProductInventoryRows.map((item) => getStoreDisplayLabel(item.store)).filter(Boolean))),
+    [scannedProductInventoryRows]
+  );
 
   const getResolvedProduct = (row) => {
     const rowProduct = row?.product;
@@ -447,6 +451,14 @@ export default function InventoryPageReady() {
                   <Chip label={`Цена: ${formatCurrencyEUR(Number(scannedProduct.price || 0))}`} color="primary" variant="outlined" />
                 </Stack>
               </Stack>
+
+              {scannedProductStoreLabels.length ? (
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {scannedProductStoreLabels.map((label) => (
+                    <Chip key={label} label={label} color="default" variant="outlined" />
+                  ))}
+                </Stack>
+              ) : null}
 
               <ResponsiveTable>
                 <DataGrid
