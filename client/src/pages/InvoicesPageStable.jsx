@@ -12,6 +12,12 @@ import {
   IconButton,
   MenuItem,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography
 } from "@mui/material";
@@ -39,24 +45,6 @@ const statusOptions = [
 ];
 
 const paymentMethods = ["Брой", "Банков превод", "Карта", "Наложен платеж"];
-
-const denseInvoiceFieldSx = {
-  "& .MuiInputLabel-root": {
-    fontSize: 12,
-    transform: "translate(10px, 7px) scale(1)"
-  },
-  "& .MuiInputLabel-shrink": {
-    transform: "translate(10px, -8px) scale(0.72)"
-  },
-  "& .MuiOutlinedInput-root": {
-    minHeight: 30
-  },
-  "& .MuiInputBase-input": {
-    py: 0.25,
-    px: 0.7,
-    fontSize: 13
-  }
-};
 
 const defaultSupplier = {
   name: "MARK LIGHT LTD",
@@ -312,52 +300,146 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
           <Typography variant="subtitle1" fontWeight={800}>Редове във фактурата</Typography>
         </Stack>
 
-        <Box
+        <TableContainer
           sx={{
-            display: { xs: "none", md: "grid" },
-            gridTemplateColumns: "28px minmax(190px, 2fr) 58px 68px 108px 58px 30px",
-            gap: 0.5,
-            px: 0.25,
-            color: "text.secondary",
-            fontSize: 12,
-            fontWeight: 900
+            display: { xs: "none", md: "block" },
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1.25,
+            overflowX: "auto",
+            bgcolor: "background.paper",
+            "& .MuiTableCell-root": {
+              px: 0.6,
+              py: 0.35,
+              borderColor: "rgba(39,86,107,0.10)"
+            },
+            "& .MuiTableCell-head": {
+              py: 0.45,
+              bgcolor: "rgba(39,86,107,0.04)",
+              color: "text.secondary",
+              fontSize: 12,
+              lineHeight: 1.2
+            },
+            "& .MuiInputBase-root": {
+              minHeight: 30
+            },
+            "& .MuiInputBase-input": {
+              py: 0.3,
+              px: 0.7,
+              fontSize: 13
+            }
           }}
         >
-          <Box>№</Box>
-          <Box>Наименование</Box>
-          <Box>Мярка</Box>
-          <Box textAlign="right">Брой</Box>
-          <Box textAlign="right">Ед. цена</Box>
-          <Box textAlign="right">ДДС</Box>
-          <Box />
-        </Box>
+          <Table size="small" sx={{ minWidth: 706, tableLayout: "fixed" }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ width: 28, fontWeight: 900 }}>№</TableCell>
+                <TableCell sx={{ width: 290, fontWeight: 900 }}>Наименование</TableCell>
+                <TableCell sx={{ width: 64, fontWeight: 900 }}>Мярка</TableCell>
+                <TableCell align="right" sx={{ width: 72, fontWeight: 900 }}>Брой</TableCell>
+                <TableCell align="right" sx={{ width: 116, fontWeight: 900 }}>Ед. цена</TableCell>
+                <TableCell align="right" sx={{ width: 66, fontWeight: 900 }}>ДДС %</TableCell>
+                <TableCell align="center" sx={{ width: 36, fontWeight: 900 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {invoice.items.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Typography variant="caption" fontWeight={800} color="text.secondary">
+                      {index + 1}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      value={item.description}
+                      onChange={(e) => updateItem(index, "description", e.target.value)}
+                      placeholder="Описание"
+                      fullWidth
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      value={item.unit}
+                      onChange={(e) => updateItem(index, "unit", e.target.value)}
+                      placeholder="бр."
+                      fullWidth
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 64 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.unitPrice}
+                      onChange={(e) => updateItem(index, "unitPrice", e.target.value)}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 108 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.vatRate}
+                      onChange={(e) => updateItem(index, "vatRate", e.target.value)}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 58 }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={() => removeItem(index)} disabled={invoice.items.length === 1} aria-label="Премахни ред">
+                      <DeleteRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-        {invoice.items.map((item, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "28px minmax(190px, 2fr) 58px 68px 108px 58px 30px" },
-              gap: 0.5,
-              alignItems: "center",
-              p: 0.25,
-              borderRadius: 1.25,
-              border: "1px solid rgba(39,86,107,0.12)"
-            }}
-          >
-            <Typography variant="caption" fontWeight={800} color="text.secondary">
-              {index + 1}
-            </Typography>
-            <TextField size="small" label="Описание" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} sx={denseInvoiceFieldSx} />
-            <TextField size="small" label="Мярка" value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} sx={denseInvoiceFieldSx} />
-            <TextField size="small" label="Кол." type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} sx={denseInvoiceFieldSx} />
-            <TextField size="small" label="Цена без ДДС" type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", e.target.value)} sx={denseInvoiceFieldSx} />
-            <TextField size="small" label="ДДС %" type="number" value={item.vatRate} onChange={(e) => updateItem(index, "vatRate", e.target.value)} sx={denseInvoiceFieldSx} />
-            <IconButton size="small" onClick={() => removeItem(index)} disabled={invoice.items.length === 1} aria-label="Премахни ред">
-              <DeleteRoundedIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ))}
+        <Stack spacing={0.75} sx={{ display: { xs: "flex", md: "none" } }}>
+          {invoice.items.map((item, index) => (
+            <Box
+              key={index}
+              sx={{
+                p: 1,
+                borderRadius: 1.25,
+                border: "1px solid rgba(39,86,107,0.12)",
+                bgcolor: "background.paper"
+              }}
+            >
+              <Stack spacing={0.75}>
+                <Typography variant="caption" fontWeight={800} color="text.secondary">
+                  Ред {index + 1}
+                </Typography>
+                <TextField size="small" label="Описание" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} />
+                <Stack direction="row" spacing={0.75}>
+                  <TextField size="small" label="Мярка" value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} fullWidth />
+                  <TextField size="small" label="Брой" type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} inputProps={{ min: 0 }} fullWidth />
+                </Stack>
+                <Stack direction="row" spacing={0.75}>
+                  <TextField size="small" label="Ед. цена" type="number" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", e.target.value)} inputProps={{ min: 0 }} fullWidth />
+                  <TextField size="small" label="ДДС %" type="number" value={item.vatRate} onChange={(e) => updateItem(index, "vatRate", e.target.value)} inputProps={{ min: 0 }} fullWidth />
+                </Stack>
+                <Button size="small" color="error" variant="text" onClick={() => removeItem(index)} disabled={invoice.items.length === 1}>
+                  Премахни ред
+                </Button>
+              </Stack>
+            </Box>
+          ))}
+        </Stack>
       </Stack>
 
       <TotalsPreview totals={totals} />
