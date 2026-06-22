@@ -504,31 +504,32 @@ function OrderTotals({ order }) {
 
   return (
     <Stack
-      direction={{ xs: "column", md: "row" }}
-      spacing={1.5}
-      sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
+      spacing={1}
+      sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
-        <Typography fontWeight={900}>{rows.length}</Typography>
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
-        <Typography fontWeight={900}>{totalQuantity} бр.</Typography>
-      </Box>
-      <Stack spacing={1} sx={{ width: { xs: "100%", md: 300 }, ml: { md: "auto" } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
+          <Typography fontWeight={900}>{rows.length}</Typography>
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
+          <Typography fontWeight={900}>{totalQuantity} бр.</Typography>
+        </Box>
+      </Stack>
+      <Stack spacing={0.6}>
+        <Box>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
-          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.subtotal)}</Typography>
-        </Stack>
-        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography fontWeight={900}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+        </Box>
+        <Box>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
-          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.vatAmount)}</Typography>
-        </Stack>
-        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography fontWeight={900}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
+        </Box>
+        <Box>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
-          <Typography fontWeight={900} color="primary.main" textAlign="right">{formatCurrencyEUR(totals.totalAmount)}</Typography>
-        </Stack>
+          <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
+        </Box>
       </Stack>
     </Stack>
   );
