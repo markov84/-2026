@@ -3,6 +3,7 @@ import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
 import {
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -62,6 +63,7 @@ function today() {
 
 function blankItem() {
   return {
+    productId: "",
     description: "",
     unit: "бр.",
     quantity: "",
@@ -190,6 +192,31 @@ function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
   return payload;
 }
 
+function getProductOptionLabel(product) {
+  if (!product) return "";
+  return [product.name, product.sku, product.barcode].filter(Boolean).join(" | ");
+}
+
+function findProductByInvoiceItem(products, item) {
+  if (!Array.isArray(products) || !products.length) return null;
+  if (item?.productId) {
+    const byId = products.find((product) => product._id === item.productId);
+    if (byId) return byId;
+  }
+
+  const query = String(item?.description || "").trim().toLowerCase();
+  if (!query) return null;
+
+  return (
+    products.find((product) => {
+      const name = String(product?.name || "").toLowerCase();
+      const sku = String(product?.sku || "").toLowerCase();
+      const barcode = String(product?.barcode || "").toLowerCase();
+      return name === query || sku === query || barcode === query;
+    }) || null
+  );
+}
+
 function StatusChip({ value }) {
   const color = value === "paid" ? "success" : value === "cancelled" ? "error" : value === "draft" ? "warning" : "default";
   const label = statusOptions.find((item) => item.value === value)?.label || value || "-";
@@ -219,7 +246,7 @@ function TotalsPreview({ totals }) {
   );
 }
 
-function InvoiceForm({ invoice, setInvoice, stores }) {
+function InvoiceForm({ invoice, setInvoice, stores, products = [] }) {
   const totals = useMemo(() => calculateTotals(invoice.items), [invoice.items]);
 
   function updateField(key, value) {
@@ -241,6 +268,31 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
     setInvoice((current) => ({
       ...current,
       items: withTrailingInvoiceRow(current.items.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item)))
+    }));
+  }
+
+  function applyProductToItem(index, product) {
+    if (!product) {
+      updateItem(index, "productId", "");
+      return;
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      items: withTrailingInvoiceRow(
+        current.items.map((item, itemIndex) =>
+          itemIndex === index
+            ? {
+                ...item,
+                productId: product._id,
+                description: product.name || item.description,
+                unit: item.unit || "бр.",
+                unitPrice: String(product.price ?? item.unitPrice ?? ""),
+                vatRate: String(product.vatRate ?? item.vatRate ?? 20)
+              }
+            : item
+        )
+      )
     }));
   }
 
@@ -351,12 +403,21 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <TextField
+                    <Autocomplete
                       size="small"
-                      value={item.description}
-                      onChange={(e) => updateItem(index, "description", e.target.value)}
-                      placeholder="Описание"
-                      fullWidth
+                      options={Array.isArray(products) ? products : []}
+                      getOptionLabel={getProductOptionLabel}
+                      value={findProductByInvoiceItem(products, item)}
+                      inputValue={item.description || ""}
+                      onInputChange={(_, value, reason) => {
+                        if (reason === "input" || reason === "clear") {
+                          updateItem(index, "description", value);
+                        }
+                      }}
+                      onChange={(_, product) => applyProductToItem(index, product)}
+                      isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                      noOptionsText="Няма продукт"
+                      renderInput={(params) => <TextField {...params} size="small" placeholder="Описание / продукт" fullWidth />}
                     />
                   </TableCell>
                   <TableCell>
@@ -425,6 +486,16 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
                   Ред {index + 1}
                 </Typography>
                 <TextField size="small" label="Описание" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} />
+                <Autocomplete
+                  size="small"
+                  options={Array.isArray(products) ? products : []}
+                  getOptionLabel={getProductOptionLabel}
+                  value={findProductByInvoiceItem(products, item)}
+                  onChange={(_, product) => applyProductToItem(index, product)}
+                  isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                  noOptionsText="Няма продукт"
+                  renderInput={(params) => <TextField {...params} size="small" label="Продукт" placeholder="Търси по име/SKU/баркод" />}
+                />
                 <Stack direction="row" spacing={0.75}>
                   <TextField size="small" label="Мярка" value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} fullWidth />
                   <TextField size="small" label="Брой" type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} inputProps={{ min: 0 }} fullWidth />
@@ -464,6 +535,7 @@ function InvoiceForm({ invoice, setInvoice, stores }) {
 export default function InvoicesPageStable() {
   const { data: invoices, loading, setData } = useFetch("/invoices");
   const { data: stores } = useFetch("/stores");
+  const { data: products = [] } = useFetch("/products");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => blankInvoice());
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -581,7 +653,7 @@ export default function InvoicesPageStable() {
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Нова фактура</DialogTitle>
         <DialogContent dividers>
-          <InvoiceForm invoice={form} setInvoice={setForm} stores={stores} />
+          <InvoiceForm invoice={form} setInvoice={setForm} stores={stores} products={products} />
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
@@ -589,7 +661,7 @@ export default function InvoicesPageStable() {
       <Dialog open={Boolean(editingInvoice)} onClose={() => setEditingInvoice(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
         <DialogTitle>Редактиране на фактура</DialogTitle>
         <DialogContent dividers>
-          {editingInvoice ? <InvoiceForm invoice={editingInvoice} setInvoice={setEditingInvoice} stores={stores} /> : null}
+          {editingInvoice ? <InvoiceForm invoice={editingInvoice} setInvoice={setEditingInvoice} stores={stores} products={products} /> : null}
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingInvoice(null)} onConfirm={handleUpdate} />
       </Dialog>
