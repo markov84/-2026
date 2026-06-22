@@ -66,7 +66,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
     async function waitForVideoElement(maxAttempts = 50) {
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         if (!active) return null;
-        if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_FUTURE_DATA) {
+        if (videoRef.current) {
           return videoRef.current;
         }
         await new Promise((resolve) => window.setTimeout(resolve, 80));
@@ -112,40 +112,10 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
       const videoElement = await waitForVideoElement();
       if (!videoElement) {
-        updateStatus("error", "Камерата не може да бъде стартирана. Опитай да затвориш и отвориш скенера отново.");
+        console.error("Видеото не е готово след 4 сек.");
+        updateStatus("error", "Видеото не е готово. Опитай отново.");
         return;
       }
-
-      const callback = (result, error) => {
-        if (!active) return;
-
-        if (result) {
-          const code = result.getText();
-          updateStatus("detected", `✓ Сканирано: ${code}`);
-          active = false;
-          stopScanner();
-          onDetected?.(code);
-          return;
-        }
-
-        if (error) {
-          if (error?.name === "NotFoundException") {
-            if (statusRef.current !== "scanning") {
-              setInitProgress(100);
-              updateStatus("scanning", "Камерата е готова. Насочи я към баркод или QR код...");
-            }
-            return;
-          }
-
-          if (error?.name === "ChecksumException" || error?.name === "FormatException") {
-            return;
-          }
-
-          const errorMessage = error?.message || "Неуспешно сканиране.";
-          updateStatus("error", errorMessage);
-          onError?.(error);
-        }
-      };
 
       try {
         if (!navigator?.mediaDevices?.getUserMedia) {
@@ -180,7 +150,28 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         const controls = await codeReader.decodeFromVideoDevice(preferred?.deviceId, videoElement, undefined);
         controlsRef.current = controls;
         
-        console.log("decodeFromVideoDevice стартиран");
+        console.log("decodeFromVideoDevice стартиран, чакам видеото да се играе...");
+
+        // Чакам видеото да се играе преди да стартирам continuous decode
+        await new Promise((resolve) => {
+          const onPlaying = () => {
+            console.log("Видеото начало да се играе");
+            videoElement.removeEventListener("playing", onPlaying);
+            resolve();
+          };
+          
+          if (videoElement.readyState >= 2) {
+            // Видеото вече има данни
+            resolve();
+          } else {
+            videoElement.addEventListener("playing", onPlaying);
+            // Timeout ако видеото не се играе в 5 сек
+            setTimeout(() => {
+              videoElement.removeEventListener("playing", onPlaying);
+              resolve();
+            }, 5000);
+          }
+        });
 
         if (active) {
           setInitProgress(100);
