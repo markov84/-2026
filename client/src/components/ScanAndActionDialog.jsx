@@ -76,10 +76,7 @@ export default function ScanAndActionDialog({
   const [manuallySelectedProduct, setManuallySelectedProduct] = useState(null);
   const scanInputRef = useRef(null);
   const isMobile = useMobileDetection();
-
-  if (location.pathname.startsWith("/orders")) {
-    return null;
-  }
+  const isOrdersRoute = location.pathname.startsWith("/orders");
 
   const scannedProduct = useMemo(
     () => findProductByScanCode(products, scannedCode),
@@ -212,6 +209,10 @@ export default function ScanAndActionDialog({
     // Focus scanner for next scan
     setTimeout(() => scanInputRef.current?.focus(), 100);
   };
+
+  if (isOrdersRoute) {
+    return null;
+  }
 
   return (
     <>
