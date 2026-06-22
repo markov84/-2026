@@ -258,10 +258,8 @@ export default function InventoryPageReady() {
       return;
     }
 
-    setForm((current) => ({ ...current, product: product._id, quantity: current.quantity || "1" }));
-    setScanCode("");
     playScanFeedback("success");
-    toast.success(`Продуктът ${product.name} е готов за добавяне.`);
+    toast.success(`Сканиран продукт: ${product.name}`);
   }
 
   useEffect(() => {
@@ -524,7 +522,8 @@ export default function InventoryPageReady() {
         open={scanCameraOpen}
         onClose={() => setScanCameraOpen(false)}
         onDetected={(code) => {
-          applyScannedProduct(code);
+            setScanCode(code);
+            void applyScannedProduct(code);
           setScanCameraOpen(false);
         }}
         onError={() => {
