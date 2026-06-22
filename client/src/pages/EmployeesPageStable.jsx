@@ -16,6 +16,7 @@ import GridRowActions from "../components/GridRowActions";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
@@ -128,6 +129,8 @@ export default function EmployeesPageStable() {
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
   }, [data, query]);
+
+  useBarcodeKeyboardScan((code) => setQuery(code));
 
   const columns = [
     { field: "fullName", headerName: "Име", flex: 1.2, minWidth: 170 },

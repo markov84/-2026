@@ -37,6 +37,7 @@ import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
@@ -589,6 +590,11 @@ function TransferTotals({ transfer, products, inventory, stores }) {
     },
     [resolveScannedProduct]
   );
+
+  useBarcodeKeyboardScan((code) => {
+    setScanCode(code);
+    void handleTransferScannerDetected(code);
+  });
 
   const lowStockRows = enrichedItems.filter((item) => {
     const sourceInventory = getInventoryForItem(inventory, item.product, transfer.fromStore);

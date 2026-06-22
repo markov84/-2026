@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AddCardRoundedIcon from "@mui/icons-material/AddCardRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
-import { Button, Chip, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField } from "@mui/material";
+import { Button, Chip, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, InputAdornment, MenuItem, Stack, TextField } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -19,6 +20,7 @@ import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
 import { useFetch } from "../hooks/useFetch";
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
@@ -102,6 +104,7 @@ function validateEntry(entry) {
 export default function FinancePageStable() {
   const { data, loading, setData } = useFetch("/finance");
   const { data: stores } = useFetch("/stores");
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialEntry);
   const [editingEntry, setEditingEntry] = useState(null);
@@ -110,7 +113,17 @@ export default function FinancePageStable() {
   const isMobile = useMobileDetection();
   const summary = data?.summary || {};
   const entries = getFinanceEntries(data);
-  const displayEntries = entries.map(buildFinanceRow);
+  const displayEntries = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    const rows = entries.map(buildFinanceRow);
+    if (!normalized) return rows;
+
+    return rows.filter((entry) =>
+      [entry.typeLabel, entry.categoryLabel, entry.descriptionLabel, entry.storeLabel, entry.amountLabel]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized))
+    );
+  }, [entries, query]);
   const activeCardDefinition = activeCard ? financeCardDefinitions[activeCard] : null;
   const activeCardEntries = activeCardDefinition?.type
     ? displayEntries.filter((entry) => entry.type === activeCardDefinition.type)
@@ -123,6 +136,8 @@ export default function FinancePageStable() {
     { field: "amountLabel", headerName: "Сума", flex: 0.8 },
     { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEntry(params.row)} /> }
   ];
+
+  useBarcodeKeyboardScan((code) => setQuery(code));
 
   async function handleCreate() {
     const validationMessage = validateEntry(form);
@@ -200,6 +215,17 @@ export default function FinancePageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Финанси" title="Финансов дневник" subtitle="Приходи, разходи и банка с редакция и изтриване на всеки запис." icon={<AccountBalanceWalletRoundedIcon />} />
+
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+        <TextField
+          placeholder="Търси по тип, категория, описание, магазин или сума"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          sx={{ maxWidth: { xs: "100%", sm: 420 } }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
+        />
+        <Chip label={`Показани: ${displayEntries.length}`} variant="outlined" />
+      </Stack>
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Приходи" value={formatCurrencyEUR(summary.income)} accent="success" icon={<TrendingUpRoundedIcon />} onClick={() => setActiveCard("income")} /></Grid>

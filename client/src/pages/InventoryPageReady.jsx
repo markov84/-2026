@@ -3,7 +3,7 @@ import AddBoxRoundedIcon from "@mui/icons-material/AddBoxRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
-import { Button, Chip, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";

@@ -64,6 +64,7 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 function blankItem() {
   return {
     productId: "",
@@ -739,6 +740,11 @@ export default function InvoicesPageStable() {
     },
     [resolveScannedProduct]
   );
+
+  useBarcodeKeyboardScan((code) => {
+    setScanCode(code);
+    void handleInvoiceScannerDetected(code);
+  });
 
   return (
     <Stack spacing={3}>

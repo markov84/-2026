@@ -32,6 +32,7 @@ import GridRowActions from "../components/GridRowActions";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
@@ -204,6 +205,8 @@ export default function CustomersPageStable() {
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
   }, [data, query]);
+
+  useBarcodeKeyboardScan((code) => setQuery(code));
 
   const stats = useMemo(() => {
     const loyaltyCustomers = data.filter((customer) => Number(customer.loyaltyPoints || 0) > 0).length;

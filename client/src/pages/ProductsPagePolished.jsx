@@ -40,6 +40,7 @@ import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 
 import { useFetch } from "../hooks/useFetch";
+import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
@@ -379,6 +380,10 @@ export default function ProductsPagePolished() {
 
     setScanBarcodeOpen(false);
   }
+
+  useBarcodeKeyboardScan((code) => {
+    handleProductBarcodeDetected(code);
+  });
 
   async function handleDelete() {
     if (!productToDelete?._id) return;
