@@ -58,7 +58,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
   useEffect(() => {
     if (!open || !isMobile) return undefined;
 
-    const codeReader = new BrowserMultiFormatReader();
+    const codeReader = new BrowserMultiFormatReader(undefined, { delayMs: 50, alsoBarcodeInTheMiddleOfImage: true });
     codeReaderRef.current = codeReader;
     let active = true;
 
@@ -123,7 +123,11 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
         // Trigger permission prompt first for better mobile compatibility
         const probeStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: { 
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
           audio: false
         });
         setInitProgress(45);
@@ -181,8 +185,9 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
                   ref={videoRef} 
                   style={{ width: "100%", height: "100%", objectFit: "cover" }} 
                   muted 
-                  playsInline 
+                  playsInline
                   autoPlay
+                  webkit-playsinline="true"
                 />
                 <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none", border: "2px dashed rgba(255,255,255,0.9)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45)" }} />
               </Box>
