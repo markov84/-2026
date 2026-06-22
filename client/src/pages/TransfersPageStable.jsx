@@ -331,7 +331,7 @@ function TransferItemsEditor({ value, products, inventory, fromStore, onChange }
             minHeight: 30
           },
           "& .MuiInputBase-input": {
-            py: 0.35,
+            py: 0.3,
             px: 0.7,
             fontSize: 13
           }
@@ -488,7 +488,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
         bgcolor: lowStockRows ? "rgba(183,138,77,0.08)" : "background.paper"
       }}
     >
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
           <Typography variant="h6">{enrichedItems.length}</Typography>
@@ -497,18 +497,20 @@ function TransferTotals({ transfer, products, inventory, stores }) {
           <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
           <Typography variant="h6">{totalQuantity || 0} бр.</Typography>
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
-          <Typography variant="h6">{formatCurrencyEUR(totals.subtotal)}</Typography>
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
-          <Typography variant="h6">{formatCurrencyEUR(totals.vatAmount)}</Typography>
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
-          <Typography variant="h6" color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
-        </Box>
+        <Stack spacing={1} sx={{ width: { xs: "100%", md: 300 }, ml: { md: "auto" } }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+            <Typography variant="h6" textAlign="right">{formatCurrencyEUR(totals.subtotal)}</Typography>
+          </Stack>
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+            <Typography variant="h6" textAlign="right">{formatCurrencyEUR(totals.vatAmount)}</Typography>
+          </Stack>
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+            <Typography variant="h6" color="primary.main" textAlign="right">{formatCurrencyEUR(totals.totalAmount)}</Typography>
+          </Stack>
+        </Stack>
       </Stack>
 
       <Divider />

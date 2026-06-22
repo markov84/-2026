@@ -226,22 +226,28 @@ function StatusChip({ value }) {
 function TotalsPreview({ totals }) {
   return (
     <Stack
-      direction={{ xs: "column", sm: "row" }}
+      direction={{ xs: "column", md: "row" }}
       spacing={1.5}
       sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary">Данъчна основа</Typography>
-        <Typography fontWeight={800}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={800}>Преглед на сумите</Typography>
+        <Typography fontWeight={900}>Автоматично изчисление по редовете</Typography>
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary">ДДС</Typography>
-        <Typography fontWeight={800}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
-      </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" color="text.secondary">Общо за плащане</Typography>
-        <Typography fontWeight={900}>{formatCurrencyEUR(totals.totalAmount)}</Typography>
-      </Box>
+      <Stack spacing={1} sx={{ width: { xs: "100%", md: 300 }, ml: { md: "auto" } }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.subtotal)}</Typography>
+        </Stack>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+          <Typography fontWeight={900} textAlign="right">{formatCurrencyEUR(totals.vatAmount)}</Typography>
+        </Stack>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+          <Typography fontWeight={900} color="primary.main" textAlign="right">{formatCurrencyEUR(totals.totalAmount)}</Typography>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }
