@@ -5,18 +5,23 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 
 function getCameraErrorMessage(error) {
   const name = String(error?.name || "");
+  // Camera permission errors
   if (name === "NotAllowedError" || name === "PermissionDeniedError") {
     return "Няма достъп до камера. Разреши Camera за сайта от настройките на браузъра.";
   }
+  // Device not found
   if (name === "NotFoundError" || name === "DevicesNotFoundError") {
     return "Не е открита камера на устройството.";
   }
+  // Camera is in use
   if (name === "NotReadableError" || name === "TrackStartError") {
     return "Камерата е заета от друго приложение. Затвори другите приложения и опитай пак.";
   }
+  // Security blocked
   if (name === "SecurityError") {
     return "Камерата е блокирана от настройките за сигурност на браузъра.";
   }
+  // Camera doesn't support constraints
   if (name === "OverconstrainedError") {
     return "Камерата не поддържа избрания режим. Опитвам с алтернативни настройки.";
   }
