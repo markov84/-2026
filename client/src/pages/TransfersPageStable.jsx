@@ -545,7 +545,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
     return { code, product: null };
   }, [products]);
 
-  async function handleTransferScannerDetected(rawCode) {
+  async function handleTransferBarcodeDetected(rawCode) {
     const { code, product } = await resolveScannedProduct(rawCode);
     if (!code) return;
 
@@ -590,7 +590,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
 
   useBarcodeKeyboardScan((code) => {
     setScanCode(code);
-    void handleTransferScannerDetected(code);
+    void handleTransferBarcodeDetected(code);
   });
 
   const lowStockRows = enrichedItems.filter((item) => {
@@ -851,7 +851,7 @@ export default function TransfersPageStable() {
       <BarcodeScannerDialog
         open={scanCameraOpen}
         onClose={() => setScanCameraOpen(false)}
-        onDetected={handleTransferScannerDetected}
+        onDetected={handleTransferBarcodeDetected}
         onError={() => setScanCameraOpen(false)}
         title="Сканирай продукт за трансфера"
       />
