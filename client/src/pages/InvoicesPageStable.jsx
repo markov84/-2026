@@ -226,21 +226,26 @@ function StatusChip({ value }) {
 function TotalsPreview({ totals }) {
   return (
     <Stack
-      spacing={0.6}
+      direction={{ xs: "column", md: "row" }}
+      spacing={1.25}
+      alignItems={{ md: "flex-start" }}
       sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
-        <Typography fontWeight={900}>{formatCurrencyEUR(totals.subtotal)}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
-        <Typography fontWeight={900}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
-        <Typography fontWeight={900} color="primary.main">{formatCurrencyEUR(totals.totalAmount)}</Typography>
-      </Box>
+      <Box sx={{ minHeight: { md: 1 } }} />
+      <Stack spacing={0.25} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+          <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+          <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+          <Typography fontWeight={900} color="primary.main" sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.totalAmount)}</Typography>
+        </Box>
+      </Stack>
     </Stack>
   );
 }

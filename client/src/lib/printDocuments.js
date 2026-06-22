@@ -126,21 +126,22 @@ function printHtml(title, bodyHtml) {
             white-space: nowrap;
           }
           .totals {
-            width: 340px;
+            width: 280px;
             margin-left: auto;
-            margin-top: 18px;
+            margin-top: 10px;
           }
           .totals p {
             display: flex;
             justify-content: space-between;
-            gap: 18px;
-            margin: 7px 0;
+            gap: 8px;
+            margin: 2px 0;
+            line-height: 1.15;
           }
           .total {
             font-weight: 800;
             font-size: 18px;
             border-top: 1px solid #111827;
-            padding-top: 8px;
+            padding-top: 4px;
           }
           .footer {
             margin-top: 44px;

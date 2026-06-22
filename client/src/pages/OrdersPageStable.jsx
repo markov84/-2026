@@ -507,26 +507,32 @@ function OrderTotals({ order }) {
       spacing={0.55}
       sx={{ p: 1.5, borderRadius: 2, bgcolor: "rgba(39,86,107,0.06)", border: "1px solid rgba(39,86,107,0.10)" }}
     >
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
-        <Typography fontWeight={900} sx={{ lineHeight: 1.2 }}>{rows.length}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
-        <Typography fontWeight={900} sx={{ lineHeight: 1.2 }}>{totalQuantity} бр.</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
-        <Typography fontWeight={900} sx={{ lineHeight: 1.2 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
-        <Typography fontWeight={900} sx={{ lineHeight: 1.2 }}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
-        <Typography fontWeight={900} color="primary.main" sx={{ lineHeight: 1.2 }}>{formatCurrencyEUR(totals.totalAmount)}</Typography>
-      </Box>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ md: "flex-start" }}>
+        <Stack direction="row" spacing={2} sx={{ minWidth: 0 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Редове</Typography>
+            <Typography fontWeight={900} sx={{ lineHeight: 1.15 }}>{rows.length}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо бройки</Typography>
+            <Typography fontWeight={900} sx={{ lineHeight: 1.15 }}>{totalQuantity} бр.</Typography>
+          </Box>
+        </Stack>
+        <Stack spacing={0.3} sx={{ width: { xs: "100%", md: 270 }, ml: { md: "auto" } }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Сума без ДДС</Typography>
+            <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.subtotal)}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>ДДС</Typography>
+            <Typography fontWeight={900} sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.vatAmount)}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>Общо с ДДС</Typography>
+            <Typography fontWeight={900} color="primary.main" sx={{ lineHeight: 1.1 }}>{formatCurrencyEUR(totals.totalAmount)}</Typography>
+          </Box>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }
