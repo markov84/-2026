@@ -55,6 +55,14 @@ export default function InventoryPageReady() {
     [products]
   );
   const scannedProduct = useMemo(() => findProductByScanCode(products, scanCode), [products, scanCode]);
+
+  function getStoreDisplayLabel(store) {
+    if (!store) return "-";
+    return [store.name, store.code, store.city]
+      .filter(Boolean)
+      .join(" | ");
+  }
+
   const scannedProductInventoryRows = useMemo(
     () =>
       scannedProduct?._id
@@ -434,7 +442,7 @@ export default function InventoryPageReady() {
                   <ProductIdentity product={scannedProduct} />
                 </Box>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip label={`Магазини: ${scannedProductSummary.storeCount}`} variant="outlined" />
+                  <Chip label={`Обекти: ${scannedProductSummary.storeCount}`} variant="outlined" />
                   <Chip label={`Общо бройки: ${scannedProductSummary.totalQuantity}`} variant="outlined" />
                   <Chip label={`Цена: ${formatCurrencyEUR(Number(scannedProduct.price || 0))}`} color="primary" variant="outlined" />
                 </Stack>
@@ -448,7 +456,7 @@ export default function InventoryPageReady() {
                   rowHeight={52}
                   columnHeaderHeight={42}
                   columns={[
-                    { field: "store", headerName: "Магазин", flex: 1.2, minWidth: 160, valueGetter: (_, row) => row.store?.name || "-" },
+                    { field: "store", headerName: "Магазин / склад", flex: 1.4, minWidth: 220, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
                     { field: "quantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
                     { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 90 },
                     { field: "status", headerName: "Статус", flex: 0.7, minWidth: 110, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
@@ -480,7 +488,7 @@ export default function InventoryPageReady() {
                   return product?.barcode || product?.qrCode || product?.productNumber || "-";
                 }
               },
-              { field: "storeName", headerName: "Магазин", flex: 0.8, minWidth: 120, valueGetter: (_, row) => row.store?.name },
+              { field: "storeName", headerName: "Магазин / склад", flex: 1, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
               { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
               { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
               { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 80 },
