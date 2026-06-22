@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import {
   Autocomplete,
   Box,
@@ -24,6 +25,7 @@ import {
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
+import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
 import Dialog from "../components/DraggableDialog";
@@ -37,6 +39,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 import { printInvoice } from "../lib/printDocuments";
+import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const statusOptions = [
   { value: "draft", label: "Чернова" },
@@ -544,6 +547,9 @@ export default function InvoicesPageStable() {
   const [form, setForm] = useState(() => blankInvoice());
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [deletingInvoice, setDeletingInvoice] = useState(null);
+  const [scanCode, setScanCode] = useState("");
+  const [scanCameraOpen, setScanCameraOpen] = useState(false);
+  const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
 
   async function handleCreate() {
@@ -625,6 +631,115 @@ export default function InvoicesPageStable() {
     }
   }
 
+  function playScanFeedback(type = "success") {
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(type === "success" ? 920 : 240, now);
+      if (type !== "success") {
+        oscillator.frequency.linearRampToValueAtTime(170, now + 0.09);
+      }
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.055, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "success" ? 0.08 : 0.12));
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + (type === "success" ? 0.09 : 0.13));
+    } catch {
+      // Ignore audio feedback failures
+    }
+  }
+
+  const resolveScannedProduct = useCallback(async (rawCode) => {
+    const code = parseScannedInput(rawCode);
+    if (!code) return { code: "", product: null };
+
+    const localProduct = findProductByScanCode(products, code);
+    if (localProduct) {
+      return { code, product: localProduct };
+    }
+
+    try {
+      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+      const payload = response?.data;
+      const remoteProducts = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
+      if (remoteProduct) {
+        return { code, product: remoteProduct };
+      }
+    } catch {
+      // Ignore network errors
+    }
+
+    return { code, product: null };
+  }, [products]);
+
+  const handleInvoiceScannerDetected = useCallback(
+    async (rawCode) => {
+      const { code, product } = await resolveScannedProduct(rawCode);
+      if (!code) return;
+
+      if (!product) {
+        playScanFeedback("error");
+        toast.error(`Няма продукт с баркод/SKU ${code}.`);
+        return;
+      }
+
+      setForm((current) => {
+        const currentItems = (current.items || []).filter((item) => item.product || Number(item.quantity || 0) > 0);
+        const existingItem = currentItems.find((item) => item.product === product._id);
+
+        if (existingItem) {
+          toast.success(`Количество +1: ${product.name}`);
+          return {
+            ...current,
+            items: [...currentItems.slice(0, -1), 
+              {
+                ...currentItems[currentItems.length - 1],
+                product: existingItem.product,
+                quantity: String(Number(existingItem.quantity || 0) + 1)
+              }
+            ]
+          };
+        }
+
+        return {
+          ...current,
+          items: [
+            ...currentItems,
+            { product: product._id, quantity: "1", unitPrice: String(product.price ?? ""), vatRate: String(product.vatRate ?? 20) }
+          ]
+        };
+      });
+
+      setScanCode("");
+      playScanFeedback("success");
+      toast.success(`Добавен продукт: ${product.name}`);
+      setScanCameraOpen(false);
+    },
+    [resolveScannedProduct]
+  );
+
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Фактуриране" title="Фактури" subtitle="Регистър и форма с основните реквизити за издаване на фактура." icon={<DescriptionRoundedIcon />} />
@@ -676,6 +791,14 @@ export default function InvoicesPageStable() {
         description={`Сигурен ли си, че искаш да изтриеш ${deletingInvoice?.invoiceNumber || "тази фактура"}?`}
         onClose={() => setDeletingInvoice(null)}
         onConfirm={handleDelete}
+      />
+
+      <BarcodeScannerDialog
+        open={scanCameraOpen}
+        onClose={() => setScanCameraOpen(false)}
+        onDetected={handleInvoiceScannerDetected}
+        onError={() => setScanCameraOpen(false)}
+        title="Сканирай продукт за фактурата"
       />
     </Stack>
   );
