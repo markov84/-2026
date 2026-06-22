@@ -19,7 +19,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { findProductByScanCode, normalizeScanCode, parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -46,6 +46,8 @@ export default function InventoryPageReady() {
   const [stockFilter, setStockFilter] = useState("all");
   const scanFieldRef = useRef(null);
   const audioContextRef = useRef(null);
+  const scannerBufferRef = useRef("");
+  const scannerLastKeyAtRef = useRef(0);
   const isMobile = useMobileDetection();
   const productsById = useMemo(
     () => new Map((Array.isArray(products) ? products : []).map((product) => [product?._id, product])),
@@ -261,6 +263,64 @@ export default function InventoryPageReady() {
     playScanFeedback("success");
     toast.success(`Продуктът ${product.name} е готов за добавяне.`);
   }
+
+  useEffect(() => {
+    function isTypingTarget(target) {
+      if (!target) return false;
+      if (target instanceof HTMLInputElement) return true;
+      if (target instanceof HTMLTextAreaElement) return true;
+      if (target instanceof HTMLSelectElement) return true;
+      if (target.isContentEditable) return true;
+      return Boolean(target.closest?.("[contenteditable='true']"));
+    }
+
+    function onWindowKeyDown(event) {
+      if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
+      const typingTarget = isTypingTarget(event.target);
+      const isSubmitKey =
+        event.key === "Enter" ||
+        event.key === "Tab" ||
+        event.key === "Process" ||
+        event.code === "Enter" ||
+        event.code === "NumpadEnter" ||
+        event.code === "Tab";
+
+      const now = Date.now();
+      if (now - scannerLastKeyAtRef.current > 120) {
+        scannerBufferRef.current = "";
+      }
+      scannerLastKeyAtRef.current = now;
+
+      if (event.key.length === 1) {
+        if (typingTarget) return;
+        scannerBufferRef.current += event.key;
+        if (scannerBufferRef.current.length > 220) {
+          scannerBufferRef.current = "";
+        }
+        return;
+      }
+
+      if (isSubmitKey) {
+        const rawCode = scannerBufferRef.current;
+        scannerBufferRef.current = "";
+        if (!rawCode || rawCode.length < 4) return;
+
+        if (!open) {
+          setOpen(true);
+        }
+
+        setScanCode(rawCode);
+        void applyScannedProduct(rawCode);
+        event.preventDefault();
+        return;
+      }
+
+      if (typingTarget) return;
+    }
+
+    window.addEventListener("keydown", onWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
+  }, [open, scanCode, products, stores]);
 
   async function quickAddScannedProduct() {
     const productId = form.product || (findProductByScanCode(products, scanCode) || {})._id;
