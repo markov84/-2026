@@ -6,7 +6,7 @@ import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { Autocomplete, Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import { Autocomplete, Box, Button, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -47,8 +47,6 @@ const orderStatusLabels = {
   fulfilled: "Изпълнена",
   cancelled: "Отказана"
 };
-
-const ORDER_ITEMS_GRID_COLUMNS = "24px minmax(160px, 1fr) 56px 82px 66px 102px 118px 82px 28px";
 
 function createOrderItem(product = null, overrides = {}) {
   return {
@@ -253,8 +251,8 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
     <Stack
       spacing={0.75}
       sx={{
-        "& .MuiInputBase-root": { minHeight: 32 },
-        "& .MuiInputBase-input": { py: 0.35, px: 0.75, fontSize: 13 },
+        "& .MuiInputBase-root": { minHeight: 30 },
+        "& .MuiInputBase-input": { py: 0.3, px: 0.7, fontSize: 13 },
         "& .MuiSelect-select": { py: 0.35, px: 0.75, fontSize: 13 }
       }}
     >
@@ -267,28 +265,165 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
         </Button>
       </Stack>
 
-      <Stack spacing={0.75}>
-        <Box
-          sx={{
-            display: { xs: "none", md: "grid" },
-            gridTemplateColumns: ORDER_ITEMS_GRID_COLUMNS,
-            gap: 0.5,
-            px: 0.35,
+      <TableContainer
+        sx={{
+          display: { xs: "none", md: "block" },
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1.25,
+          overflowX: "auto",
+          bgcolor: "background.paper",
+          "& .MuiTableCell-root": {
+            px: 0.6,
+            py: 0.35,
+            borderColor: "rgba(39,86,107,0.10)"
+          },
+          "& .MuiTableCell-head": {
+            py: 0.45,
+            bgcolor: "rgba(39,86,107,0.04)",
             color: "text.secondary",
             fontSize: 12,
-            fontWeight: 900
-          }}
-        >
-          <Box>№</Box>
-          <Box>Наименование</Box>
-          <Box textAlign="right">Брой</Box>
-          <Box textAlign="right">Ед. цена</Box>
-          <Box textAlign="right">ДДС %</Box>
-          <Box textAlign="right">ДДС</Box>
-          <Box textAlign="right">Общо с ДДС</Box>
-          <Box textAlign="right">Наличност</Box>
-          <Box />
-        </Box>
+            lineHeight: 1.2
+          }
+        }}
+      >
+        <Table size="small" sx={{ minWidth: 760, tableLayout: "fixed" }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: 24, fontWeight: 900 }}>№</TableCell>
+              <TableCell sx={{ width: 272, fontWeight: 900 }}>Наименование</TableCell>
+              <TableCell align="right" sx={{ width: 72, fontWeight: 900 }}>Брой</TableCell>
+              <TableCell align="right" sx={{ width: 84, fontWeight: 900 }}>Ед. цена</TableCell>
+              <TableCell align="right" sx={{ width: 62, fontWeight: 900 }}>ДДС %</TableCell>
+              <TableCell align="right" sx={{ width: 92, fontWeight: 900 }}>ДДС</TableCell>
+              <TableCell align="right" sx={{ width: 108, fontWeight: 900 }}>Общо с ДДС</TableCell>
+              <TableCell align="right" sx={{ width: 84, fontWeight: 900 }}>Наличност</TableCell>
+              <TableCell align="center" sx={{ width: 34, fontWeight: 900 }} />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((item, index) => {
+              const selectedProduct = getProductById(products, item.product);
+              const selectedInventory = getInventoryForItem(inventory, item.product, store);
+              const quantity = Number(item.quantity || 0);
+              const unitPrice = Number(item.unitPrice || 0);
+              const vatRate = Number(item.vatRate || 0);
+              const lineGross = quantity * unitPrice;
+              const vatDivider = 1 + vatRate / 100;
+              const lineSubtotal = vatDivider > 0 ? lineGross / vatDivider : lineGross;
+              const lineVat = lineGross - lineSubtotal;
+              const hasLowStockRisk = selectedInventory && quantity > Number(selectedInventory.quantity || 0);
+
+              return (
+                <TableRow key={item.key} sx={{ bgcolor: hasLowStockRisk ? "rgba(183,138,77,0.08)" : "inherit" }}>
+                  <TableCell>
+                    <Typography variant="caption" fontWeight={900} color="text.secondary">{index + 1}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Autocomplete
+                      size="small"
+                      options={Array.isArray(products) ? products : []}
+                      getOptionLabel={getProductOptionLabel}
+                      value={selectedProduct}
+                      onChange={(_, product) => {
+                        updateItem(item.key, {
+                          product: product?._id || "",
+                          quantity: item.quantity || "1",
+                          unitPrice: String(product?.price ?? item.unitPrice ?? ""),
+                          vatRate: String(product?.vatRate ?? item.vatRate ?? 20)
+                        });
+                      }}
+                      isOptionEqualToValue={(option, selectedValue) => option?._id === selectedValue?._id}
+                      noOptionsText="Няма продукт"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label=""
+                          placeholder={`Продукт ${index + 1}`}
+                          size="small"
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== "Tab") return;
+                            const inputElement = e.currentTarget;
+                            const rawValue = inputElement.value || "";
+                            e.preventDefault();
+                            void applyScannedCodeToItems(rawValue, item.key).then((handled) => {
+                              if (handled) inputElement.value = "";
+                            });
+                          }}
+                          onPaste={(e) => {
+                            const pasted = (e.clipboardData || window.clipboardData).getData("text");
+                            e.preventDefault();
+                            void applyScannedCodeToItems(pasted, item.key);
+                          }}
+                        />
+                      )}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      aria-label="Брой"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
+                      inputProps={{ min: 1 }}
+                      sx={{ width: 58 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      aria-label="Единична цена"
+                      type="number"
+                      value={item.unitPrice}
+                      onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 78 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      aria-label="ДДС процент"
+                      type="number"
+                      value={item.vatRate}
+                      onChange={(event) => updateItem(item.key, { vatRate: event.target.value })}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 56 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" fontWeight={800} noWrap>
+                      {formatCurrencyEUR(lineVat)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
+                      {formatCurrencyEUR(lineGross)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900} noWrap>
+                      {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Премахни продукт">
+                      <span>
+                        <IconButton size="small" color="error" onClick={() => removeItem(item.key)} disabled={items.length === 1} aria-label="Премахни продукт">
+                          <DeleteRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Stack spacing={0.75} sx={{ display: { xs: "flex", md: "none" } }}>
         {items.map((item, index) => {
           const selectedProduct = getProductById(products, item.product);
           const selectedInventory = getInventoryForItem(inventory, item.product, store);
@@ -305,108 +440,55 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
             <Box
               key={item.key}
               sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: ORDER_ITEMS_GRID_COLUMNS },
-                gap: 0.5,
-                alignItems: "center",
-                p: 0.35,
+                p: 1,
                 border: "1px solid",
                 borderColor: hasLowStockRisk ? "warning.main" : "divider",
                 borderRadius: 1.25,
                 bgcolor: hasLowStockRisk ? "rgba(183,138,77,0.08)" : "background.paper"
               }}
             >
-              <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: { xs: "none", md: "block" } }}>
-                {index + 1}
-              </Typography>
-              <Autocomplete
-                size="small"
-                options={Array.isArray(products) ? products : []}
-                getOptionLabel={getProductOptionLabel}
-                value={selectedProduct}
-                onChange={(_, product) => {
-                  updateItem(item.key, {
-                    product: product?._id || "",
-                    quantity: item.quantity || "1",
-                    unitPrice: String(product?.price ?? item.unitPrice ?? ""),
-                    vatRate: String(product?.vatRate ?? item.vatRate ?? 20)
-                  });
-                }}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                noOptionsText="Няма продукт"
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Продукт"
-                    placeholder="Сканирай или търси продукт"
-                    helperText="Въведи име/SKU/barcode или сканирай директно тук"
-                    size="small"
-                    InputProps={{
-                      ...params.InputProps
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter" && e.key !== "Tab") return;
-                      const inputElement = e.currentTarget;
-                      const rawValue = inputElement.value || "";
-                      e.preventDefault();
-                      void applyScannedCodeToItems(rawValue, item.key).then((handled) => {
-                        if (handled) inputElement.value = "";
-                      });
-                    }}
-                    onPaste={(e) => {
-                      const pasted = (e.clipboardData || window.clipboardData).getData("text");
-                      e.preventDefault();
-                      void applyScannedCodeToItems(pasted, item.key);
-                    }}
-                  />
-                )}
-              />
-              <TextField
-                size="small"
-                aria-label="Брой"
-                type="number"
-                value={item.quantity}
-                onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
-                inputProps={{ min: 1 }}
-              />
-              <TextField
-                size="small"
-                aria-label="Единична цена"
-                type="number"
-                value={item.unitPrice}
-                onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })}
-                inputProps={{ min: 0 }}
-              />
-              <TextField
-                size="small"
-                aria-label="ДДС процент"
-                type="number"
-                value={item.vatRate}
-                onChange={(event) => updateItem(item.key, { vatRate: event.target.value })}
-                inputProps={{ min: 0 }}
-              />
-              <Box sx={{ minWidth: 0, textAlign: "right" }}>
-                <Typography variant="body2" fontWeight={800} noWrap>
-                  {formatCurrencyEUR(lineVat)}
-                </Typography>
-              </Box>
-              <Box sx={{ minWidth: 0, textAlign: "right" }}>
-                <Typography variant="body2" fontWeight={900} color="primary.main" noWrap>
-                  {formatCurrencyEUR(lineGross)}
-                </Typography>
-              </Box>
-              <Box sx={{ minWidth: 0, textAlign: "right" }}>
-                <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900} noWrap>
-                  {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
-                </Typography>
-              </Box>
-              <Tooltip title="Премахни продукт">
-                <span>
-                  <IconButton size="small" color="error" onClick={() => removeItem(item.key)} disabled={items.length === 1} aria-label="Премахни продукт">
-                    <DeleteRoundedIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
+              <Stack spacing={0.75}>
+                <Typography variant="caption" fontWeight={900} color="text.secondary">Ред {index + 1}</Typography>
+                <Autocomplete
+                  size="small"
+                  options={Array.isArray(products) ? products : []}
+                  getOptionLabel={getProductOptionLabel}
+                  value={selectedProduct}
+                  onChange={(_, product) => {
+                    updateItem(item.key, {
+                      product: product?._id || "",
+                      quantity: item.quantity || "1",
+                      unitPrice: String(product?.price ?? item.unitPrice ?? ""),
+                      vatRate: String(product?.vatRate ?? item.vatRate ?? 20)
+                    });
+                  }}
+                  isOptionEqualToValue={(option, selectedValue) => option?._id === selectedValue?._id}
+                  noOptionsText="Няма продукт"
+                  renderInput={(params) => <TextField {...params} size="small" label="Продукт" placeholder="Сканирай или търси" />}
+                />
+                <Stack direction="row" spacing={0.75}>
+                  <TextField size="small" label="Брой" type="number" value={item.quantity} onChange={(event) => updateItem(item.key, { quantity: event.target.value })} inputProps={{ min: 1 }} fullWidth />
+                  <TextField size="small" label="Ед. цена" type="number" value={item.unitPrice} onChange={(event) => updateItem(item.key, { unitPrice: event.target.value })} inputProps={{ min: 0 }} fullWidth />
+                  <TextField size="small" label="ДДС %" type="number" value={item.vatRate} onChange={(event) => updateItem(item.key, { vatRate: event.target.value })} inputProps={{ min: 0 }} fullWidth />
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="caption" color="text.secondary">ДДС</Typography>
+                  <Typography variant="body2" fontWeight={800}>{formatCurrencyEUR(lineVat)}</Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="caption" color="text.secondary">Общо с ДДС</Typography>
+                  <Typography variant="body2" fontWeight={900} color="primary.main">{formatCurrencyEUR(lineGross)}</Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" color="text.secondary">Наличност</Typography>
+                  <Typography variant="body2" color={hasLowStockRisk || !selectedInventory ? "warning.main" : "text.primary"} fontWeight={900}>
+                    {selectedInventory ? `${selectedInventory.quantity} бр.` : "-"}
+                  </Typography>
+                </Stack>
+                <Button size="small" color="error" variant="text" onClick={() => removeItem(item.key)} disabled={items.length === 1}>
+                  Премахни продукт
+                </Button>
+              </Stack>
             </Box>
           );
         })}
