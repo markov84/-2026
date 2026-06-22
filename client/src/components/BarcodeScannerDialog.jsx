@@ -63,81 +63,46 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
   useEffect(() => {
     if (!open) return undefined;
 
+    let active = true;
     const codeReader = new BrowserMultiFormatReader();
     codeReaderRef.current = codeReader;
-    let active = true;
 
-    async function waitForVideoElement(maxAttempts = 50) {
+    async function waitForVideoElement(maxAttempts = 60) {
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         if (!active) return null;
         if (videoRef.current) {
           return videoRef.current;
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 80));
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
       }
       return null;
     }
 
     async function startScanner() {
-      updateStatus("initializing", "Подготвям камерата...");
-      setInitProgress(0);
+      try {
+        updateStatus("initializing", "Подготвям камерата...");
+        setInitProgress(0);
 
-      const videoElement = await waitForVideoElement();
-      if (!videoElement) {
-        console.error("Видеото елемент не е готов");
-        updateStatus("error", "Видеото не е готово. Опитай отново.");
-        return;
-      }
-
-      const resultCallback = (result, error) => {
-        if (!active) return;
-
-        if (result) {
-          try {
-            const code = result.getText();
-            console.log("✓ Код сканиран:", code);
-            updateStatus("detected", `✓ Сканирано: ${code}`);
-            active = false;
-            stopScanner();
-            onDetected?.(code);
-          } catch (e) {
-            console.log("Грешка при извличане на текст:", e?.message);
-          }
+        const videoElement = await waitForVideoElement();
+        if (!videoElement) {
+          console.error("Видеото елемент не е намерен");
+          updateStatus("error", "Видеото елемент не е готов. Затвори и отвори отново.");
           return;
         }
 
-        if (error) {
-          const errorName = error?.name || "";
-          
-          if (errorName === "NotFoundException") {
-            if (statusRef.current !== "scanning") {
-              setInitProgress(100);
-              updateStatus("scanning", "Камерата е готова. Насочи я към баркод или QR код...");
-            }
-            return;
-          }
-
-          if (errorName === "ChecksumException" || errorName === "FormatException") {
-            return;
-          }
-
-          if (errorName !== "NotSupportedError" && errorName !== "AbortError") {
-            console.warn("Грешка при сканиране:", errorName, error?.message);
-          }
-        }
-      };
-
-      try {
         if (!navigator?.mediaDevices?.getUserMedia) {
-          throw new Error("Този браузър не поддържа достъп до камера.");
+          throw new Error("Този браузър не поддържа медийни устройства.");
         }
 
         setMessage("Проверявам камерата...");
         setInitProgress(30);
 
-        const devices = (await BrowserMultiFormatReader.listVideoInputDevices()) || [];
-        if (!Array.isArray(devices) || devices.length === 0) {
-          throw new Error("Не е открита камера. Провери разрешенията на браузъра.");
+        // Запрос за камера
+        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+        console.log("Намерени камери:", devices);
+        
+        if (!devices || devices.length === 0) {
+          throw new Error("Не е открита камера на устройството.");
         }
 
         setInitProgress(45);
@@ -146,27 +111,51 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
           devices[devices.length - 1] ||
           devices[0];
 
-        console.log("Начало на сканиране със камера:", preferred?.label);
+        console.log("Избрана камера:", preferred?.label, preferred?.deviceId);
         setInitProgress(65);
 
-        const controls = await codeReader.decodeFromVideoDevice(
-          preferred?.deviceId,
-          videoElement,
-          resultCallback
-        );
+        // Функция за обработка на резултатите
+        const handleResult = (result, error) => {
+          if (!active) return;
+
+          if (result) {
+            const code = result.getText();
+            console.log("✓ Баркод намерен:", code);
+            updateStatus("detected", `✓ Сканирано: ${code}`);
+            active = false;
+            stopScanner();
+            onDetected?.(code);
+            return;
+          }
+
+          if (error) {
+            const errName = error?.name || "";
+            if (errName === "NotFoundException") {
+              if (statusRef.current !== "scanning") {
+                setInitProgress(100);
+                updateStatus("scanning", "Камерата е активна. Насочи я към баркод.");
+              }
+            } else if (errName !== "ChecksumException" && errName !== "FormatException") {
+              console.debug("Сканер:", errName);
+            }
+          }
+        };
+
+        console.log("Стартирам decodeFromVideoDevice...");
+        const controls = await codeReader.decodeFromVideoDevice(preferred.deviceId, videoElement, handleResult);
         controlsRef.current = controls;
 
         if (active) {
           setInitProgress(100);
-          updateStatus("scanning", "Камерата е готова. Насочи я към баркод или QR код...");
-          console.log("Сканерът е активен");
+          updateStatus("scanning", "Камерата е активна. Насочи я към баркод.");
+          console.log("✓ Сканер активен");
         }
-      } catch (error) {
+      } catch (err) {
         if (!active) return;
-        const fallbackMessage = getCameraErrorMessage(error);
-        console.error("Грешка при стартиране на сканера:", error?.message);
-        updateStatus("error", fallbackMessage);
-        onError?.(error);
+        console.error("Грешка при стартиране на сканер:", err?.message || err);
+        const msg = getCameraErrorMessage(err);
+        updateStatus("error", msg);
+        onError?.(err);
       }
     }
 
@@ -175,8 +164,14 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
     return () => {
       active = false;
       stopScanner();
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {
+            // ignore
+          }
+        });
       }
     };
   }, [open, onDetected, onError]);
