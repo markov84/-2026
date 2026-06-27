@@ -17,7 +17,12 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    let cancelled = false;
     const fallbackTimer = window.setTimeout(() => {
+      if (cancelled || getAuthToken() !== token) {
+        return;
+      }
+
       clearAuthToken();
       setLoading(false);
       toast.error("Session check timed out. Please sign in again.");
@@ -25,14 +30,23 @@ export function AuthProvider({ children }) {
 
     api
       .get("/auth/me")
-      .then((response) => setUser(response.data.user))
-      .catch(() => clearAuthToken())
+      .then((response) => {
+        if (!cancelled && getAuthToken() === token) {
+          setUser(response.data.user);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && getAuthToken() === token) {
+          clearAuthToken();
+        }
+      })
       .finally(() => {
         window.clearTimeout(fallbackTimer);
         setLoading(false);
       });
 
     return () => {
+      cancelled = true;
       window.clearTimeout(fallbackTimer);
     };
   }, []);
