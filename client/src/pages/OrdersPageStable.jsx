@@ -689,12 +689,14 @@ export default function OrdersPageStable() {
   );
 
   function openCreateDialog() {
+    void refreshInventory();
     setForm({ ...initialOrder, items: [createOrderItem()] });
     setScanCode("");
     setOpen(true);
   }
 
   function openEditDialog(order) {
+    void refreshInventory();
     setEditingOrder({
       _id: order._id,
       orderNumber: order.orderNumber || "",
@@ -734,6 +736,7 @@ export default function OrdersPageStable() {
     try {
       const response = await api.post("/orders", buildOrderPayload(form));
       setData((current) => [response.data, ...current]);
+      void refreshInventory();
       setForm(initialOrder);
       setOpen(false);
       toast.success("Продажбата е записана.");
@@ -754,6 +757,7 @@ export default function OrdersPageStable() {
     try {
       const response = await api.put(`/orders/${editingOrder._id}`, buildOrderPayload(editingOrder, { includeOrderNumber: true }));
       setData((current) => current.map((item) => (item._id === editingOrder._id ? response.data : item)));
+      void refreshInventory();
       setEditingOrder(null);
       toast.success("Продажбата е обновена.");
     } catch (error) {
@@ -767,6 +771,7 @@ export default function OrdersPageStable() {
     try {
       await api.delete(`/orders/${deletingOrder._id}`);
       setData((current) => current.filter((item) => item._id !== deletingOrder._id));
+      void refreshInventory();
       setDeletingOrder(null);
       toast.success("Продажбата е изтрита.");
     } catch (error) {
