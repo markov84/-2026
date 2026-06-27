@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { Order } from "../models/Order.js";
 import { Customer } from "../models/Customer.js";
 import { Product } from "../models/Product.js";
@@ -44,6 +44,11 @@ function calculateOrderTotals(items = []) {
     },
     { subtotal: 0, vatAmount: 0, totalAmount: 0 }
   );
+}
+
+function shouldRestoreInventoryOnDelete(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+  return normalizedStatus !== "fulfilled" && normalizedStatus !== "completed";
 }
 
 async function reserveCounter(counterValue) {
@@ -276,18 +281,21 @@ router.put(
 
 router.delete(
   "/:id",
+  requireRole("admin"),
   asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id).lean();
     if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
 
-    for (const item of order.items) {
-      await applyInventoryDelta({
-        productId: item.product,
-        storeId: order.store,
-        quantityDelta: Number(item.quantity || 0)
-      });
+    if (shouldRestoreInventoryOnDelete(order.status)) {
+      for (const item of order.items) {
+        await applyInventoryDelta({
+          productId: item.product,
+          storeId: order.store,
+          quantityDelta: Number(item.quantity || 0)
+        });
+      }
     }
 
     clearCachedJson("inventory:");

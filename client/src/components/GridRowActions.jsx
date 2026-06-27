@@ -25,11 +25,13 @@ export default function GridRowActions({
           <EditRoundedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title={deleteLabel}>
-        <IconButton size="small" color="error" onClick={onDelete} sx={{ width: 34, height: 34 }}>
-          <DeleteRoundedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      {onDelete ? (
+        <Tooltip title={deleteLabel}>
+          <IconButton size="small" color="error" onClick={onDelete} sx={{ width: 34, height: 34 }}>
+            <DeleteRoundedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ) : null}
     </Stack>
   );
 }

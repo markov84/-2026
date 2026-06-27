@@ -682,7 +682,13 @@ export default function OrdersPageStable() {
         filterable: false,
         width: 150,
         align: "center",
-        renderCell: (params) => <GridRowActions onPrint={() => printOrder(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingOrder(params.row)} />
+        renderCell: (params) => (
+          <GridRowActions
+            onPrint={() => printOrder(params.row)}
+            onEdit={() => openEditDialog(params.row)}
+            onDelete={canSeeOrderAuthor ? () => setDeletingOrder(params.row) : undefined}
+          />
+        )
       }
     ],
     [canSeeOrderAuthor]
