@@ -46,11 +46,6 @@ function calculateOrderTotals(items = []) {
   );
 }
 
-function shouldRestoreInventoryOnDelete(status) {
-  const normalizedStatus = String(status || "").toLowerCase();
-  return normalizedStatus !== "fulfilled" && normalizedStatus !== "completed";
-}
-
 async function reserveCounter(counterValue) {
   await Counter.updateOne(
     {
@@ -286,16 +281,6 @@ router.delete(
     const order = await Order.findById(req.params.id).lean();
     if (!order) {
       return res.status(404).json({ message: "Order not found." });
-    }
-
-    if (shouldRestoreInventoryOnDelete(order.status)) {
-      for (const item of order.items) {
-        await applyInventoryDelta({
-          productId: item.product,
-          storeId: order.store,
-          quantityDelta: Number(item.quantity || 0)
-        });
-      }
     }
 
     clearCachedJson("inventory:");
