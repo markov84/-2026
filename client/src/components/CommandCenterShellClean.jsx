@@ -248,6 +248,12 @@ function Navigation({ onNavigate }) {
             <Typography variant="body2" color="rgba(255,255,255,0.86)" sx={{ lineHeight: 1.35 }}>
               Управление на търговска мрежа на MARK LIGHT LTD
             </Typography>
+            <Typography variant="caption" color="rgba(255,255,255,0.78)" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
+              MARKLIGHT{"\u00AE"}
+            </Typography>
+            <Typography variant="caption" color="rgba(255,255,255,0.74)" sx={{ lineHeight: 1.35 }}>
+              Произведено от MARKLIGHT за MARKLIGHT
+            </Typography>
           </Stack>
         </Stack>
       </Box>
