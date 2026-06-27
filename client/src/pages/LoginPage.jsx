@@ -60,9 +60,6 @@ export default function LoginPage() {
                 Управление на магазини, наличности, клиенти и продажби на едно място.
               </Typography>
             </div>
-            <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center", textAlign: "center" }}>
-              Произведено от MARKLIGHT за MARKLIGHT
-            </Typography>
             {error ? <Alert severity="error">{error}</Alert> : null}
             <TextField label="Потребител" value={username} onChange={(e) => setUsername(e.target.value)} />
             <TextField

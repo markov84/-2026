@@ -87,9 +87,6 @@ function Navigation({ onNavigate }) {
               <Typography variant="caption" color="rgba(236,242,244,0.8)" sx={{ fontWeight: 700, letterSpacing: 0.3, display: "block" }}>
                 MARKLIGHT{"\u00AE"}
               </Typography>
-              <Typography variant="caption" color="rgba(236,242,244,0.72)" sx={{ lineHeight: 1.35, display: "block" }}>
-                Произведено от MARKLIGHT за MARKLIGHT
-              </Typography>
             </Box>
           </Stack>
 
