@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AddCardRoundedIcon from "@mui/icons-material/AddCardRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -34,6 +34,20 @@ const financeTypeLabels = {
   bank: "Банка"
 };
 
+const financeTypeChipColors = {
+  income: "success",
+  expense: "error",
+  bank: "primary"
+};
+
+const financePeriodLabels = {
+  all: "Всички",
+  today: "Днес",
+  week: "Последни 7 дни",
+  month: "Този месец",
+  custom: "По избор"
+};
+
 const financeCardDefinitions = {
   income: { label: "Приходи", type: "income", accent: "success" },
   expenses: { label: "Разходи", type: "expense", accent: "warning" },
@@ -60,6 +74,55 @@ function translateFinanceText(value) {
 
 function translateFinanceType(value) {
   return financeTypeLabels[value] || value || "-";
+}
+
+function toDateInputValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function parseDateOnly(value) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getPeriodRange(period, fromDate, toDate) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+  if (period === "today") {
+    return { start: startOfToday, end: endOfToday };
+  }
+
+  if (period === "week") {
+    return { start: new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000), end: endOfToday };
+  }
+
+  if (period === "month") {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfToday };
+  }
+
+  if (period === "custom") {
+    const start = parseDateOnly(fromDate);
+    const endDate = parseDateOnly(toDate);
+    if (!start || !endDate) return null;
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
+    return { start, end };
+  }
+
+  return null;
+}
+
+function isEntryInRange(entry, range) {
+  if (!range) return true;
+  const date = new Date(entry?.entryDate || entry?.createdAt || entry?.updatedAt || 0);
+  if (Number.isNaN(date.getTime())) return false;
+  return date >= range.start && date < range.end;
 }
 
 function getFinanceEntries(value) {
@@ -106,6 +169,9 @@ export default function FinancePageStable() {
   const { data, loading, setData } = useFetch("/finance");
   const { data: stores } = useFetch("/stores");
   const [query, setQuery] = useState("");
+  const [period, setPeriod] = useState("all");
+  const [fromDate, setFromDate] = useState(toDateInputValue(new Date()));
+  const [toDate, setToDate] = useState(toDateInputValue(new Date()));
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialEntry);
   const [editingEntry, setEditingEntry] = useState(null);
@@ -114,11 +180,13 @@ export default function FinancePageStable() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const isMobile = useMobileDetection();
-  const summary = data?.summary || {};
   const entries = getFinanceEntries(data);
+  const periodRange = useMemo(() => getPeriodRange(period, fromDate, toDate), [period, fromDate, toDate]);
+  const periodEntries = useMemo(() => entries.filter((entry) => isEntryInRange(entry, periodRange)), [entries, periodRange]);
+  const summary = useMemo(() => buildFinanceState(periodEntries).summary, [periodEntries]);
   const displayEntries = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const rows = entries.map(buildFinanceRow);
+    const rows = periodEntries.map(buildFinanceRow);
     if (!normalized) return rows;
 
     return rows.filter((entry) =>
@@ -126,19 +194,30 @@ export default function FinancePageStable() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
-  }, [entries, query]);
+  }, [periodEntries, query]);
   const activeCardDefinition = activeCard ? financeCardDefinitions[activeCard] : null;
   const activeCardEntries = activeCardDefinition?.type
     ? displayEntries.filter((entry) => entry.type === activeCardDefinition.type)
     : displayEntries.filter((entry) => entry.type === "income" || entry.type === "expense");
   const financeColumns = [
-    { field: "typeLabel", headerName: "Тип", flex: 0.8, renderCell: (params) => <Chip label={params?.value || "-"} size="small" /> },
+    {
+      field: "typeLabel",
+      headerName: "Тип",
+      flex: 0.8,
+      renderCell: (params) => (
+        <Chip label={params?.value || "-"} size="small" color={financeTypeChipColors[params.row.type] || "default"} variant="filled" />
+      )
+    },
     { field: "categoryLabel", headerName: "Категория", flex: 1.1 },
     { field: "descriptionLabel", headerName: "Описание", flex: 1.4 },
     { field: "storeLabel", headerName: "Магазин", flex: 1 },
     { field: "amountLabel", headerName: "Сума", flex: 0.8 },
     { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEntry(params.row)} /> }
   ];
+
+  useEffect(() => {
+    setSelectedEntryIds((current) => current.filter((id) => displayEntries.some((entry) => entry._id === id)));
+  }, [displayEntries]);
 
   useBarcodeKeyboardScan((code) => setQuery(code));
 
@@ -253,6 +332,39 @@ export default function FinancePageStable() {
         {selectedEntryIds.length ? <Chip label={`Избрани: ${selectedEntryIds.length}`} color="warning" /> : null}
       </Stack>
 
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} useFlexGap flexWrap="wrap" alignItems={{ xs: "stretch", md: "center" }}>
+        <TextField select label="Период" value={period} onChange={(e) => setPeriod(e.target.value)} sx={{ minWidth: 180 }} size="small">
+          {Object.entries(financePeriodLabels).map(([value, label]) => (
+            <MenuItem key={value} value={value}>
+              {label}
+            </MenuItem>
+          ))}
+        </TextField>
+        {period === "custom" ? (
+          <>
+            <TextField
+              label="От дата"
+              type="date"
+              size="small"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 180 }}
+            />
+            <TextField
+              label="До дата"
+              type="date"
+              size="small"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 180 }}
+            />
+          </>
+        ) : null}
+        <Chip label={`Период: ${financePeriodLabels[period] || "Всички"}`} variant="outlined" />
+      </Stack>
+
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Приходи" value={formatCurrencyEUR(summary.income)} accent="success" icon={<TrendingUpRoundedIcon />} onClick={() => setActiveCard("income")} /></Grid>
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Разходи" value={formatCurrencyEUR(summary.expenses)} accent="warning" icon={<TrendingDownRoundedIcon />} onClick={() => setActiveCard("expenses")} /></Grid>
@@ -291,7 +403,22 @@ export default function FinancePageStable() {
             checkboxSelection
             rowSelectionModel={selectedEntryIds}
             onRowSelectionModelChange={(nextSelection) => setSelectedEntryIds(nextSelection)}
+            getRowClassName={(params) => `finance-row finance-row--${params.row.type}`}
             disableRowSelectionOnClick
+            sx={{
+              "& .MuiDataGrid-row.finance-row--income .MuiDataGrid-cell": {
+                bgcolor: "rgba(76, 175, 80, 0.06)",
+                borderLeft: "4px solid rgba(76, 175, 80, 0.55)"
+              },
+              "& .MuiDataGrid-row.finance-row--expense .MuiDataGrid-cell": {
+                bgcolor: "rgba(244, 67, 54, 0.06)",
+                borderLeft: "4px solid rgba(244, 67, 54, 0.55)"
+              },
+              "& .MuiDataGrid-row.finance-row--bank .MuiDataGrid-cell": {
+                bgcolor: "rgba(33, 150, 243, 0.06)",
+                borderLeft: "4px solid rgba(33, 150, 243, 0.55)"
+              }
+            }}
           />
         </ResponsiveTable>
       </DataSection>
@@ -312,6 +439,21 @@ export default function FinancePageStable() {
                 getRowId={(row) => row._id}
                 columns={financeColumns}
                 disableRowSelectionOnClick
+                getRowClassName={(params) => `finance-row finance-row--${params.row.type}`}
+                sx={{
+                  "& .MuiDataGrid-row.finance-row--income .MuiDataGrid-cell": {
+                    bgcolor: "rgba(76, 175, 80, 0.06)",
+                    borderLeft: "4px solid rgba(76, 175, 80, 0.55)"
+                  },
+                  "& .MuiDataGrid-row.finance-row--expense .MuiDataGrid-cell": {
+                    bgcolor: "rgba(244, 67, 54, 0.06)",
+                    borderLeft: "4px solid rgba(244, 67, 54, 0.55)"
+                  },
+                  "& .MuiDataGrid-row.finance-row--bank .MuiDataGrid-cell": {
+                    bgcolor: "rgba(33, 150, 243, 0.06)",
+                    borderLeft: "4px solid rgba(33, 150, 243, 0.55)"
+                  }
+                }}
               />
             </ResponsiveTable>
           </Stack>

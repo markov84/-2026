@@ -48,6 +48,63 @@ const orderStatusLabels = {
   cancelled: "Отказана"
 };
 
+const orderPeriodLabels = {
+  all: "Всички",
+  today: "Днес",
+  week: "Последни 7 дни",
+  month: "Този месец",
+  custom: "По избор"
+};
+
+function toDateInputValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function parseDateOnly(value) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getPeriodRange(period, fromDate, toDate) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+  if (period === "today") {
+    return { start: startOfToday, end: endOfToday };
+  }
+
+  if (period === "week") {
+    return { start: new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000), end: endOfToday };
+  }
+
+  if (period === "month") {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfToday };
+  }
+
+  if (period === "custom") {
+    const start = parseDateOnly(fromDate);
+    const endDate = parseDateOnly(toDate);
+    if (!start || !endDate) return null;
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
+    return { start, end };
+  }
+
+  return null;
+}
+
+function isOrderInRange(order, range) {
+  if (!range) return true;
+  const date = new Date(order?.createdAt || order?.updatedAt || 0);
+  if (Number.isNaN(date.getTime())) return false;
+  return date >= range.start && date < range.end;
+}
+
 function createOrderItem(product = null, overrides = {}) {
   return {
     key: globalThis.crypto?.randomUUID?.() || `order-item-${Date.now()}-${Math.random()}`,
@@ -555,6 +612,9 @@ export default function OrdersPageStable() {
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderScanTarget, setOrderScanTarget] = useState("create");
   const [orderQuery, setOrderQuery] = useState("");
+  const [period, setPeriod] = useState("all");
+  const [fromDate, setFromDate] = useState(toDateInputValue(new Date()));
+  const [toDate, setToDate] = useState(toDateInputValue(new Date()));
   const scanFieldRef = useRef(null);
   const editScanFieldRef = useRef(null);
   const scannerBufferRef = useRef("");
@@ -573,6 +633,9 @@ export default function OrdersPageStable() {
     formRef.current = form;
     editingOrderRef.current = editingOrder;
   }, [open, form, editingOrder]);
+
+  const periodRange = useMemo(() => getPeriodRange(period, fromDate, toDate), [period, fromDate, toDate]);
+  const periodOrders = useMemo(() => (orders || []).filter((order) => isOrderInRange(order, periodRange)), [orders, periodRange]);
 
   // Automatic refresh disabled to prevent infinite loops
   // Manual refresh available via refreshProducts() and refreshInventory() if needed
@@ -594,7 +657,7 @@ export default function OrdersPageStable() {
     const normalized = orderQuery.trim().toLowerCase();
     if (!normalized) return orders;
 
-    return orders.filter((order) => {
+    return periodOrders.filter((order) => {
       const productNames = (order.items || [])
         .map((item) => item.product?.name || item.product?.sku || item.product?.barcode || "")
         .join(" ");
@@ -614,7 +677,24 @@ export default function OrdersPageStable() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalized));
     });
-  }, [orders, orderQuery]);
+  }, [periodOrders, orderQuery]);
+
+  const orderSummary = useMemo(
+    () =>
+      filteredOrders.reduce(
+        (summary, order) => ({
+          count: summary.count + 1,
+          totalAmount: summary.totalAmount + Number(order.totalAmount || 0),
+          vatAmount: summary.vatAmount + Number(order.vatAmount || 0)
+        }),
+        { count: 0, totalAmount: 0, vatAmount: 0 }
+      ),
+    [filteredOrders]
+  );
+
+  useEffect(() => {
+    setSelectedOrderIds((current) => current.filter((id) => filteredOrders.some((order) => order._id === id)));
+  }, [filteredOrders]);
 
   const orderColumns = useMemo(
     () => [
@@ -1147,25 +1227,58 @@ export default function OrdersPageStable() {
         subtitle="Последни търговски операции"
         icon={<ReceiptLongRoundedIcon />}
         toolbar={
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
-            <TextField
-              placeholder="Търси по номер, клиент, обект, служител или продукт"
-              value={orderQuery}
-              onChange={(event) => setOrderQuery(event.target.value)}
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                )
-              }}
-              sx={{ minWidth: 220, maxWidth: 420 }}
-            />
+          <Stack spacing={1.25} sx={{ width: "100%" }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+              <TextField
+                placeholder="Търси по номер, клиент, обект, служител или продукт"
+                value={orderQuery}
+                onChange={(event) => setOrderQuery(event.target.value)}
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  )
+                }}
+                sx={{ minWidth: 220, maxWidth: 420 }}
+              />
+              <TextField select label="Период" value={period} onChange={(event) => setPeriod(event.target.value)} size="small" sx={{ minWidth: 170 }}>
+                {Object.entries(orderPeriodLabels).map(([value, label]) => (
+                  <MenuItem key={value} value={value}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </TextField>
+              {period === "custom" ? (
+                <>
+                  <TextField
+                    label="От дата"
+                    type="date"
+                    size="small"
+                    value={fromDate}
+                    onChange={(event) => setFromDate(event.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 150 }}
+                  />
+                  <TextField
+                    label="До дата"
+                    type="date"
+                    size="small"
+                    value={toDate}
+                    onChange={(event) => setToDate(event.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 150 }}
+                  />
+                </>
+              ) : null}
+            </Stack>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
                 Показани: {filteredOrders.length} / {orders.length}
               </Typography>
+              <Chip label={`Оборот: ${formatCurrencyEUR(orderSummary.totalAmount)}`} size="small" color="success" variant="outlined" />
+              <Chip label={`ДДС: ${formatCurrencyEUR(orderSummary.vatAmount)}`} size="small" color="info" variant="outlined" />
               {selectedOrderIds.length ? <Chip label={`Избрани: ${selectedOrderIds.length}`} color="warning" size="small" /> : null}
             </Stack>
           </Stack>
