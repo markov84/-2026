@@ -1,4 +1,4 @@
-# Kondor Lighting Store Management System
+# MARK LIGHT Lighting Store Management System
 
 ## Overview
 

@@ -1,4 +1,4 @@
-const AUTH_TOKEN_KEY = "kondor-token";
+const AUTH_TOKEN_KEY = "mark-light-token";
 
 export function getAuthToken() {
   return sessionStorage.getItem(AUTH_TOKEN_KEY);

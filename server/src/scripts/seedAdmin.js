@@ -11,7 +11,7 @@ async function seedAdmin() {
 
   if (existingUser) {
     existingUser.passwordHash = passwordHash;
-    existingUser.fullName = "Kondor Administrator";
+    existingUser.fullName = "Mark LIGHT Administrator";
     existingUser.role = "admin";
     existingUser.permissions = ["*"];
     existingUser.active = true;
@@ -21,7 +21,7 @@ async function seedAdmin() {
     await User.create({
       username: env.adminUsername,
       passwordHash,
-      fullName: "Kondor Administrator",
+      fullName: "Mark LIGHT Administrator",
       role: "admin",
       permissions: ["*"],
       active: true
