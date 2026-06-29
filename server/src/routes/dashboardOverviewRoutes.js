@@ -19,7 +19,7 @@ const severityLabels = {
 };
 
 router.get("/", async (req, res) => {
-  const [productCount, storeCount, customerCount, orderCount, inventoryItems, recentOrders, financeEntries, auditLogs, orderRevenueSummary] =
+  const [productCount, storeCount, customerCount, orderCount, inventoryItems, recentOrders, financeEntries, auditLogs, financeTotals] =
     await Promise.all([
       Product.countDocuments(),
       Store.countDocuments(),
@@ -34,9 +34,27 @@ router.get("/", async (req, res) => {
         .lean(),
       FinancialEntry.find().sort({ entryDate: -1, createdAt: -1 }).limit(10).populate("store", "name").lean(),
       AuditLog.find().sort({ createdAt: -1 }).limit(8).lean(),
-      Order.aggregate([
-        { $match: { status: { $ne: "cancelled" } } },
-        { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } }
+      FinancialEntry.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "income"] }, "$amount", 0]
+              }
+            },
+            totalExpenses: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0]
+              }
+            },
+            bankBalance: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "bank"] }, "$amount", 0]
+              }
+            }
+          }
+        }
       ])
     ]);
 
@@ -44,13 +62,9 @@ router.get("/", async (req, res) => {
     (item) => item.quantity <= Math.max(item.reorderLevel, item.product?.lowStockThreshold ?? 0)
   );
 
-  const totalRevenue = Number(orderRevenueSummary?.[0]?.totalRevenue || 0);
-  const totalExpenses = financeEntries
-    .filter((entry) => entry.type === "expense")
-    .reduce((sum, entry) => sum + entry.amount, 0);
-  const bankBalance = financeEntries
-    .filter((entry) => entry.type === "bank")
-    .reduce((sum, entry) => sum + entry.amount, 0);
+  const totalRevenue = Number(financeTotals?.[0]?.totalRevenue || 0);
+  const totalExpenses = Number(financeTotals?.[0]?.totalExpenses || 0);
+  const bankBalance = Number(financeTotals?.[0]?.bankBalance || 0);
 
   return res.json({
     stats: [
