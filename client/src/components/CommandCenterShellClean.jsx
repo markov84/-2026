@@ -50,7 +50,11 @@ const navItems = [
 ];
 
 function getVisibleNavItems(user) {
-  return navItems.filter((item) => item.path !== "/employees" || ["admin", "manager"].includes(user?.role));
+  return navItems.filter((item) => {
+    if (item.path === "/finance") return user?.role === "admin";
+    if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
+    return true;
+  });
 }
 
 function ModernModuleIcon({ type, size }) {

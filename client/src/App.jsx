@@ -34,7 +34,7 @@ function PrivateRoutes({ user }) {
         <Route path="/stores" element={<StoresPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/finance" element={<FinancePage />} />
+        <Route path="/finance" element={user?.role === "admin" ? <FinancePage /> : <Navigate to="/" replace />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/vat-reports" element={<VatReportsPage />} />
         <Route

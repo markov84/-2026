@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { FinancialEntry } from "../models/FinancialEntry.js";
 import { Store } from "../models/Store.js";
 
 const router = Router();
 
-router.use(requireAuth);
+router.use(requireAuth, requireRole("admin"));
 
 const financeTextLabels = {
   "retail sales": "Продажби на дребно",

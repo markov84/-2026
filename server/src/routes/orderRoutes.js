@@ -6,6 +6,7 @@ import { Customer } from "../models/Customer.js";
 import { Product } from "../models/Product.js";
 import { Store } from "../models/Store.js";
 import { Counter } from "../models/Counter.js";
+import { FinancialEntry } from "../models/FinancialEntry.js";
 import { applyInventoryDelta } from "../lib/inventory.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { clearCachedJson } from "../lib/routeCache.js";
@@ -43,6 +44,31 @@ function calculateOrderTotals(items = []) {
       };
     },
     { subtotal: 0, vatAmount: 0, totalAmount: 0 }
+  );
+}
+
+async function syncOrderFinanceEntry(order) {
+  if (!order?._id) return;
+
+  if (order.status === "cancelled") {
+    await FinancialEntry.deleteOne({ source: "order", sourceOrder: order._id });
+    return;
+  }
+
+  await FinancialEntry.findOneAndUpdate(
+    { source: "order", sourceOrder: order._id },
+    {
+      type: "income",
+      category: "Продажба",
+      description: `Продажба ${order.orderNumber || ""}`.trim(),
+      amount: toNumber(order.totalAmount, 0),
+      store: order.store,
+      paymentMethod: "internal",
+      source: "order",
+      sourceOrder: order._id,
+      entryDate: order.createdAt || new Date()
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
   );
 }
 
@@ -190,6 +216,8 @@ router.post(
       }
     }
 
+    await syncOrderFinanceEntry(order);
+
     clearCachedJson("inventory:");
 
     const populated = await Order.findById(order._id)
@@ -268,6 +296,8 @@ router.put(
       .populate("items.product", "name productNumber sku barcode imageUrl price vatRate")
       .lean();
 
+    await syncOrderFinanceEntry(order);
+
     clearCachedJson("inventory:");
 
     return res.json(order);
@@ -282,6 +312,8 @@ router.delete(
     if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
+
+    await FinancialEntry.deleteOne({ source: "order", sourceOrder: order._id });
 
     clearCachedJson("inventory:");
 

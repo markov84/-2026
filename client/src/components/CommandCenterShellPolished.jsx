@@ -50,8 +50,17 @@ const navItems = [
   { label: "Трансфери", path: "/transfers", icon: <CompareArrowsRoundedIcon /> }
 ];
 
+function getVisibleNavItems(user) {
+  return navItems.filter((item) => {
+    if (item.path === "/finance") return user?.role === "admin";
+    if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
+    return true;
+  });
+}
+
 function Navigation({ onNavigate }) {
   const { user, logout } = useAuth();
+  const visibleNavItems = getVisibleNavItems(user);
 
   return (
     <Stack
@@ -118,7 +127,7 @@ function Navigation({ onNavigate }) {
       <Divider sx={{ borderColor: "rgba(255,255,255,0.06)" }} />
 
       <List sx={{ px: 1.5, py: 2, pb: 10, flexGrow: 1, overflowY: "auto" }}>
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <ListItemButton
             key={item.path}
             component={NavLink}

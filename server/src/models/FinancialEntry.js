@@ -30,6 +30,15 @@ const financialEntrySchema = new mongoose.Schema(
       enum: ["cash", "card", "bank-transfer", "internal"],
       default: "bank-transfer"
     },
+    source: {
+      type: String,
+      enum: ["manual", "order"],
+      default: "manual"
+    },
+    sourceOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order"
+    },
     entryDate: {
       type: Date,
       default: Date.now
