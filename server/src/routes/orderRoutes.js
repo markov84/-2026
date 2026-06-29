@@ -51,7 +51,6 @@ async function syncOrderFinanceEntry(order) {
   if (!order?._id) return;
 
   if (order.status === "cancelled") {
-    await FinancialEntry.deleteMany({ source: "order", sourceOrder: order._id });
     return;
   }
 
@@ -348,8 +347,6 @@ router.delete(
     if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
-
-    await FinancialEntry.deleteMany({ source: "order", sourceOrder: order._id });
 
     clearCachedJson("inventory:");
 

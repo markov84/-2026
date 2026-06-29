@@ -550,6 +550,8 @@ export default function OrdersPageStable() {
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderScanTarget, setOrderScanTarget] = useState("create");
   const [orderQuery, setOrderQuery] = useState("");
@@ -782,6 +784,29 @@ export default function OrdersPageStable() {
       toast.success("Продажбата е изтрита.");
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно изтриване на продажба.");
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedOrderIds.length) return;
+
+    const idsToDelete = [...selectedOrderIds];
+
+    try {
+      const results = await Promise.allSettled(idsToDelete.map((id) => api.delete(`/orders/${id}`)));
+      const deletedCount = results.filter((result) => result.status === "fulfilled").length;
+
+      if (!deletedCount) {
+        throw new Error("Неуспешно изтриване на избраните продажби.");
+      }
+
+      setData((current) => current.filter((item) => !idsToDelete.includes(item._id)));
+      setSelectedOrderIds([]);
+      setBulkDeleteOpen(false);
+      void refreshInventory();
+      toast.success(`Изтрити продажби: ${deletedCount}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Неуспешно изтриване на избраните продажби.");
     }
   }
 
@@ -1141,17 +1166,42 @@ export default function OrdersPageStable() {
               <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
                 Показани: {filteredOrders.length} / {orders.length}
               </Typography>
+              {selectedOrderIds.length ? <Chip label={`Избрани: ${selectedOrderIds.length}`} color="warning" size="small" /> : null}
             </Stack>
           </Stack>
         }
         actions={
-          <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
-            Нова продажба
-          </Button>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
+              Нова продажба
+            </Button>
+            {canSeeOrderAuthor ? (
+              <Button
+                color="error"
+                variant="outlined"
+                startIcon={<DeleteRoundedIcon />}
+                disabled={!selectedOrderIds.length}
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                Изтрий избраните
+              </Button>
+            ) : null}
+          </Stack>
         }
       >
         <ResponsiveTable>
-          <DataGrid loading={loading} getRowHeight={() => "auto"} columnHeaderHeight={44} rows={filteredOrders} getRowId={(row) => row._id} columns={orderColumns} disableRowSelectionOnClick />
+          <DataGrid
+            loading={loading}
+            getRowHeight={() => "auto"}
+            columnHeaderHeight={44}
+            rows={filteredOrders}
+            getRowId={(row) => row._id}
+            columns={orderColumns}
+            checkboxSelection={canSeeOrderAuthor}
+            rowSelectionModel={selectedOrderIds}
+            onRowSelectionModelChange={(nextSelection) => setSelectedOrderIds(nextSelection)}
+            disableRowSelectionOnClick
+          />
         </ResponsiveTable>
       </DataSection>
 
@@ -1181,6 +1231,14 @@ export default function OrdersPageStable() {
         description={`Сигурен ли си, че искаш да изтриеш ${deletingOrder?.orderNumber || "тази продажба"}?`}
         onClose={() => setDeletingOrder(null)}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={bulkDeleteOpen}
+        title="Масово изтриване на продажби"
+        description={`Сигурен ли си, че искаш да изтриеш ${selectedOrderIds.length} избрани продажби?`}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
       />
     </Stack>
   );

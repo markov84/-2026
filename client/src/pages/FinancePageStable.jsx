@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import AddCardRoundedIcon from "@mui/icons-material/AddCardRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -109,6 +110,8 @@ export default function FinancePageStable() {
   const [form, setForm] = useState(initialEntry);
   const [editingEntry, setEditingEntry] = useState(null);
   const [deletingEntry, setDeletingEntry] = useState(null);
+  const [selectedEntryIds, setSelectedEntryIds] = useState([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const isMobile = useMobileDetection();
   const summary = data?.summary || {};
@@ -212,6 +215,28 @@ export default function FinancePageStable() {
     }
   }
 
+  async function handleBulkDelete() {
+    if (!selectedEntryIds.length) return;
+
+    const idsToDelete = [...selectedEntryIds];
+
+    try {
+      const results = await Promise.allSettled(idsToDelete.map((id) => api.delete(`/finance/${id}`)));
+      const deletedCount = results.filter((result) => result.status === "fulfilled").length;
+
+      if (!deletedCount) {
+        throw new Error("Неуспешно изтриване на избраните записи.");
+      }
+
+      setData((current) => buildFinanceState(getFinanceEntries(current).filter((item) => !idsToDelete.includes(item._id))));
+      setSelectedEntryIds([]);
+      setBulkDeleteOpen(false);
+      toast.success(`Изтрити записи: ${deletedCount}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Неуспешно изтриване на избраните записи.");
+    }
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Финанси" title="Финансов дневник" subtitle="Приходи, разходи и банка с редакция и изтриване на всеки запис." icon={<AccountBalanceWalletRoundedIcon />} />
@@ -225,6 +250,7 @@ export default function FinancePageStable() {
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
         />
         <Chip label={`Показани: ${displayEntries.length}`} variant="outlined" />
+        {selectedEntryIds.length ? <Chip label={`Избрани: ${selectedEntryIds.length}`} color="warning" /> : null}
       </Stack>
 
       <Grid container spacing={3}>
@@ -234,7 +260,27 @@ export default function FinancePageStable() {
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Печалба" value={formatCurrencyEUR(summary.net)} accent="secondary" icon={<SavingsRoundedIcon />} onClick={() => setActiveCard("net")} /></Grid>
       </Grid>
 
-      <DataSection title="Финансов дневник" subtitle="Редакция и триене на записи" icon={<AccountBalanceWalletRoundedIcon />} actions={<Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => setOpen(true)}>Добави запис</Button>}>
+      <DataSection
+        title="Финансов дневник"
+        subtitle="Редакция и триене на записи"
+        icon={<AccountBalanceWalletRoundedIcon />}
+        actions={
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => setOpen(true)}>
+              Добави запис
+            </Button>
+            <Button
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteRoundedIcon />}
+              disabled={!selectedEntryIds.length}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              Изтрий избраните
+            </Button>
+          </Stack>
+        }
+      >
         <ResponsiveTable>
           <DataGrid
             autoHeight
@@ -242,6 +288,9 @@ export default function FinancePageStable() {
             rows={displayEntries}
             getRowId={(row) => row._id}
             columns={financeColumns}
+            checkboxSelection
+            rowSelectionModel={selectedEntryIds}
+            onRowSelectionModelChange={(nextSelection) => setSelectedEntryIds(nextSelection)}
             disableRowSelectionOnClick
           />
         </ResponsiveTable>
@@ -322,6 +371,14 @@ export default function FinancePageStable() {
         description={`Сигурен ли си, че искаш да изтриеш "${translateFinanceText(deletingEntry?.category) || "този запис"}"?`}
         onClose={() => setDeletingEntry(null)}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={bulkDeleteOpen}
+        title="Масово изтриване на финансови записи"
+        description={`Сигурен ли си, че искаш да изтриеш ${selectedEntryIds.length} избрани записа?`}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
       />
     </Stack>
   );
