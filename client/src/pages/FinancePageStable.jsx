@@ -37,7 +37,7 @@ const financeCardDefinitions = {
   income: { label: "Приходи", type: "income", accent: "success" },
   expenses: { label: "Разходи", type: "expense", accent: "warning" },
   bank: { label: "Банка", type: "bank", accent: "primary" },
-  net: { label: "Нетен резултат", type: null, accent: "secondary" }
+  net: { label: "Печалба", type: null, accent: "secondary" }
 };
 
 const financeTextLabels = {
@@ -231,7 +231,7 @@ export default function FinancePageStable() {
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Приходи" value={formatCurrencyEUR(summary.income)} accent="success" icon={<TrendingUpRoundedIcon />} onClick={() => setActiveCard("income")} /></Grid>
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Разходи" value={formatCurrencyEUR(summary.expenses)} accent="warning" icon={<TrendingDownRoundedIcon />} onClick={() => setActiveCard("expenses")} /></Grid>
         <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Банка" value={formatCurrencyEUR(summary.bank)} accent="primary" icon={<AccountBalanceRoundedIcon />} onClick={() => setActiveCard("bank")} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Нетен резултат" value={formatCurrencyEUR(summary.net)} accent="secondary" icon={<SavingsRoundedIcon />} onClick={() => setActiveCard("net")} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Печалба" value={formatCurrencyEUR(summary.net)} accent="secondary" icon={<SavingsRoundedIcon />} onClick={() => setActiveCard("net")} /></Grid>
       </Grid>
 
       <DataSection title="Финансов дневник" subtitle="Редакция и триене на записи" icon={<AccountBalanceWalletRoundedIcon />} actions={<Button variant="contained" startIcon={<AddCardRoundedIcon />} onClick={() => setOpen(true)}>Добави запис</Button>}>

@@ -51,17 +51,53 @@ async function syncOrderFinanceEntry(order) {
   if (!order?._id) return;
 
   if (order.status === "cancelled") {
-    await FinancialEntry.deleteOne({ source: "order", sourceOrder: order._id });
+    await FinancialEntry.deleteMany({ source: "order", sourceOrder: order._id });
     return;
   }
 
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  const productIds = Array.from(
+    new Set(
+      orderItems
+        .map((item) => String(item?.product?._id || item?.product || "").trim())
+        .filter(Boolean)
+    )
+  );
+  const products = productIds.length
+    ? await Product.find({ _id: { $in: productIds } }).select("cost").lean()
+    : [];
+  const costById = new Map(products.map((product) => [String(product._id), toNumber(product.cost, 0)]));
+  const totalOrderExpense = orderItems.reduce((sum, item) => {
+    const productId = String(item?.product?._id || item?.product || "").trim();
+    if (!productId) return sum;
+    const quantity = toNumber(item?.quantity, 0);
+    const unitCost = toNumber(costById.get(productId), 0);
+    return sum + quantity * unitCost;
+  }, 0);
+
   await FinancialEntry.findOneAndUpdate(
-    { source: "order", sourceOrder: order._id },
+    { source: "order", sourceOrder: order._id, type: "income" },
     {
       type: "income",
       category: "Продажба",
       description: `Продажба ${order.orderNumber || ""}`.trim(),
       amount: toNumber(order.totalAmount, 0),
+      store: order.store,
+      paymentMethod: "internal",
+      source: "order",
+      sourceOrder: order._id,
+      entryDate: order.createdAt || new Date()
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+  );
+
+  await FinancialEntry.findOneAndUpdate(
+    { source: "order", sourceOrder: order._id, type: "expense" },
+    {
+      type: "expense",
+      category: "Себестойност",
+      description: `Себестойност за продажба ${order.orderNumber || ""}`.trim(),
+      amount: totalOrderExpense,
       store: order.store,
       paymentMethod: "internal",
       source: "order",
@@ -313,7 +349,7 @@ router.delete(
       return res.status(404).json({ message: "Order not found." });
     }
 
-    await FinancialEntry.deleteOne({ source: "order", sourceOrder: order._id });
+    await FinancialEntry.deleteMany({ source: "order", sourceOrder: order._id });
 
     clearCachedJson("inventory:");
 
