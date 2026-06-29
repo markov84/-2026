@@ -19,7 +19,7 @@ const severityLabels = {
 };
 
 router.get("/", async (req, res) => {
-  const [productCount, storeCount, customerCount, orderCount, inventoryItems, recentOrders, financeEntries, auditLogs] =
+  const [productCount, storeCount, customerCount, orderCount, inventoryItems, recentOrders, financeEntries, auditLogs, orderRevenueSummary] =
     await Promise.all([
       Product.countDocuments(),
       Store.countDocuments(),
@@ -33,16 +33,18 @@ router.get("/", async (req, res) => {
         .populate("customer", "customerType fullName company")
         .lean(),
       FinancialEntry.find().sort({ entryDate: -1, createdAt: -1 }).limit(10).populate("store", "name").lean(),
-      AuditLog.find().sort({ createdAt: -1 }).limit(8).lean()
+      AuditLog.find().sort({ createdAt: -1 }).limit(8).lean(),
+      Order.aggregate([
+        { $match: { status: { $ne: "cancelled" } } },
+        { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } }
+      ])
     ]);
 
   const lowStockItems = inventoryItems.filter(
     (item) => item.quantity <= Math.max(item.reorderLevel, item.product?.lowStockThreshold ?? 0)
   );
 
-  const totalRevenue = financeEntries
-    .filter((entry) => entry.type === "income")
-    .reduce((sum, entry) => sum + entry.amount, 0);
+  const totalRevenue = Number(orderRevenueSummary?.[0]?.totalRevenue || 0);
   const totalExpenses = financeEntries
     .filter((entry) => entry.type === "expense")
     .reduce((sum, entry) => sum + entry.amount, 0);
