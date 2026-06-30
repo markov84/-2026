@@ -26,7 +26,7 @@ import { printInventoryAudit } from "../lib/printDocuments";
 
 const statusLabelMap = {
   draft: "Чернова",
-  counting: "Броене",
+  counting: "В процес на броене",
   review: "Преглед",
   completed: "Приключена",
   cancelled: "Отказана"
@@ -44,8 +44,8 @@ const reasonCodeOptions = [
   { value: "missing", label: "Липса" },
   { value: "damage", label: "Повреда" },
   { value: "wrong-transfer", label: "Грешен трансфер" },
-  { value: "counting-error", label: "Грешка при броене" },
-  { value: "other", label: "Друго" }
+  { value: "counting-error", label: "Грешка при преброяване" },
+  { value: "other", label: "Друга причина" }
 ];
 
 const reasonLabelMap = Object.fromEntries(reasonCodeOptions.map((item) => [item.value, item.label]));
@@ -133,7 +133,7 @@ export default function InventoryAuditsPage() {
       }
 
       if (["completed", "review"].includes(selectedAudit?.status)) {
-        toast.error("Ревизията е заключена. Върни я в режим броене.");
+        toast.error("Ревизията е заключена. Върни я в режим на броене.");
         return;
       }
 
@@ -195,9 +195,9 @@ export default function InventoryAuditsPage() {
     try {
       await api.post(`/inventory-audits/${selectedAudit._id}/reopen-counting`);
       await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
-      toast.success("Ревизията е върната в режим броене.");
+      toast.success("Ревизията е върната в режим на броене.");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Неуспешно връщане в броене.");
+      toast.error(error.response?.data?.message || "Неуспешно връщане в режим на броене.");
     }
   }
 

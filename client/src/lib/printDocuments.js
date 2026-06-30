@@ -48,6 +48,8 @@ function printHtml(title, bodyHtml) {
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
+  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+
   printWindow.document.write(`
     <!doctype html>
     <html>
@@ -66,6 +68,33 @@ function printHtml(title, bodyHtml) {
           .document {
             max-width: 980px;
             margin: 0 auto;
+          }
+          .company-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #d1d5db;
+          }
+          .company-logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            flex: 0 0 auto;
+          }
+          .company-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #111827;
+          }
+          .company-tagline {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
           }
           .header {
             display: flex;
@@ -161,7 +190,16 @@ function printHtml(title, bodyHtml) {
         </style>
       </head>
       <body>
-        <main class="document">${bodyHtml}</main>
+        <main class="document">
+          <section class="company-bar">
+            <img class="company-logo" src="${escapeHtml(companyLogoUrl)}" alt="MARKLIGHT logo" />
+            <div>
+              <div class="company-name">MARKLIGHT</div>
+              <div class="company-tagline">LIGHTING TRADE</div>
+            </div>
+          </section>
+          ${bodyHtml}
+        </main>
         <script>
           window.addEventListener("load", () => {
             window.print();
