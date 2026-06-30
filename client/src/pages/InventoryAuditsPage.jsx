@@ -160,6 +160,28 @@ export default function InventoryAuditsPage() {
     }
   }
 
+  async function handleStatusChange(nextStatus) {
+    const currentStatus = selectedAudit?.status;
+    if (!selectedAudit?._id || !nextStatus || nextStatus === currentStatus) return;
+
+    if (nextStatus === "review") {
+      await handleSubmitReview();
+      return;
+    }
+
+    if (nextStatus === "counting") {
+      await handleReopenCounting();
+      return;
+    }
+
+    if (nextStatus === "completed") {
+      await handleFinalize();
+      return;
+    }
+
+    toast.error("Невалиден преход на статус.");
+  }
+
   async function handleScanDetected(code) {
     if (!selectedAudit?._id) return;
 
@@ -202,6 +224,13 @@ export default function InventoryAuditsPage() {
   const canSubmitForReview = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
   const canApprove = Boolean(selectedAudit && selectedAudit.status === "review" && user?.role === "admin");
   const canReopen = Boolean(selectedAudit && selectedAudit.status === "review");
+  const availableStatusOptions = selectedAudit
+    ? [
+        { value: "counting", label: statusLabelMap.counting, disabled: !canReopen && selectedAudit.status !== "counting" },
+        { value: "review", label: statusLabelMap.review, disabled: !canSubmitForReview && selectedAudit.status !== "review" },
+        { value: "completed", label: statusLabelMap.completed, disabled: !canApprove && selectedAudit.status !== "completed" }
+      ]
+    : [];
 
   const auditRows = (Array.isArray(audits) ? audits : []).map((audit) => ({
     ...audit,
@@ -276,6 +305,20 @@ export default function InventoryAuditsPage() {
         icon={<PlaylistAddCheckRoundedIcon />}
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            {selectedAudit ? (
+              <TextField
+                select
+                size="small"
+                label="Статус"
+                value={selectedAudit.status}
+                onChange={(event) => void handleStatusChange(event.target.value)}
+                sx={{ minWidth: 180 }}
+              >
+                {availableStatusOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value} disabled={option.disabled}>{option.label}</MenuItem>
+                ))}
+              </TextField>
+            ) : null}
             <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!canEditLines}>
               Сканирай
             </Button>
@@ -300,6 +343,12 @@ export default function InventoryAuditsPage() {
             ) : null}
             {selectedAudit.status === "review" ? (
               <Alert severity="info">Ревизията чака одобрение. Редакцията е заключена до връщане в броене.</Alert>
+            ) : null}
+            {selectedAudit.status === "counting" ? (
+              <Alert severity="info">За приключване: довърши преброяването, после „Подай за преглед“, след това админ натиска „Одобри и приключи“.</Alert>
+            ) : null}
+            {selectedAudit.status === "review" && user?.role !== "admin" ? (
+              <Alert severity="warning">Ревизията е подадена. Финалното приключване се прави от администратор.</Alert>
             ) : null}
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
@@ -352,6 +401,12 @@ export default function InventoryAuditsPage() {
                 autoHeight
                 loading={auditLoading}
                 rows={lineRows}
+                onRowClick={(params) => {
+                  setManualProduct(params.row?.product || null);
+                  setManualCounted(String(Number(params.row?.countedQuantity || 0)));
+                  setManualReasonCode(params.row?.reasonCode || "other");
+                  setManualNote(params.row?.note || "");
+                }}
                 columns={[
                   { field: "productName", headerName: "Продукт", flex: 1.3 },
                   { field: "sku", headerName: "SKU", flex: 0.8 },
