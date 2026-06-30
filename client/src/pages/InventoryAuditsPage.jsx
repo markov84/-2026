@@ -7,6 +7,7 @@ import { Alert, Autocomplete, Button, Chip, DialogContent, DialogTitle, Grid2 as
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
+import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
@@ -18,6 +19,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
+import { parseScannedInput } from "../lib/scanCode";
 
 const statusLabelMap = {
   draft: "Чернова",
@@ -57,6 +59,8 @@ export default function InventoryAuditsPage() {
   const [selectedAuditId, setSelectedAuditId] = useState("");
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [selectedAuditIds, setSelectedAuditIds] = useState([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [manualProduct, setManualProduct] = useState(null);
   const [manualCounted, setManualCounted] = useState("0");
   const [manualReasonCode, setManualReasonCode] = useState("other");
@@ -185,13 +189,46 @@ export default function InventoryAuditsPage() {
   async function handleScanDetected(code) {
     if (!selectedAudit?._id) return;
 
+    const normalizedCode = parseScannedInput(code) || String(code || "").trim();
+    if (!normalizedCode) {
+      toast.error("Невалиден код за сканиране.");
+      return;
+    }
+
     try {
-      await api.post(`/inventory-audits/${selectedAudit._id}/scan`, { code, quantityDelta: 1 });
+      await api.post(`/inventory-audits/${selectedAudit._id}/scan`, { code: normalizedCode, quantityDelta: 1 });
       await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
-      toast.success(`Сканиран код: ${code}`);
+      toast.success(`Сканиран код: ${normalizedCode}`);
       setScanOpen(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно сканиране.");
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedAuditIds.length) return;
+
+    try {
+      const ids = [...selectedAuditIds];
+      const results = await Promise.allSettled(ids.map((id) => api.delete(`/inventory-audits/${id}`)));
+      const deleted = results.filter((result) => result.status === "fulfilled").length;
+
+      if (!deleted) {
+        throw new Error("Неуспешно изтриване на избраните ревизии.");
+      }
+
+      await refresh();
+
+      if (selectedAuditId && ids.includes(selectedAuditId)) {
+        setSelectedAuditId("");
+        setSelectedAudit(null);
+      }
+
+      setSelectedAuditIds([]);
+      setBulkDeleteOpen(false);
+      toast.success(`Изтрити ревизии: ${deleted}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Неуспешно изтриване на ревизии.");
     }
   }
 
@@ -302,7 +339,14 @@ export default function InventoryAuditsPage() {
         title="Списък с ревизии"
         subtitle="Избери ревизия, за да броиш и засичаш"
         icon={<FactCheckRoundedIcon />}
-        actions={<Button variant="contained" onClick={() => setCreateOpen(true)}>Нова ревизия</Button>}
+        actions={
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button variant="contained" onClick={() => setCreateOpen(true)}>Нова ревизия</Button>
+            <Button color="error" variant="outlined" disabled={!selectedAuditIds.length} onClick={() => setBulkDeleteOpen(true)}>
+              Изтрий избраните
+            </Button>
+          </Stack>
+        }
       >
         <ResponsiveTable>
           <DataGrid
@@ -311,6 +355,9 @@ export default function InventoryAuditsPage() {
             rows={auditRows}
             getRowId={(row) => row._id}
             onRowClick={(params) => setSelectedAuditId(params.row._id)}
+            checkboxSelection
+            rowSelectionModel={selectedAuditIds}
+            onRowSelectionModelChange={(nextSelection) => setSelectedAuditIds(nextSelection)}
             columns={[
               { field: "auditNumber", headerName: "Номер", flex: 1 },
               { field: "storeLabel", headerName: "Магазин", flex: 1.2 },
@@ -585,6 +632,14 @@ export default function InventoryAuditsPage() {
         onError={() => setScanOpen(false)}
         title="Сканирай артикул за ревизия"
         description="Всяко сканиране добавя +1 към преброеното количество."
+      />
+
+      <ConfirmDeleteDialog
+        open={bulkDeleteOpen}
+        title="Изтриване на ревизии"
+        description={`Сигурен ли си, че искаш да изтриеш ${selectedAuditIds.length} избрани ревизии?`}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
       />
     </Stack>
   );

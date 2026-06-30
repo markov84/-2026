@@ -533,4 +533,30 @@ router.post(
   })
 );
 
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const audit = await InventoryAudit.findById(req.params.id).lean();
+    if (!audit) {
+      return res.status(404).json({ message: "Ревизията не е намерена." });
+    }
+
+    if (audit.status === "completed" && req.user?.role !== "admin") {
+      return res.status(403).json({ message: "Само администратор може да изтрива приключена ревизия." });
+    }
+
+    await InventoryAudit.findByIdAndDelete(req.params.id);
+
+    await AuditLog.create({
+      action: "delete",
+      module: "inventory-audit",
+      message: `Изтрита е ревизия ${audit.auditNumber}.`,
+      severity: "warning",
+      actorName: req.user?.fullName || req.user?.username || "Потребител"
+    });
+
+    return res.status(204).send();
+  })
+);
+
 export default router;
