@@ -434,3 +434,94 @@ export function printVatReport(data) {
     `
   );
 }
+
+export function printInventoryAudit(audit) {
+  const lines = Array.isArray(audit?.lines) ? audit.lines : [];
+  const rows = lines
+    .map((line, index) => {
+      const productName = line?.product?.name || "-";
+      const sku = line?.product?.sku || "-";
+      const expected = Number(line?.expectedQuantity || 0);
+      const counted = Number(line?.countedQuantity || 0);
+      const diff = counted - expected;
+      const reason = line?.reasonCode || "-";
+      const note = line?.note || "";
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(productName)}</td>
+          <td>${escapeHtml(sku)}</td>
+          <td class="num">${expected}</td>
+          <td class="num">${counted}</td>
+          <td class="num">${diff}</td>
+          <td>${escapeHtml(reason)}</td>
+          <td>${escapeHtml(note)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const countedLines = lines.filter((line) => line?.isCounted).length;
+  const diffLines = lines.filter((line) => Number(line?.differenceQuantity || 0) !== 0).length;
+  const totalExpected = lines.reduce((sum, line) => sum + Number(line?.expectedQuantity || 0), 0);
+  const totalCounted = lines.reduce((sum, line) => sum + Number(line?.countedQuantity || 0), 0);
+  const totalDiff = totalCounted - totalExpected;
+
+  printHtml(
+    `Ревизия ${audit?.auditNumber || ""}`,
+    `
+      <section class="header">
+        <div>
+          <div class="brand">MARK LIGHT LTD</div>
+          <p class="muted">Протокол ревизия</p>
+        </div>
+        <div>
+          <h1>РЕВИЗИОНЕН ПРОТОКОЛ</h1>
+          <p><strong>№:</strong> ${escapeHtml(audit?.auditNumber || "-")}</p>
+          <p><strong>Дата:</strong> ${formatDate(audit?.updatedAt || audit?.createdAt)}</p>
+          <p><strong>Статус:</strong> ${escapeHtml(audit?.status || "-")}</p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="box">
+          <h2>Локация</h2>
+          <p><strong>Магазин:</strong> ${escapeHtml(audit?.store?.name || "-")}</p>
+          <p><strong>Град:</strong> ${escapeHtml(audit?.store?.city || "-")}</p>
+          <p><strong>Зона:</strong> ${escapeHtml(audit?.zone || "-")}</p>
+        </div>
+        <div class="box">
+          <h2>Обобщение</h2>
+          <p><strong>Редове:</strong> ${lines.length}</p>
+          <p><strong>Преброени редове:</strong> ${countedLines}</p>
+          <p><strong>Редове с разлика:</strong> ${diffLines}</p>
+          <p><strong>Общо разлика:</strong> ${totalDiff}</p>
+        </div>
+      </section>
+
+      <h2>Редове ревизия</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Продукт</th>
+            <th>SKU</th>
+            <th class="num">Налично (по система)</th>
+            <th class="num">Преброено</th>
+            <th class="num">Разлика</th>
+            <th>Причина</th>
+            <th>Бележка</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <section class="totals">
+        <p><span>Общо по система:</span><strong>${totalExpected}</strong></p>
+        <p><span>Общо преброено:</span><strong>${totalCounted}</strong></p>
+        <p class="total"><span>Крайна разлика:</span><span>${totalDiff}</span></p>
+      </section>
+    `
+  );
+}

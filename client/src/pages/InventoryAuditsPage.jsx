@@ -22,6 +22,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
+import { printInventoryAudit } from "../lib/printDocuments";
 
 const statusLabelMap = {
   draft: "Чернова",
@@ -48,6 +49,14 @@ const reasonCodeOptions = [
 ];
 
 const reasonLabelMap = Object.fromEntries(reasonCodeOptions.map((item) => [item.value, item.label]));
+
+function escapeCsv(value) {
+  const text = String(value ?? "");
+  if (text.includes(",") || text.includes("\"") || text.includes("\n")) {
+    return `"${text.replaceAll("\"", "\"\"")}"`;
+  }
+  return text;
+}
 
 export default function InventoryAuditsPage() {
   const lineGridApiRef = useGridApiRef();
@@ -388,6 +397,61 @@ export default function InventoryAuditsPage() {
     toast.success("Редът е записан.");
   }
 
+  function handlePrintAuditProtocol() {
+    if (!selectedAudit) return;
+    printInventoryAudit(selectedAudit);
+  }
+
+  function handleExportAuditCsv() {
+    if (!selectedAudit) return;
+
+    const lines = Array.isArray(selectedAudit.lines) ? selectedAudit.lines : [];
+    const header = [
+      "Протокол",
+      "Статус",
+      "Магазин",
+      "Зона",
+      "Продукт",
+      "SKU",
+      "Налично (по система)",
+      "Преброено",
+      "Разлика",
+      "Причина",
+      "Бележка"
+    ];
+
+    const rows = lines.map((line) => {
+      const expected = Number(line?.expectedQuantity || 0);
+      const counted = Number(line?.countedQuantity || 0);
+      return [
+        selectedAudit.auditNumber || "",
+        selectedAudit.status || "",
+        selectedAudit.store?.name || "",
+        selectedAudit.zone || "",
+        line?.product?.name || "",
+        line?.product?.sku || "",
+        expected,
+        counted,
+        counted - expected,
+        reasonLabelMap[line?.reasonCode] || line?.reasonCode || "",
+        line?.note || ""
+      ]
+        .map(escapeCsv)
+        .join(",");
+    });
+
+    const content = [header.map(escapeCsv).join(","), ...rows].join("\n");
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-${selectedAudit.auditNumber || selectedAudit._id || "export"}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   const canShowExpected = !selectedAudit?.blindMode || selectedAudit?.status === "completed";
   const canEditLines = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
   const canSubmitForReview = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
@@ -472,6 +536,21 @@ export default function InventoryAuditsPage() {
       return haystack.includes(query);
     });
   }, [productFilterQuery, productRows]);
+
+  const auditLineStats = useMemo(() => {
+    const lines = Array.isArray(selectedAudit?.lines) ? selectedAudit.lines : [];
+    const counted = lines.filter((line) => line?.isCounted).length;
+    const withDiff = lines.filter((line) => Number(line?.differenceQuantity || 0) !== 0).length;
+    const expectedTotal = lines.reduce((sum, line) => sum + Number(line?.expectedQuantity || 0), 0);
+    const countedTotal = lines.reduce((sum, line) => sum + Number(line?.countedQuantity || 0), 0);
+    return {
+      counted,
+      withDiff,
+      expectedTotal,
+      countedTotal,
+      totalDiff: countedTotal - expectedTotal
+    };
+  }, [selectedAudit]);
 
   return (
     <Stack spacing={3}>
@@ -585,6 +664,12 @@ export default function InventoryAuditsPage() {
                 <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!canEditLines}>
                   Сканирай
                 </Button>
+                <Button variant="outlined" onClick={handlePrintAuditProtocol}>
+                  Протокол
+                </Button>
+                <Button variant="outlined" onClick={handleExportAuditCsv}>
+                  CSV
+                </Button>
                 <Button variant="outlined" onClick={handleSubmitReview} disabled={!canSubmitForReview}>
                   Подай за преглед
                 </Button>
@@ -609,6 +694,12 @@ export default function InventoryAuditsPage() {
             {selectedAudit.status === "review" && user?.role !== "admin" ? (
               <Alert severity="warning">Ревизията е подадена. Финалното приключване се прави от администратор.</Alert>
             ) : null}
+
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap flexWrap="wrap">
+              <Chip label={`Преброени редове: ${auditLineStats.counted}`} size="small" />
+              <Chip label={`Редове с разлика: ${auditLineStats.withDiff}`} size="small" color={auditLineStats.withDiff ? "warning" : "default"} />
+              <Chip label={`Общо разлика: ${auditLineStats.totalDiff}`} size="small" color={auditLineStats.totalDiff === 0 ? "success" : "warning"} />
+            </Stack>
 
             <Accordion disableGutters sx={{ borderRadius: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
