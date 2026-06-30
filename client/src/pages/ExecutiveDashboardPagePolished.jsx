@@ -156,7 +156,7 @@ export default function ExecutiveDashboardPagePolished() {
         {canViewProfit ? (
           <Grid size={{ xs: 12, md: 6, xl: 3 }}>
             <MetricPanel
-              title="Нетен резултат"
+              title="Печалба"
               value={money(dashboard?.totals?.netProfit)}
               helper={`Приходи ${money(dashboard?.totals?.totalRevenue)}`}
               icon={<TrendingUpRoundedIcon />}
@@ -170,6 +170,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={money(dashboard?.totals?.dailyTurnover)}
             helper="Оборот за днешния ден"
             icon={<TrendingUpRoundedIcon />}
+            onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6, xl: 3 }}>
@@ -178,6 +179,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={money(dashboard?.totals?.monthlyTurnover)}
             helper="Оборот за текущия месец"
             icon={<TrendingUpRoundedIcon />}
+            onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6, xl: 3 }}>
