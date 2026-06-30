@@ -862,11 +862,22 @@ export default function InventoryAuditsPage() {
                         type="number"
                         value={Number(params.row.countedQuantity || 0)}
                         onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { countedQuantity: event.target.value })}
-                        onBlur={() => void saveInlineRowByData(params.row)}
+                        onBlur={(event) => {
+                          const nextRow = { ...params.row, countedQuantity: event.target.value };
+                          void saveInlineRowByData(nextRow);
+                        }}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" || event.key === "Tab") {
                             event.preventDefault();
-                            void saveInlineRowByData(params.row);
+                            const nextRow = { ...params.row, countedQuantity: event.currentTarget.value };
+                            void saveInlineRowByData(nextRow);
+
+                            if (event.key === "Tab") {
+                              const currentElement = event.currentTarget;
+                              setTimeout(() => {
+                                currentElement.blur();
+                              }, 0);
+                            }
                           }
                         }}
                         disabled={!canEditLines}
@@ -931,7 +942,16 @@ export default function InventoryAuditsPage() {
                         size="small"
                         value={params.row.note || ""}
                         onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { note: event.target.value })}
-                        onBlur={() => void saveInlineRowByData(params.row)}
+                        onBlur={(event) => {
+                          const nextRow = { ...params.row, note: event.target.value };
+                          void saveInlineRowByData(nextRow);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === "Tab") {
+                            const nextRow = { ...params.row, note: event.currentTarget.value };
+                            void saveInlineRowByData(nextRow);
+                          }
+                        }}
                         disabled={!canEditLines}
                         sx={{ minWidth: 180 }}
                       />
