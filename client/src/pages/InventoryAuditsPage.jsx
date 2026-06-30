@@ -219,6 +219,43 @@ export default function InventoryAuditsPage() {
     }
   }
 
+  function updateSelectedLine(productId, patch) {
+    setSelectedAudit((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        lines: (current.lines || []).map((line) => {
+          const lineProductId = line?.product?._id || line?.product;
+          if (String(lineProductId) !== String(productId)) return line;
+          return { ...line, ...patch };
+        })
+      };
+    });
+  }
+
+  async function handleInlineSave(row) {
+    if (!selectedAudit?._id) return;
+
+    const productId = row?.product?._id || row?.product;
+    if (!productId) {
+      toast.error("Липсва продукт за записа.");
+      return;
+    }
+
+    try {
+      await api.put(`/inventory-audits/${selectedAudit._id}/line`, {
+        productId,
+        countedQuantity: Number(row.countedQuantity || 0),
+        reasonCode: row.reasonCode || "other",
+        note: row.note || ""
+      });
+      await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
+      toast.success("Редът е записан.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно записване на реда.");
+    }
+  }
+
   const canShowExpected = !selectedAudit?.blindMode || selectedAudit?.status === "completed";
   const canEditLines = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
   const canSubmitForReview = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
@@ -416,7 +453,22 @@ export default function InventoryAuditsPage() {
                     flex: 0.7,
                     valueGetter: (_, row) => (canShowExpected ? Number(row.expectedQuantity || 0) : "***")
                   },
-                  { field: "countedQuantity", headerName: "Преброено", flex: 0.7, valueGetter: (_, row) => Number(row.countedQuantity || 0) },
+                  {
+                    field: "countedQuantity",
+                    headerName: "Преброено",
+                    flex: 0.9,
+                    renderCell: (params) => (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={Number(params.row.countedQuantity || 0)}
+                        onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { countedQuantity: event.target.value })}
+                        disabled={!canEditLines}
+                        sx={{ width: 110 }}
+                        inputProps={{ min: 0 }}
+                      />
+                    )
+                  },
                   {
                     field: "differenceQuantity",
                     headerName: "Разлика",
@@ -436,8 +488,21 @@ export default function InventoryAuditsPage() {
                   {
                     field: "reasonCode",
                     headerName: "Причина",
-                    flex: 0.8,
-                    valueGetter: (_, row) => reasonLabelMap[row.reasonCode] || "-"
+                    flex: 1,
+                    renderCell: (params) => (
+                      <TextField
+                        select
+                        size="small"
+                        value={params.row.reasonCode || "other"}
+                        onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { reasonCode: event.target.value })}
+                        disabled={!canEditLines}
+                        sx={{ minWidth: 170 }}
+                      >
+                        {reasonCodeOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                        ))}
+                      </TextField>
+                    )
                   },
                   {
                     field: "needsRecount",
@@ -447,7 +512,33 @@ export default function InventoryAuditsPage() {
                       params.value ? <Chip size="small" color="warning" label="Да" /> : <Chip size="small" label="Не" />
                     )
                   },
-                  { field: "note", headerName: "Бележка", flex: 1 }
+                  {
+                    field: "note",
+                    headerName: "Бележка",
+                    flex: 1.1,
+                    renderCell: (params) => (
+                      <TextField
+                        size="small"
+                        value={params.row.note || ""}
+                        onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { note: event.target.value })}
+                        disabled={!canEditLines}
+                        sx={{ minWidth: 180 }}
+                      />
+                    )
+                  },
+                  {
+                    field: "saveInline",
+                    headerName: "",
+                    sortable: false,
+                    filterable: false,
+                    align: "center",
+                    width: 110,
+                    renderCell: (params) => (
+                      <Button size="small" variant="outlined" onClick={() => void handleInlineSave(params.row)} disabled={!canEditLines}>
+                        Запиши
+                      </Button>
+                    )
+                  }
                 ]}
                 disableRowSelectionOnClick
                 getRowClassName={(params) => (params.row?.isCounted && Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : "")}
