@@ -205,6 +205,26 @@ function withTrailingTransferRow(items) {
   return isTransferItemFilled(lastItem) ? [...nextItems, createTransferItem()] : nextItems;
 }
 
+function upsertTransferProductRow(items, productId) {
+  const currentItems = (items || []).filter((item) => item.product || Number(item.quantity || 0) > 0);
+  const existingItem = currentItems.find((item) => item.product === productId);
+
+  if (existingItem) {
+    return withTrailingTransferRow(
+      currentItems.map((item) =>
+        item.key === existingItem.key
+          ? {
+              ...item,
+              quantity: String(Number(item.quantity || 0) + 1)
+            }
+          : item
+      )
+    );
+  }
+
+  return withTrailingTransferRow([...currentItems, createTransferItem({ product: productId, quantity: "1" })]);
+}
+
 function buildTransferPayload(transfer) {
   return {
     fromStore: transfer.fromStore,
@@ -482,117 +502,6 @@ function TransferTotals({ transfer, products, inventory, stores }) {
     { subtotal: 0, vatAmount: 0, totalAmount: 0 }
   );
 
-  function playScanFeedback(type = "success") {
-    if (typeof window === "undefined") return;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContextClass();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
-      }
-      const now = ctx.currentTime;
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(type === "success" ? 920 : 240, now);
-      if (type !== "success") {
-        oscillator.frequency.linearRampToValueAtTime(170, now + 0.09);
-      }
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.055, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "success" ? 0.08 : 0.12));
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + (type === "success" ? 0.09 : 0.13));
-    } catch {
-      // Ignore audio feedback failures
-    }
-  }
-
-  const resolveScannedProduct = useCallback(async (rawCode) => {
-    const code = parseScannedInput(rawCode);
-    if (!code) return { code: "", product: null };
-
-    const localProduct = findProductByScanCode(products, code);
-    if (localProduct) {
-      return { code, product: localProduct };
-    }
-
-    try {
-      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
-      const payload = response?.data;
-      const remoteProducts = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
-
-      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
-      if (remoteProduct) {
-        return { code, product: remoteProduct };
-      }
-    } catch {
-      // Ignore network errors
-    }
-
-    return { code, product: null };
-  }, [products]);
-
-  async function handleTransferBarcodeDetected(rawCode) {
-    const { code, product } = await resolveScannedProduct(rawCode);
-    if (!code) return;
-
-    if (!product) {
-      playScanFeedback("error");
-      toast.error(`Няма продукт с баркод/SKU ${code}.`);
-      return;
-    }
-
-    setForm((current) => {
-      const currentItems = (current.items || []).filter((item) => item.product || Number(item.quantity || 0) > 0);
-      const existingItem = currentItems.find((item) => item.product === product._id);
-
-      if (existingItem) {
-        toast.success(`Количество +1: ${product.name}`);
-        return {
-          ...current,
-          items: withTrailingTransferRow(
-            currentItems.map((item) =>
-              item.key === existingItem.key
-                ? {
-                    ...item,
-                    quantity: String(Number(item.quantity || 0) + 1)
-                  }
-                : item
-            )
-          )
-        };
-      }
-
-      return {
-        ...current,
-        items: withTrailingTransferRow([...currentItems, createTransferItem({ product: product._id, quantity: "1" })])
-      };
-    });
-
-    setScanCode("");
-    playScanFeedback("success");
-    toast.success(`Добавен продукт: ${product.name}`);
-    setScanCameraOpen(false);
-  }
-
-  useBarcodeKeyboardScan((code) => {
-    setScanCode(code);
-    void handleTransferBarcodeDetected(code);
-  });
-
   const lowStockRows = enrichedItems.filter((item) => {
     const sourceInventory = getInventoryForItem(inventory, item.product, transfer.fromStore);
     return sourceInventory && Number(item.quantity || 0) > Number(sourceInventory.quantity || 0);
@@ -680,6 +589,108 @@ export default function TransfersPageStable() {
       }),
     [transfers]
   );
+
+  function playScanFeedback(type = "success") {
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(type === "success" ? 920 : 240, now);
+      if (type !== "success") {
+        oscillator.frequency.linearRampToValueAtTime(170, now + 0.09);
+      }
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.055, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "success" ? 0.08 : 0.12));
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + (type === "success" ? 0.09 : 0.13));
+    } catch {
+      // Ignore audio feedback failures
+    }
+  }
+
+  const resolveScannedProduct = useCallback(async (rawCode) => {
+    const code = parseScannedInput(rawCode);
+    if (!code) return { code: "", product: null };
+
+    const localProduct = findProductByScanCode(products, code);
+    if (localProduct) {
+      return { code, product: localProduct };
+    }
+
+    try {
+      const response = await api.get(`/products?search=${encodeURIComponent(code)}`);
+      const payload = response?.data;
+      const remoteProducts = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+      const remoteProduct = findProductByScanCode(remoteProducts, code) || remoteProducts[0] || null;
+      if (remoteProduct) {
+        return { code, product: remoteProduct };
+      }
+    } catch {
+      // Ignore network errors
+    }
+
+    return { code, product: null };
+  }, [products]);
+
+  async function handleTransferBarcodeDetected(rawCode) {
+    if (!open && !editingTransfer) return;
+
+    const { code, product } = await resolveScannedProduct(rawCode);
+    if (!code) return;
+
+    if (!product) {
+      playScanFeedback("error");
+      toast.error(`Няма продукт с баркод/SKU ${code}.`);
+      return;
+    }
+
+    if (editingTransfer) {
+      setEditingTransfer((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: upsertTransferProductRow(current.items, product._id)
+        };
+      });
+    } else {
+      setForm((current) => ({
+        ...current,
+        items: upsertTransferProductRow(current.items, product._id)
+      }));
+    }
+
+    setScanCode("");
+    playScanFeedback("success");
+    toast.success(`Добавен продукт: ${product.name}`);
+    setScanCameraOpen(false);
+  }
+
+  useBarcodeKeyboardScan((code) => {
+    if (!open && !editingTransfer) return;
+    setScanCode(code);
+    void handleTransferBarcodeDetected(code);
+  });
 
   async function handleCreate() {
     const validationMessage = validateTransfer(form);
