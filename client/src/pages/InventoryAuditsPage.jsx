@@ -530,6 +530,35 @@ export default function InventoryAuditsPage() {
           <Alert severity="info">Избери ревизия от горната таблица.</Alert>
         ) : (
           <Stack spacing={2}>
+            <Box
+              sx={{
+                position: "sticky",
+                top: 8,
+                zIndex: 4,
+                p: 1,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper"
+              }}
+            >
+              <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+                <Typography variant="caption" color="text.secondary">Бързи действия:</Typography>
+                <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!canEditLines}>
+                  Сканирай
+                </Button>
+                <Button variant="outlined" onClick={handleSubmitReview} disabled={!canSubmitForReview}>
+                  Подай за преглед
+                </Button>
+                <Button variant="outlined" color="warning" onClick={handleReopenCounting} disabled={!canReopen}>
+                  Върни в броене
+                </Button>
+                <Button variant="contained" color="success" onClick={handleFinalize} disabled={!canApprove}>
+                  Одобри и приключи
+                </Button>
+              </Stack>
+            </Box>
+
             {selectedAudit.blindMode && selectedAudit.status !== "completed" ? (
               <Alert severity="warning">Режим Blind Count е активен. Системните количества са скрити до приключване.</Alert>
             ) : null}
