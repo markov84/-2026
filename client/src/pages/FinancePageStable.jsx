@@ -149,13 +149,17 @@ function buildFinanceState(value) {
 }
 
 function buildFinanceRow(entry) {
+  const amount = Number(entry.amount || 0);
+  const profitValue = entry.type === "income" ? amount : entry.type === "expense" ? -amount : 0;
+
   return {
     ...entry,
     typeLabel: translateFinanceType(entry.type),
     categoryLabel: translateFinanceText(entry.category),
     descriptionLabel: translateFinanceText(entry.description),
     storeLabel: entry.store?.name || "Централа",
-    amountLabel: formatCurrencyEUR(entry.amount)
+    amountLabel: formatCurrencyEUR(entry.amount),
+    profitLabel: `${profitValue > 0 ? "+" : ""}${formatCurrencyEUR(profitValue)}`
   };
 }
 
@@ -212,6 +216,19 @@ export default function FinancePageStable() {
     { field: "descriptionLabel", headerName: "Описание", flex: 1.4 },
     { field: "storeLabel", headerName: "Магазин", flex: 1 },
     { field: "amountLabel", headerName: "Сума", flex: 0.8 },
+    {
+      field: "profitLabel",
+      headerName: "Печалба",
+      flex: 0.9,
+      renderCell: (params) => (
+        <Chip
+          label={params?.value || formatCurrencyEUR(0)}
+          size="small"
+          color={params.row.type === "income" ? "success" : params.row.type === "expense" ? "error" : "default"}
+          variant="outlined"
+        />
+      )
+    },
     { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEntry(params.row)} /> }
   ];
 
