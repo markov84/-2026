@@ -40,6 +40,7 @@ const navItems = [
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
   { label: "Наличности", path: "/inventory", iconKey: "inventory", color: "#0ca678", bg: "rgba(12,166,120,0.16)" },
+  { label: "Ревизии", path: "/inventory-audits", iconKey: "audits", color: "#1971c2", bg: "rgba(25,113,194,0.16)" },
   { label: "Продажби", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
   { label: "Сканиране", path: "/scan", iconKey: "scan", color: "#f59f00", bg: "rgba(245,159,0,0.16)", action: "scan" },
   { label: "Финанси", path: "/finance", iconKey: "finance", color: "#2f9e44", bg: "rgba(47,158,68,0.16)" },
@@ -53,6 +54,7 @@ function getVisibleNavItems(user) {
   return navItems.filter((item) => {
     if (item.path === "/finance") return user?.role === "admin";
     if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
+    if (item.path === "/inventory-audits") return ["admin", "manager"].includes(user?.role);
     return true;
   });
 }
@@ -105,6 +107,13 @@ function ModernModuleIcon({ type, size }) {
           <rect x="17" y="8" width="8" height="8" rx="2" fill="currentColor" opacity="0.36" />
           <rect x="12" y="18" width="8" height="8" rx="2" fill="currentColor" opacity="0.30" />
           <path {...common} d="M11 12h.1M21 12h.1M16 22h.1" />
+        </>
+      ) : null}
+      {type === "audits" ? (
+        <>
+          <rect x="7" y="7" width="18" height="18" rx="4" fill="currentColor" opacity="0.16" />
+          <path {...common} d="M11 12h7M11 16h10M11 20h6" />
+          <path {...common} d="M20 20l2 2 4-5" />
         </>
       ) : null}
       {type === "orders" ? (

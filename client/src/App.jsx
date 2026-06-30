@@ -9,6 +9,7 @@ import ProductsPage from "./pages/ProductsPagePolished";
 import CustomersPage from "./pages/CustomersPageStable";
 import StoresPage from "./pages/StoresPageStable";
 import InventoryPage from "./pages/InventoryPageReady";
+import InventoryAuditsPage from "./pages/InventoryAuditsPage";
 import OrdersPage from "./pages/OrdersPageStable";
 import FinancePage from "./pages/FinancePageStable";
 import EmployeesPage from "./pages/EmployeesPageStable";
@@ -33,6 +34,13 @@ function PrivateRoutes({ user }) {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/stores" element={<StoresPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
+        <Route
+          path="/inventory-audits"
+          element={[
+            "admin",
+            "manager"
+          ].includes(user?.role) ? <InventoryAuditsPage /> : <Navigate to="/" replace />}
+        />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/finance" element={user?.role === "admin" ? <FinancePage /> : <Navigate to="/" replace />} />
         <Route path="/invoices" element={<InvoicesPage />} />
