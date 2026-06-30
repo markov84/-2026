@@ -71,12 +71,24 @@ router.post(
       await applyInventoryDelta({
         productId: item.product,
         storeId: req.body.fromStore,
-        quantityDelta: -Number(item.quantity || 0)
+        quantityDelta: -Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          reason: "Трансфер между магазини (изход)",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
       await applyInventoryDelta({
         productId: item.product,
         storeId: req.body.toStore,
-        quantityDelta: Number(item.quantity || 0)
+        quantityDelta: Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          reason: "Трансфер между магазини (вход)",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 
@@ -142,12 +154,26 @@ router.put(
       await applyInventoryDelta({
         productId: item.product,
         storeId: existingTransfer.fromStore,
-        quantityDelta: Number(item.quantity || 0)
+        quantityDelta: Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: existingTransfer._id,
+          reason: "Отмяна на стар трансфер (връщане към изход)",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
       await applyInventoryDelta({
         productId: item.product,
         storeId: existingTransfer.toStore,
-        quantityDelta: -Number(item.quantity || 0)
+        quantityDelta: -Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: existingTransfer._id,
+          reason: "Отмяна на стар трансфер (изход от цел)",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 
@@ -155,12 +181,26 @@ router.put(
       await applyInventoryDelta({
         productId: item.product,
         storeId: nextFromStore,
-        quantityDelta: -Number(item.quantity || 0)
+        quantityDelta: -Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: existingTransfer._id,
+          reason: "Трансфер (редакция) - изход",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
       await applyInventoryDelta({
         productId: item.product,
         storeId: nextToStore,
-        quantityDelta: Number(item.quantity || 0)
+        quantityDelta: Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: existingTransfer._id,
+          reason: "Трансфер (редакция) - вход",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 
@@ -207,12 +247,26 @@ router.delete("/:id", asyncHandler(async (req, res) => {
       await applyInventoryDelta({
         productId: item.product,
         storeId: transfer.fromStore,
-        quantityDelta: Number(item.quantity || 0)
+        quantityDelta: Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: transfer._id,
+          reason: "Изтриване на трансфер - връщане към изход",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
       await applyInventoryDelta({
         productId: item.product,
         storeId: transfer.toStore,
-        quantityDelta: -Number(item.quantity || 0)
+        quantityDelta: -Number(item.quantity || 0),
+        movement: {
+          sourceModule: "transfer",
+          sourceDocumentId: transfer._id,
+          reason: "Изтриване на трансфер - изход от цел",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 

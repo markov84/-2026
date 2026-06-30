@@ -96,23 +96,32 @@ router.post(
 
     let item;
     if (mode === "replace") {
-      item = await InventoryItem.findOneAndUpdate(
-        { product: req.body.product, store: req.body.store },
-        {
-          product: req.body.product,
-          store: req.body.store,
-          quantity,
-          reorderLevel,
-          reserved: existing?.reserved ?? 0
-        },
-        { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-      );
+      const quantityDelta = quantity - Number(existing?.quantity || 0);
+      item = await applyInventoryDelta({
+        productId: req.body.product,
+        storeId: req.body.store,
+        quantityDelta,
+        reorderLevel,
+        movement: {
+          sourceModule: "inventory",
+          movementType: "adjustment",
+          reason: "Ръчна замяна на наличност",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
+      });
     } else {
       item = await applyInventoryDelta({
         productId: req.body.product,
         storeId: req.body.store,
         quantityDelta: quantity,
-        reorderLevel
+        reorderLevel,
+        movement: {
+          sourceModule: "inventory",
+          reason: "Ръчно добавяне на наличност",
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 

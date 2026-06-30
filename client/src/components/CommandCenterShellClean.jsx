@@ -40,6 +40,7 @@ const navItems = [
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
   { label: "Наличности", path: "/inventory", iconKey: "inventory", color: "#0ca678", bg: "rgba(12,166,120,0.16)" },
+  { label: "Движения", path: "/inventory-movements", iconKey: "movements", color: "#0b7285", bg: "rgba(11,114,133,0.16)" },
   { label: "Ревизии", path: "/inventory-audits", iconKey: "audits", color: "#1971c2", bg: "rgba(25,113,194,0.16)" },
   { label: "Продажби", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
   { label: "Сканиране", path: "/scan", iconKey: "scan", color: "#f59f00", bg: "rgba(245,159,0,0.16)", action: "scan" },
@@ -54,6 +55,7 @@ function getVisibleNavItems(user) {
   return navItems.filter((item) => {
     if (item.path === "/finance") return user?.role === "admin";
     if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
+    if (item.path === "/inventory-movements") return ["admin", "manager"].includes(user?.role);
     if (item.path === "/inventory-audits") return ["admin", "manager"].includes(user?.role);
     return true;
   });
@@ -107,6 +109,14 @@ function ModernModuleIcon({ type, size }) {
           <rect x="17" y="8" width="8" height="8" rx="2" fill="currentColor" opacity="0.36" />
           <rect x="12" y="18" width="8" height="8" rx="2" fill="currentColor" opacity="0.30" />
           <path {...common} d="M11 12h.1M21 12h.1M16 22h.1" />
+        </>
+      ) : null}
+      {type === "movements" ? (
+        <>
+          <path {...common} d="M7 10h14l-3-3M21 10l-3 3" />
+          <path {...common} d="M25 22H11l3-3M11 22l3 3" />
+          <circle cx="9" cy="10" r="1.3" fill="currentColor" opacity="0.55" />
+          <circle cx="23" cy="22" r="1.3" fill="currentColor" opacity="0.55" />
         </>
       ) : null}
       {type === "audits" ? (

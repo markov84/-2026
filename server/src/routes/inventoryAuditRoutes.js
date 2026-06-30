@@ -8,6 +8,7 @@ import { Product } from "../models/Product.js";
 import { Store } from "../models/Store.js";
 import { AuditLog } from "../models/AuditLog.js";
 import { clearCachedJson } from "../lib/routeCache.js";
+import { applyInventoryDelta } from "../lib/inventory.js";
 
 const router = Router();
 
@@ -468,17 +469,26 @@ router.post(
 
     for (const line of updates) {
       const existing = await InventoryItem.findOne({ store: audit.store, product: line.product }).lean();
-      await InventoryItem.findOneAndUpdate(
-        { store: audit.store, product: line.product },
-        {
-          store: audit.store,
-          product: line.product,
-          quantity: toNumber(line.countedQuantity, 0),
-          reserved: toNumber(existing?.reserved, 0),
-          reorderLevel: toNumber(existing?.reorderLevel, 5)
-        },
-        { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-      );
+      const quantityBefore = toNumber(existing?.quantity, 0);
+      const quantityAfter = toNumber(line.countedQuantity, 0);
+      const quantityDelta = quantityAfter - quantityBefore;
+
+      if (quantityDelta !== 0) {
+        await applyInventoryDelta({
+          productId: line.product,
+          storeId: audit.store,
+          quantityDelta,
+          reorderLevel: toNumber(existing?.reorderLevel, 5),
+          movement: {
+            sourceModule: "audit",
+            sourceDocumentId: audit._id,
+            movementType: "adjustment",
+            reason: `Ревизия: ${line.reasonCode || "other"}`,
+            actorUser: req.user?._id,
+            actorName: req.user?.fullName || req.user?.username
+          }
+        });
+      }
     }
 
     await InventoryAudit.findByIdAndUpdate(

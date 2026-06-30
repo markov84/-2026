@@ -243,7 +243,14 @@ router.post(
         await applyInventoryDelta({
           productId: item.product,
           storeId: req.body.store,
-          quantityDelta: -Number(item.quantity || 0)
+          quantityDelta: -Number(item.quantity || 0),
+          movement: {
+            sourceModule: "order",
+            sourceDocumentId: order._id,
+            reason: `Продажба ${order.orderNumber || ""}`.trim(),
+            actorUser: req.user?._id,
+            actorName: req.user?.fullName || req.user?.username
+          }
         });
       } catch (error) {
         await Order.findByIdAndDelete(order._id);
@@ -305,7 +312,14 @@ router.put(
       await applyInventoryDelta({
         productId: item.product,
         storeId: existingOrder.store,
-        quantityDelta: Number(item.quantity || 0)
+        quantityDelta: Number(item.quantity || 0),
+        movement: {
+          sourceModule: "order",
+          sourceDocumentId: existingOrder._id,
+          reason: `Корекция на продажба ${existingOrder.orderNumber || ""}`.trim(),
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 
@@ -313,7 +327,14 @@ router.put(
       await applyInventoryDelta({
         productId: item.product,
         storeId: nextStoreId,
-        quantityDelta: -Number(item.quantity || 0)
+        quantityDelta: -Number(item.quantity || 0),
+        movement: {
+          sourceModule: "order",
+          sourceDocumentId: existingOrder._id,
+          reason: `Продажба (редакция) ${existingOrder.orderNumber || ""}`.trim(),
+          actorUser: req.user?._id,
+          actorName: req.user?.fullName || req.user?.username
+        }
       });
     }
 

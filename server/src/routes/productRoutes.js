@@ -202,7 +202,14 @@ router.post(
           productId: product._id,
           storeId: req.body.initialStore,
           quantityDelta: Number(req.body.initialQuantity || 0),
-          reorderLevel: Number(req.body.lowStockThreshold ?? 5)
+          reorderLevel: Number(req.body.lowStockThreshold ?? 5),
+          movement: {
+            sourceModule: "product",
+            sourceDocumentId: product._id,
+            reason: "Начална наличност при създаване на продукт",
+            actorUser: req.user?._id,
+            actorName: req.user?.fullName || req.user?.username
+          }
         });
         clearCachedJson("inventory:");
       }
