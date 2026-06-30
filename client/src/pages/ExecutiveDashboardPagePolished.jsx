@@ -15,6 +15,7 @@ import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
+import { useAuth } from "../providers/AuthProviderStable";
 
 const pieColors = ["#28566a", "#b66a3c", "#4a7a64", "#d1a34f"];
 const severityColorMap = {
@@ -117,6 +118,8 @@ function MetricPanel({ title, value, helper, icon, onClick }) {
 export default function ExecutiveDashboardPagePolished() {
   const [dashboard, setDashboard] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canViewProfit = Boolean(dashboard?.permissions?.canViewProfit ?? (user?.role === "admin"));
 
   useEffect(() => {
     api
@@ -150,20 +153,38 @@ export default function ExecutiveDashboardPagePolished() {
       </Grid>
 
       <Grid container spacing={2.5}>
+        {canViewProfit ? (
+          <Grid size={{ xs: 12, md: 6, xl: 3 }}>
+            <MetricPanel
+              title="Нетен резултат"
+              value={money(dashboard?.totals?.netProfit)}
+              helper={`Приходи ${money(dashboard?.totals?.totalRevenue)}`}
+              icon={<TrendingUpRoundedIcon />}
+              onClick={() => navigate("/finance")}
+            />
+          </Grid>
+        ) : null}
         <Grid size={{ xs: 12, md: 6, xl: 3 }}>
           <MetricPanel
-            title="Нетен резултат"
-            value={money(dashboard?.totals?.netProfit)}
-            helper={`Приходи ${money(dashboard?.totals?.totalRevenue)}`}
+            title="Дневен оборот"
+            value={money(dashboard?.totals?.dailyTurnover)}
+            helper="Оборот за днешния ден"
             icon={<TrendingUpRoundedIcon />}
-            onClick={() => navigate("/finance")}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}>
+          <MetricPanel
+            title="Месечен оборот"
+            value={money(dashboard?.totals?.monthlyTurnover)}
+            helper="Оборот за текущия месец"
+            icon={<TrendingUpRoundedIcon />}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6, xl: 3 }}>
           <MetricPanel
             title="Банкова наличност"
             value={money(dashboard?.totals?.bankBalance)}
-            helper={`Разходи ${money(dashboard?.totals?.totalExpenses)}`}
+            helper={canViewProfit ? `Разходи ${money(dashboard?.totals?.totalExpenses)}` : undefined}
             icon={<SavingsRoundedIcon />}
             onClick={() => navigate("/finance")}
           />

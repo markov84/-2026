@@ -19,7 +19,26 @@ const severityLabels = {
 };
 
 router.get("/", async (req, res) => {
-  const [productCount, storeCount, customerCount, orderCount, inventoryItems, recentOrders, financeEntries, auditLogs, financeTotals] =
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfNextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const isAdmin = req.user?.role === "admin";
+
+  const [
+    productCount,
+    storeCount,
+    customerCount,
+    orderCount,
+    inventoryItems,
+    recentOrders,
+    financeEntries,
+    auditLogs,
+    financeTotals,
+    dailyTurnoverTotals,
+    monthlyTurnoverTotals
+  ] =
     await Promise.all([
       Product.countDocuments(),
       Store.countDocuments(),
@@ -55,6 +74,40 @@ router.get("/", async (req, res) => {
             }
           }
         }
+      ]),
+      FinancialEntry.aggregate([
+        {
+          $match: {
+            type: "income",
+            entryDate: {
+              $gte: startOfDay,
+              $lt: startOfNextDay
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" }
+          }
+        }
+      ]),
+      FinancialEntry.aggregate([
+        {
+          $match: {
+            type: "income",
+            entryDate: {
+              $gte: startOfMonth,
+              $lt: startOfNextMonth
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" }
+          }
+        }
       ])
     ]);
 
@@ -65,6 +118,8 @@ router.get("/", async (req, res) => {
   const totalRevenue = Number(financeTotals?.[0]?.totalRevenue || 0);
   const totalExpenses = Number(financeTotals?.[0]?.totalExpenses || 0);
   const bankBalance = Number(financeTotals?.[0]?.bankBalance || 0);
+  const dailyTurnover = Number(dailyTurnoverTotals?.[0]?.total || 0);
+  const monthlyTurnover = Number(monthlyTurnoverTotals?.[0]?.total || 0);
 
   return res.json({
     stats: [
@@ -90,11 +145,16 @@ router.get("/", async (req, res) => {
     ],
     totals: {
       totalRevenue,
-      totalExpenses,
-      netProfit: totalRevenue - totalExpenses,
+      totalExpenses: isAdmin ? totalExpenses : null,
+      netProfit: isAdmin ? totalRevenue - totalExpenses : null,
+      dailyTurnover,
+      monthlyTurnover,
       bankBalance,
       orderCount,
       lowStockCount: lowStockItems.length
+    },
+    permissions: {
+      canViewProfit: isAdmin
     },
     recentOrders,
     recentLowStock: lowStockItems.slice(0, 5).map((item) => ({
