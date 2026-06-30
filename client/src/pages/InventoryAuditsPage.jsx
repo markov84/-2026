@@ -71,6 +71,7 @@ export default function InventoryAuditsPage() {
   const [productSelectionModel, setProductSelectionModel] = useState([]);
   const [showOnlyUncounted, setShowOnlyUncounted] = useState(false);
   const [showOnlyWithDifference, setShowOnlyWithDifference] = useState(false);
+  const [focusLineProductId, setFocusLineProductId] = useState("");
 
   const [createForm, setCreateForm] = useState({
     store: "",
@@ -219,8 +220,20 @@ export default function InventoryAuditsPage() {
     }
 
     try {
-      await api.post(`/inventory-audits/${selectedAudit._id}/scan`, { code: normalizedCode, quantityDelta: 1 });
-      await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
+      const matchedProduct = findProductByScanCode(products, normalizedCode);
+      const response = await api.post(`/inventory-audits/${selectedAudit._id}/scan`, { code: normalizedCode, quantityDelta: 1 });
+      setSelectedAudit(response.data);
+      await refresh();
+
+      if (matchedProduct?._id) {
+        setManualProduct(matchedProduct);
+        setProductSelectionModel([matchedProduct._id]);
+        setFocusLineProductId(String(matchedProduct._id));
+        setShowOnlyUncounted(false);
+        setShowOnlyWithDifference(false);
+        setProductFilterQuery(matchedProduct?.name || normalizedCode);
+      }
+
       toast.success(`Сканиран код: ${normalizedCode}`);
       setScanOpen(false);
     } catch (error) {
@@ -381,6 +394,11 @@ export default function InventoryAuditsPage() {
 
   const filteredLineRows = useMemo(() => {
     return lineRows.filter((row) => {
+      const lineProductId = String(row?.product?._id || row?.product || "");
+      if (focusLineProductId && lineProductId !== String(focusLineProductId)) {
+        return false;
+      }
+
       if (showOnlyUncounted && row?.isCounted) {
         return false;
       }
@@ -392,7 +410,13 @@ export default function InventoryAuditsPage() {
 
       return true;
     });
-  }, [lineRows, showOnlyUncounted, showOnlyWithDifference]);
+  }, [focusLineProductId, lineRows, showOnlyUncounted, showOnlyWithDifference]);
+
+  const focusedLineRowId = useMemo(() => {
+    if (!focusLineProductId) return null;
+    const found = filteredLineRows.find((row) => String(row?.product?._id || row?.product || "") === String(focusLineProductId));
+    return found?.id || null;
+  }, [filteredLineRows, focusLineProductId]);
 
   const productRows = useMemo(
     () => (Array.isArray(products) ? products : []).map((product) => ({
@@ -646,6 +670,11 @@ export default function InventoryAuditsPage() {
                 control={<Checkbox checked={showOnlyWithDifference} onChange={(event) => setShowOnlyWithDifference(event.target.checked)} />}
                 label="Само с разлика"
               />
+              {focusLineProductId ? (
+                <Button size="small" variant="outlined" onClick={() => setFocusLineProductId("")}>
+                  Покажи всички продукти
+                </Button>
+              ) : null}
             </Stack>
 
             <Accordion disableGutters defaultExpanded sx={{ borderRadius: 2 }}>
@@ -705,11 +734,13 @@ export default function InventoryAuditsPage() {
                 <DataGrid
                   loading={auditLoading}
                   rows={filteredLineRows}
+                  rowSelectionModel={focusedLineRowId ? [focusedLineRowId] : []}
                   onRowClick={(params) => {
                     setManualProduct(params.row?.product || null);
                     setManualCounted(String(Number(params.row?.countedQuantity || 0)));
                     setManualReasonCode(params.row?.reasonCode || "other");
                     setManualNote(params.row?.note || "");
+                    setFocusLineProductId(String(params.row?.product?._id || params.row?.product || ""));
                   }}
                   columns={[
                   { field: "productName", headerName: "Продукт", flex: 1.3 },
