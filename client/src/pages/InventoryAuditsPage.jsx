@@ -982,8 +982,8 @@ export default function InventoryAuditsPage() {
                   }}
                   sx={{
                     "& .audit-row-ok .MuiDataGrid-cell": {
-                      bgcolor: "rgba(56, 142, 60, 0.08)",
-                      borderLeft: "4px solid rgba(56, 142, 60, 0.55)"
+                      bgcolor: "rgba(46, 125, 50, 0.18)",
+                      borderLeft: "4px solid rgba(46, 125, 50, 0.88)"
                     },
                     "& .audit-row-diff .MuiDataGrid-cell": {
                       bgcolor: "rgba(211, 47, 47, 0.10)",
