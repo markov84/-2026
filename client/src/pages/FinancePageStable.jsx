@@ -131,6 +131,13 @@ function getFinanceEntries(value) {
   return [];
 }
 
+function getSourceOrderId(entry) {
+  if (!entry?.sourceOrder) return "";
+  if (typeof entry.sourceOrder === "string") return entry.sourceOrder;
+  if (typeof entry.sourceOrder === "object" && entry.sourceOrder._id) return String(entry.sourceOrder._id);
+  return "";
+}
+
 function buildFinanceState(value) {
   const entries = getFinanceEntries(value);
   const income = entries.filter((entry) => entry.type === "income").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
@@ -148,19 +155,42 @@ function buildFinanceState(value) {
   };
 }
 
-function buildFinanceRow(entry) {
-  const amount = Number(entry.amount || 0);
-  const profitValue = entry.type === "income" ? amount : entry.type === "expense" ? -amount : 0;
+function buildFinanceRows(entries) {
+  const orderExpenseById = new Map();
 
-  return {
-    ...entry,
-    typeLabel: translateFinanceType(entry.type),
-    categoryLabel: translateFinanceText(entry.category),
-    descriptionLabel: translateFinanceText(entry.description),
-    storeLabel: entry.store?.name || "Централа",
-    amountLabel: formatCurrencyEUR(entry.amount),
-    profitLabel: `${profitValue > 0 ? "+" : ""}${formatCurrencyEUR(profitValue)}`
-  };
+  entries.forEach((entry) => {
+    if (entry?.source !== "order" || entry?.type !== "expense") return;
+    const sourceOrderId = getSourceOrderId(entry);
+    if (!sourceOrderId) return;
+    const current = Number(orderExpenseById.get(sourceOrderId) || 0);
+    orderExpenseById.set(sourceOrderId, current + Number(entry.amount || 0));
+  });
+
+  return entries.map((entry) => {
+  const amount = Number(entry.amount || 0);
+    const sourceOrderId = getSourceOrderId(entry);
+
+    let profitValue = entry.type === "income" ? amount : entry.type === "expense" ? -amount : 0;
+
+    if (entry?.source === "order" && entry?.type === "income" && sourceOrderId) {
+      const orderExpense = Number(orderExpenseById.get(sourceOrderId) || 0);
+      profitValue = amount - orderExpense;
+    }
+
+    if (entry?.source === "order" && entry?.type === "expense" && sourceOrderId) {
+      profitValue = 0;
+    }
+
+    return {
+      ...entry,
+      typeLabel: translateFinanceType(entry.type),
+      categoryLabel: translateFinanceText(entry.category),
+      descriptionLabel: translateFinanceText(entry.description),
+      storeLabel: entry.store?.name || "Централа",
+      amountLabel: formatCurrencyEUR(entry.amount),
+      profitLabel: `${profitValue > 0 ? "+" : ""}${formatCurrencyEUR(profitValue)}`
+    };
+  });
 }
 
 function validateEntry(entry) {
@@ -190,7 +220,7 @@ export default function FinancePageStable() {
   const summary = useMemo(() => buildFinanceState(periodEntries).summary, [periodEntries]);
   const displayEntries = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const rows = periodEntries.map(buildFinanceRow);
+    const rows = buildFinanceRows(periodEntries);
     if (!normalized) return rows;
 
     return rows.filter((entry) =>
