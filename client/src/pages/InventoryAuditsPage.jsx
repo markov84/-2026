@@ -19,7 +19,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
-import { parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const statusLabelMap = {
   draft: "Чернова",
@@ -65,6 +65,9 @@ export default function InventoryAuditsPage() {
   const [manualCounted, setManualCounted] = useState("0");
   const [manualReasonCode, setManualReasonCode] = useState("other");
   const [manualNote, setManualNote] = useState("");
+  const [productFilterQuery, setProductFilterQuery] = useState("");
+  const [productScanInput, setProductScanInput] = useState("");
+  const [productSelectionModel, setProductSelectionModel] = useState([]);
 
   const [createForm, setCreateForm] = useState({
     store: "",
@@ -273,6 +276,43 @@ export default function InventoryAuditsPage() {
     }
   }
 
+  function handleSelectProductFromTable() {
+    const selectedId = productSelectionModel?.[0];
+    if (!selectedId) {
+      toast.error("Избери продукт от таблицата.");
+      return;
+    }
+
+    const selected = (Array.isArray(products) ? products : []).find((item) => String(item?._id) === String(selectedId));
+    if (!selected) {
+      toast.error("Избраният продукт не е намерен.");
+      return;
+    }
+
+    setManualProduct(selected);
+    toast.success(`Избран продукт: ${selected.name || selected.sku || selected.barcode || "-"}`);
+  }
+
+  function handleScanProductInput() {
+    const normalized = parseScannedInput(productScanInput);
+    if (!normalized) {
+      toast.error("Невалиден код за търсене.");
+      return;
+    }
+
+    const matched = findProductByScanCode(products, normalized);
+    if (!matched?._id) {
+      toast.error(`Няма продукт за код: ${normalized}`);
+      return;
+    }
+
+    setManualProduct(matched);
+    setProductSelectionModel([matched._id]);
+    setProductFilterQuery(normalized);
+    setProductScanInput("");
+    toast.success(`Намерен продукт: ${matched.name || matched.sku || matched.barcode || normalized}`);
+  }
+
   function updateSelectedLine(productId, patch) {
     setSelectedAudit((current) => {
       if (!current) return current;
@@ -335,6 +375,35 @@ export default function InventoryAuditsPage() {
     productName: line.product?.name || "-",
     sku: line.product?.sku || "-"
   }));
+
+  const productRows = useMemo(
+    () => (Array.isArray(products) ? products : []).map((product) => ({
+      id: product._id,
+      ...product
+    })),
+    [products]
+  );
+
+  const filteredProductRows = useMemo(() => {
+    const query = String(productFilterQuery || "").trim().toLowerCase();
+    if (!query) return productRows;
+
+    return productRows.filter((product) => {
+      const haystack = [
+        product?.name,
+        product?.sku,
+        product?.barcode,
+        product?.productNumber,
+        product?.qrCode,
+        product?.category,
+        product?.brand
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [productFilterQuery, productRows]);
 
   return (
     <Stack spacing={3}>
@@ -451,6 +520,63 @@ export default function InventoryAuditsPage() {
             {selectedAudit.status === "review" && user?.role !== "admin" ? (
               <Alert severity="warning">Ревизията е подадена. Финалното приключване се прави от администратор.</Alert>
             ) : null}
+
+            <Stack spacing={1.2}>
+              <Typography variant="subtitle2">Избор на продукт (таблица + филтър + сканиране)</Typography>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Филтър по име, SKU, баркод, QR"
+                  value={productFilterQuery}
+                  onChange={(event) => setProductFilterQuery(event.target.value)}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Сканирай/въведи код"
+                  value={productScanInput}
+                  onChange={(event) => setProductScanInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleScanProductInput();
+                    }
+                  }}
+                />
+                <Button variant="outlined" onClick={handleScanProductInput} disabled={!productScanInput.trim()}>
+                  Намери по код
+                </Button>
+                <Button variant="outlined" onClick={handleSelectProductFromTable} disabled={!productSelectionModel.length}>
+                  Избери продукт
+                </Button>
+              </Stack>
+
+              <ResponsiveTable>
+                <DataGrid
+                  autoHeight
+                  rows={filteredProductRows}
+                  loading={loading}
+                  checkboxSelection
+                  disableMultipleRowSelection
+                  rowSelectionModel={productSelectionModel}
+                  onRowSelectionModelChange={(nextSelection) => setProductSelectionModel(nextSelection)}
+                  columns={[
+                    { field: "name", headerName: "Продукт", flex: 1.2 },
+                    { field: "sku", headerName: "SKU", flex: 0.8 },
+                    { field: "barcode", headerName: "Баркод", flex: 0.9 },
+                    { field: "productNumber", headerName: "Номер", flex: 0.8 },
+                    { field: "qrCode", headerName: "QR", flex: 0.9 }
+                  ]}
+                  pageSizeOptions={[5, 10, 20]}
+                  initialState={{ pagination: { paginationModel: { pageSize: 5, page: 0 } } }}
+                  onRowClick={(params) => {
+                    setProductSelectionModel([params.row.id]);
+                    setManualProduct(params.row);
+                  }}
+                />
+              </ResponsiveTable>
+            </Stack>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
               <Autocomplete
