@@ -250,6 +250,7 @@ export default function InventoryAuditsPage() {
               { field: "storeLabel", headerName: "Магазин", flex: 1.2 },
               { field: "zone", headerName: "Зона", flex: 0.9 },
               { field: "linesCount", headerName: "Редове", flex: 0.6 },
+              { field: "countedLinesCount", headerName: "Преброени", flex: 0.7 },
               { field: "differencesCount", headerName: "Разлики", flex: 0.7 },
               {
                 field: "statusLabel",
@@ -365,9 +366,14 @@ export default function InventoryAuditsPage() {
                     field: "differenceQuantity",
                     headerName: "Разлика",
                     flex: 0.7,
-                    valueGetter: (_, row) => (canShowExpected ? Number(row.differenceQuantity || 0) : "***"),
+                    valueGetter: (_, row) => {
+                      if (!canShowExpected) return "***";
+                      if (row.isCounted === false || row.differenceQuantity == null) return "-";
+                      return Number(row.differenceQuantity || 0);
+                    },
                     renderCell: (params) => {
                       if (!canShowExpected) return <Typography>***</Typography>;
+                      if (params.row?.isCounted === false || params.row?.differenceQuantity == null) return <Typography>-</Typography>;
                       const value = Number(params.value || 0);
                       return <Typography color={value === 0 ? "text.primary" : value > 0 ? "success.main" : "error.main"}>{value}</Typography>;
                     }
@@ -389,7 +395,7 @@ export default function InventoryAuditsPage() {
                   { field: "note", headerName: "Бележка", flex: 1 }
                 ]}
                 disableRowSelectionOnClick
-                getRowClassName={(params) => Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : ""}
+                getRowClassName={(params) => (params.row?.isCounted && Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : "")}
                 sx={{
                   "& .audit-row-diff .MuiDataGrid-cell": {
                     bgcolor: "rgba(255, 152, 0, 0.06)",

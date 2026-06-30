@@ -56,17 +56,23 @@ function requiresReasonCode(expectedQuantity, countedQuantity) {
   return Math.abs(getDifference(expectedQuantity, countedQuantity)) > 0;
 }
 
+function isLineCounted(line) {
+  return Boolean(line?.scannedAt || line?.scannedBy || toNumber(line?.recountCount, 0) > 0);
+}
+
 function mapAuditSummary(audit) {
   const lines = Array.isArray(audit?.lines) ? audit.lines : [];
-  const differences = lines.filter((line) => toNumber(line.countedQuantity) !== toNumber(line.expectedQuantity));
+  const countedLines = lines.filter((line) => isLineCounted(line));
+  const differences = countedLines.filter((line) => toNumber(line.countedQuantity) !== toNumber(line.expectedQuantity));
   const recountPending = lines.filter((line) => line.needsRecount).length;
   const totalExpected = lines.reduce((sum, line) => sum + toNumber(line.expectedQuantity), 0);
-  const totalDiffAbs = lines.reduce((sum, line) => sum + Math.abs(getDifference(line.expectedQuantity, line.countedQuantity)), 0);
+  const totalDiffAbs = countedLines.reduce((sum, line) => sum + Math.abs(getDifference(line.expectedQuantity, line.countedQuantity)), 0);
   const accuracy = totalExpected > 0 ? Math.max(0, ((totalExpected - totalDiffAbs) / totalExpected) * 100) : 100;
 
   return {
     ...audit,
     linesCount: lines.length,
+    countedLinesCount: countedLines.length,
     differencesCount: differences.length,
     recountPending,
     accuracy,
@@ -83,11 +89,13 @@ function mapAuditDetail(audit) {
     lines: lines.map((line) => {
       const expectedQuantity = toNumber(line.expectedQuantity);
       const countedQuantity = toNumber(line.countedQuantity);
+      const counted = isLineCounted(line);
       return {
         ...line,
         expectedQuantity,
         countedQuantity,
-        differenceQuantity: countedQuantity - expectedQuantity,
+        differenceQuantity: counted ? countedQuantity - expectedQuantity : null,
+        isCounted: counted,
         needsRecount: Boolean(line.needsRecount)
       };
     })
