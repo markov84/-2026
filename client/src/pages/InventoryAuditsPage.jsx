@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import PlaylistAddCheckRoundedIcon from "@mui/icons-material/PlaylistAddCheckRounded";
@@ -73,6 +74,8 @@ export default function InventoryAuditsPage() {
   const [showOnlyUncounted, setShowOnlyUncounted] = useState(false);
   const [showOnlyWithDifference, setShowOnlyWithDifference] = useState(false);
   const [selectedLineRowId, setSelectedLineRowId] = useState("");
+  const [savingRowIds, setSavingRowIds] = useState({});
+  const [savedRowIds, setSavedRowIds] = useState({});
 
   const [createForm, setCreateForm] = useState({
     store: "",
@@ -348,6 +351,9 @@ export default function InventoryAuditsPage() {
 
     const productId = payload?.product?._id || payload?.product;
     if (!productId) return;
+    const rowId = String(payload?.id || productId);
+
+    setSavingRowIds((current) => ({ ...current, [rowId]: true }));
 
     try {
       const response = await api.put(`/inventory-audits/${selectedAudit._id}/line`, {
@@ -358,8 +364,22 @@ export default function InventoryAuditsPage() {
       });
       setSelectedAudit(response.data);
       void refresh();
+      setSavedRowIds((current) => ({ ...current, [rowId]: true }));
+      setTimeout(() => {
+        setSavedRowIds((current) => {
+          const next = { ...current };
+          delete next[rowId];
+          return next;
+        });
+      }, 1500);
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно записване на реда.");
+    } finally {
+      setSavingRowIds((current) => {
+        const next = { ...current };
+        delete next[rowId];
+        return next;
+      });
     }
   }
 
@@ -845,11 +865,30 @@ export default function InventoryAuditsPage() {
                     filterable: false,
                     align: "center",
                     width: 110,
-                    renderCell: (params) => (
-                      <Button size="small" variant="text" onClick={() => void handleInlineSave(params.row)} disabled={!canEditLines}>
-                        Запиши
-                      </Button>
-                    )
+                    renderCell: (params) => {
+                      const rowKey = String(params.row?.id || "");
+                      const isSaving = Boolean(savingRowIds[rowKey]);
+                      const isSaved = Boolean(savedRowIds[rowKey]);
+
+                      if (isSaving) {
+                        return <Typography variant="caption" color="text.secondary">Записва...</Typography>;
+                      }
+
+                      if (isSaved) {
+                        return (
+                          <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center" sx={{ color: "success.main" }}>
+                            <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />
+                            <Typography variant="caption">Записано</Typography>
+                          </Stack>
+                        );
+                      }
+
+                      return (
+                        <Button size="small" variant="text" onClick={() => void handleInlineSave(params.row)} disabled={!canEditLines}>
+                          Запиши
+                        </Button>
+                      );
+                    }
                   }
                   ]}
                   disableRowSelectionOnClick
