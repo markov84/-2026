@@ -13,6 +13,7 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
   const onScanRef = useRef(onScan);
   const bufferRef = useRef("");
   const lastKeyAtRef = useRef(0);
+  const idleTimerRef = useRef(null);
 
   useEffect(() => {
     onScanRef.current = onScan;
@@ -20,6 +21,29 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
 
   useEffect(() => {
     if (!enabled) return undefined;
+
+    const config = typeof enabled === "object" ? enabled : {};
+    const captureInInputs = Boolean(config.captureInInputs);
+    const flushOnIdle = Boolean(config.flushOnIdle);
+    const minLength = Number.isFinite(Number(config.minLength)) ? Number(config.minLength) : 4;
+    const idleMs = Number.isFinite(Number(config.idleMs)) ? Number(config.idleMs) : 90;
+
+    function flushBuffer() {
+      const rawCode = bufferRef.current.trim();
+      bufferRef.current = "";
+      if (!rawCode || rawCode.length < minLength) return;
+      onScanRef.current?.(rawCode);
+    }
+
+    function scheduleIdleFlush() {
+      if (!flushOnIdle) return;
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+      idleTimerRef.current = setTimeout(() => {
+        flushBuffer();
+      }, idleMs);
+    }
 
     function onWindowKeyDown(event) {
       if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
@@ -40,28 +64,35 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
       lastKeyAtRef.current = now;
 
       if (event.key.length === 1) {
-        if (typingTarget) return;
+        if (typingTarget && !captureInInputs) return;
         bufferRef.current += event.key;
         if (bufferRef.current.length > 220) {
           bufferRef.current = "";
         }
+        scheduleIdleFlush();
         return;
       }
 
       if (!isSubmitKey) {
-        if (typingTarget) return;
+        if (typingTarget && !captureInInputs) return;
         return;
       }
 
-      const rawCode = bufferRef.current.trim();
-      bufferRef.current = "";
-      if (!rawCode || rawCode.length < 4) return;
-
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
       event.preventDefault();
-      onScanRef.current?.(rawCode);
+      flushBuffer();
     }
 
     window.addEventListener("keydown", onWindowKeyDown, true);
-    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onWindowKeyDown, true);
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    };
   }, [enabled]);
 }

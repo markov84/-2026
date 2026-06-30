@@ -105,10 +105,27 @@ export default function InventoryAuditsPage() {
     }
   }, [selectedAuditId]);
 
-  useBarcodeKeyboardScan((code) => {
-    if (!selectedAudit?._id || ["completed", "review"].includes(selectedAudit?.status)) return;
-    void handleScanDetected(code);
-  });
+  useBarcodeKeyboardScan(
+    (code) => {
+      if (!selectedAudit?._id) {
+        toast.error("Избери ревизия преди сканиране.");
+        return;
+      }
+
+      if (["completed", "review"].includes(selectedAudit?.status)) {
+        toast.error("Ревизията е заключена. Върни я в режим броене.");
+        return;
+      }
+
+      void handleScanDetected(code);
+    },
+    {
+      captureInInputs: true,
+      flushOnIdle: true,
+      idleMs: 90,
+      minLength: 4
+    }
+  );
 
   async function handleCreate() {
     if (!createForm.store) {
