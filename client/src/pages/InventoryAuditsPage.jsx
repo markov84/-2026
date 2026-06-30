@@ -974,11 +974,20 @@ export default function InventoryAuditsPage() {
                   density="compact"
                   pageSizeOptions={[10, 25, 50, 100]}
                   initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
-                  getRowClassName={(params) => (params.row?.isCounted && Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : "")}
+                  getRowClassName={(params) => {
+                    if (!params.row?.isCounted) return "";
+                    const diff = Number(params.row.differenceQuantity || 0);
+                    if (diff === 0) return "audit-row-ok";
+                    return "audit-row-diff";
+                  }}
                   sx={{
+                    "& .audit-row-ok .MuiDataGrid-cell": {
+                      bgcolor: "rgba(56, 142, 60, 0.08)",
+                      borderLeft: "4px solid rgba(56, 142, 60, 0.55)"
+                    },
                     "& .audit-row-diff .MuiDataGrid-cell": {
-                      bgcolor: "rgba(255, 152, 0, 0.06)",
-                      borderLeft: "4px solid rgba(255, 152, 0, 0.5)"
+                      bgcolor: "rgba(211, 47, 47, 0.10)",
+                      borderLeft: "4px solid rgba(211, 47, 47, 0.7)"
                     }
                   }}
                 />
