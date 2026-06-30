@@ -14,6 +14,8 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
   const bufferRef = useRef("");
   const lastKeyAtRef = useRef(0);
   const idleTimerRef = useRef(null);
+  const captureTargetRef = useRef(null);
+  const captureInitialValueRef = useRef("");
 
   useEffect(() => {
     onScanRef.current = onScan;
@@ -28,11 +30,42 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
     const minLength = Number.isFinite(Number(config.minLength)) ? Number(config.minLength) : 4;
     const idleMs = Number.isFinite(Number(config.idleMs)) ? Number(config.idleMs) : 90;
 
+    function resetCaptureContext() {
+      captureTargetRef.current = null;
+      captureInitialValueRef.current = "";
+    }
+
+    function cleanupCapturedInput(scannedCode) {
+      if (!captureInInputs) return;
+      const target = captureTargetRef.current;
+      if (!target || !(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+
+      const currentValue = String(target.value ?? "");
+      const code = String(scannedCode || "");
+      if (!code) return;
+
+      if (currentValue.endsWith(code)) {
+        target.value = captureInitialValueRef.current;
+      } else if (currentValue.includes(code)) {
+        target.value = currentValue.replace(code, "");
+      }
+
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
     function flushBuffer() {
       const rawCode = bufferRef.current.trim();
       bufferRef.current = "";
-      if (!rawCode || rawCode.length < minLength) return;
+      if (!rawCode || rawCode.length < minLength) {
+        resetCaptureContext();
+        return;
+      }
+
+      cleanupCapturedInput(rawCode);
       onScanRef.current?.(rawCode);
+      resetCaptureContext();
     }
 
     function scheduleIdleFlush() {
@@ -60,14 +93,22 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
       const now = Date.now();
       if (now - lastKeyAtRef.current > 120) {
         bufferRef.current = "";
+        resetCaptureContext();
       }
       lastKeyAtRef.current = now;
 
       if (event.key.length === 1) {
         if (typingTarget && !captureInInputs) return;
+        if (!bufferRef.current.length) {
+          captureTargetRef.current = typingTarget ? event.target : null;
+          captureInitialValueRef.current = typingTarget && (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+            ? String(event.target.value ?? "")
+            : "";
+        }
         bufferRef.current += event.key;
         if (bufferRef.current.length > 220) {
           bufferRef.current = "";
+          resetCaptureContext();
         }
         scheduleIdleFlush();
         return;
@@ -93,6 +134,7 @@ export function useBarcodeKeyboardScan(onScan, enabled = true) {
         clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
       }
+      resetCaptureContext();
     };
   }, [enabled]);
 }
