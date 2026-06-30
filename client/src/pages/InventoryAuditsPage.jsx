@@ -72,7 +72,7 @@ export default function InventoryAuditsPage() {
   const [productSelectionModel, setProductSelectionModel] = useState([]);
   const [showOnlyUncounted, setShowOnlyUncounted] = useState(false);
   const [showOnlyWithDifference, setShowOnlyWithDifference] = useState(false);
-  const [focusLineProductId, setFocusLineProductId] = useState("");
+  const [selectedLineRowId, setSelectedLineRowId] = useState("");
 
   const [createForm, setCreateForm] = useState({
     store: "",
@@ -229,7 +229,6 @@ export default function InventoryAuditsPage() {
       if (matchedProduct?._id) {
         setManualProduct(matchedProduct);
         setProductSelectionModel([matchedProduct._id]);
-        setFocusLineProductId(String(matchedProduct._id));
         setShowOnlyUncounted(false);
         setShowOnlyWithDifference(false);
         setProductFilterQuery(matchedProduct?.name || normalizedCode);
@@ -344,27 +343,29 @@ export default function InventoryAuditsPage() {
     });
   }
 
-  async function handleInlineSave(row) {
+  async function saveInlineRowByData(payload) {
     if (!selectedAudit?._id) return;
 
-    const productId = row?.product?._id || row?.product;
-    if (!productId) {
-      toast.error("Липсва продукт за записа.");
-      return;
-    }
+    const productId = payload?.product?._id || payload?.product;
+    if (!productId) return;
 
     try {
-      await api.put(`/inventory-audits/${selectedAudit._id}/line`, {
+      const response = await api.put(`/inventory-audits/${selectedAudit._id}/line`, {
         productId,
-        countedQuantity: Number(row.countedQuantity || 0),
-        reasonCode: row.reasonCode || "other",
-        note: row.note || ""
+        countedQuantity: Number(payload.countedQuantity || 0),
+        reasonCode: payload.reasonCode || "other",
+        note: payload.note || ""
       });
-      await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
-      toast.success("Редът е записан.");
+      setSelectedAudit(response.data);
+      void refresh();
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно записване на реда.");
     }
+  }
+
+  async function handleInlineSave(row) {
+    await saveInlineRowByData(row);
+    toast.success("Редът е записан.");
   }
 
   const canShowExpected = !selectedAudit?.blindMode || selectedAudit?.status === "completed";
@@ -395,11 +396,6 @@ export default function InventoryAuditsPage() {
 
   const filteredLineRows = useMemo(() => {
     return lineRows.filter((row) => {
-      const lineProductId = String(row?.product?._id || row?.product || "");
-      if (focusLineProductId && lineProductId !== String(focusLineProductId)) {
-        return false;
-      }
-
       if (showOnlyUncounted && row?.isCounted) {
         return false;
       }
@@ -411,13 +407,13 @@ export default function InventoryAuditsPage() {
 
       return true;
     });
-  }, [focusLineProductId, lineRows, showOnlyUncounted, showOnlyWithDifference]);
+  }, [lineRows, showOnlyUncounted, showOnlyWithDifference]);
 
   const focusedLineRowId = useMemo(() => {
-    if (!focusLineProductId) return null;
-    const found = filteredLineRows.find((row) => String(row?.product?._id || row?.product || "") === String(focusLineProductId));
+    if (!manualProduct?._id) return selectedLineRowId || null;
+    const found = filteredLineRows.find((row) => String(row?.product?._id || row?.product || "") === String(manualProduct._id));
     return found?.id || null;
-  }, [filteredLineRows, focusLineProductId]);
+  }, [filteredLineRows, manualProduct, selectedLineRowId]);
 
   useEffect(() => {
     if (!focusedLineRowId || !lineGridApiRef?.current?.getRowIndexRelativeToVisibleRows) return;
@@ -680,11 +676,6 @@ export default function InventoryAuditsPage() {
                 control={<Checkbox checked={showOnlyWithDifference} onChange={(event) => setShowOnlyWithDifference(event.target.checked)} />}
                 label="Само с разлика"
               />
-              {focusLineProductId ? (
-                <Button size="small" variant="outlined" onClick={() => setFocusLineProductId("")}>
-                  Покажи всички продукти
-                </Button>
-              ) : null}
             </Stack>
 
             <Accordion disableGutters defaultExpanded sx={{ borderRadius: 2 }}>
@@ -751,7 +742,7 @@ export default function InventoryAuditsPage() {
                     setManualCounted(String(Number(params.row?.countedQuantity || 0)));
                     setManualReasonCode(params.row?.reasonCode || "other");
                     setManualNote(params.row?.note || "");
-                    setFocusLineProductId(String(params.row?.product?._id || params.row?.product || ""));
+                    setSelectedLineRowId(String(params.row?.id || ""));
                   }}
                   columns={[
                   { field: "productName", headerName: "Продукт", flex: 1.3 },
@@ -772,6 +763,13 @@ export default function InventoryAuditsPage() {
                         type="number"
                         value={Number(params.row.countedQuantity || 0)}
                         onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { countedQuantity: event.target.value })}
+                        onBlur={() => void saveInlineRowByData(params.row)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void saveInlineRowByData(params.row);
+                          }
+                        }}
                         disabled={!canEditLines}
                         sx={{ width: 110 }}
                         inputProps={{ min: 0 }}
@@ -803,7 +801,11 @@ export default function InventoryAuditsPage() {
                         select
                         size="small"
                         value={params.row.reasonCode || "other"}
-                        onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { reasonCode: event.target.value })}
+                        onChange={(event) => {
+                          const nextRow = { ...params.row, reasonCode: event.target.value };
+                          updateSelectedLine(params.row.product?._id || params.row.product, { reasonCode: event.target.value });
+                          void saveInlineRowByData(nextRow);
+                        }}
                         disabled={!canEditLines}
                         sx={{ minWidth: 170 }}
                       >
@@ -830,6 +832,7 @@ export default function InventoryAuditsPage() {
                         size="small"
                         value={params.row.note || ""}
                         onChange={(event) => updateSelectedLine(params.row.product?._id || params.row.product, { note: event.target.value })}
+                        onBlur={() => void saveInlineRowByData(params.row)}
                         disabled={!canEditLines}
                         sx={{ minWidth: 180 }}
                       />
@@ -843,7 +846,7 @@ export default function InventoryAuditsPage() {
                     align: "center",
                     width: 110,
                     renderCell: (params) => (
-                      <Button size="small" variant="outlined" onClick={() => void handleInlineSave(params.row)} disabled={!canEditLines}>
+                      <Button size="small" variant="text" onClick={() => void handleInlineSave(params.row)} disabled={!canEditLines}>
                         Запиши
                       </Button>
                     )
