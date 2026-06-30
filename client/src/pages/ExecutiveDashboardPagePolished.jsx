@@ -92,7 +92,7 @@ function MetricPanel({ title, value, helper, icon, onClick }) {
               </Typography>
               {helper ? (
                 <Typography variant="body2" color="text.secondary">
-                  {helper}
+                        {helper}
                 </Typography>
               ) : null}
             </Stack>
@@ -214,7 +214,7 @@ export default function ExecutiveDashboardPagePolished() {
           <MetricPanel
             title="Точност ревизии"
             value={`${toNumber(dashboard?.totals?.avgAuditAccuracy).toFixed(1)}%`}
-            helper={`Активни ${toNumber(dashboard?.totals?.activeAudits)} | Re-count ${toNumber(dashboard?.totals?.pendingRecount)}`}
+              helper={`Активни ${toNumber(dashboard?.totals?.activeAudits)} | Повторни броения ${toNumber(dashboard?.totals?.pendingRecount)}`}
             icon={<FactCheckRoundedIcon />}
             onClick={() => navigate("/inventory-audits")}
           />

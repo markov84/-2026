@@ -837,7 +837,7 @@ export default function InventoryAuditsPage() {
                   },
                   {
                     field: "needsRecount",
-                    headerName: "Re-count",
+                    headerName: "Повторно броене",
                     flex: 0.6,
                     renderCell: (params) => (
                       params.value ? <Chip size="small" color="warning" label="Да" /> : <Chip size="small" label="Не" />
