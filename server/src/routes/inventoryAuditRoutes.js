@@ -40,15 +40,36 @@ function createAuditNumber() {
   return `REV-${datePart}-${timePart}-${rand}`;
 }
 
+function getDifference(expectedQuantity, countedQuantity) {
+  return toNumber(countedQuantity, 0) - toNumber(expectedQuantity, 0);
+}
+
+function shouldRequireRecount(audit, expectedQuantity, countedQuantity) {
+  const diff = Math.abs(getDifference(expectedQuantity, countedQuantity));
+  const expected = Math.max(1, toNumber(expectedQuantity, 0));
+  const percentDiff = (diff / expected) * 100;
+  return diff >= toNumber(audit?.recountThresholdUnits, 3) || percentDiff >= toNumber(audit?.recountThresholdPercent, 5);
+}
+
+function requiresReasonCode(expectedQuantity, countedQuantity) {
+  return Math.abs(getDifference(expectedQuantity, countedQuantity)) > 0;
+}
+
 function mapAuditSummary(audit) {
   const lines = Array.isArray(audit?.lines) ? audit.lines : [];
   const differences = lines.filter((line) => toNumber(line.countedQuantity) !== toNumber(line.expectedQuantity));
+  const recountPending = lines.filter((line) => line.needsRecount).length;
+  const totalExpected = lines.reduce((sum, line) => sum + toNumber(line.expectedQuantity), 0);
+  const totalDiffAbs = lines.reduce((sum, line) => sum + Math.abs(getDifference(line.expectedQuantity, line.countedQuantity)), 0);
+  const accuracy = totalExpected > 0 ? Math.max(0, ((totalExpected - totalDiffAbs) / totalExpected) * 100) : 100;
 
   return {
     ...audit,
     linesCount: lines.length,
     differencesCount: differences.length,
-    totalExpected: lines.reduce((sum, line) => sum + toNumber(line.expectedQuantity), 0),
+    recountPending,
+    accuracy,
+    totalExpected,
     totalCounted: lines.reduce((sum, line) => sum + toNumber(line.countedQuantity), 0)
   };
 }
@@ -65,7 +86,8 @@ function mapAuditDetail(audit) {
         ...line,
         expectedQuantity,
         countedQuantity,
-        differenceQuantity: countedQuantity - expectedQuantity
+        differenceQuantity: countedQuantity - expectedQuantity,
+        needsRecount: Boolean(line.needsRecount)
       };
     })
   };
@@ -107,6 +129,7 @@ router.get(
       .limit(100)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("approvedBy", "fullName username")
       .lean();
 
@@ -120,6 +143,7 @@ router.get(
     const audit = await InventoryAudit.findById(req.params.id)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("approvedBy", "fullName username")
       .populate("lines.product", "name sku barcode productNumber category brand")
       .populate("lines.scannedBy", "fullName username")
@@ -165,6 +189,8 @@ router.post(
       zone: req.body.zone?.trim() || "Обща зона",
       blindMode: toBoolean(req.body.blindMode, true),
       status: "counting",
+      recountThresholdPercent: 5,
+      recountThresholdUnits: 3,
       createdBy: req.user._id,
       lines
     });
@@ -180,6 +206,7 @@ router.post(
     const populated = await InventoryAudit.findById(audit._id)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("lines.product", "name sku barcode productNumber category brand")
       .lean();
 
@@ -205,6 +232,10 @@ router.post(
       return res.status(400).json({ message: "Ревизията е заключена и не може да се сканира." });
     }
 
+    if (audit.status === "review") {
+      return res.status(400).json({ message: "Ревизията е в преглед. Върни я в режим броене за промени." });
+    }
+
     const product = await resolveProductForCode(req.body.code, audit.store, audit);
     if (!product) {
       return res.status(404).json({ message: `Няма продукт за код ${req.body.code}.` });
@@ -224,6 +255,10 @@ router.post(
     }
 
     line.countedQuantity = Math.max(0, toNumber(line.countedQuantity, 0) + quantityDelta);
+    line.needsRecount = shouldRequireRecount(audit, line.expectedQuantity, line.countedQuantity);
+    if (line.needsRecount) {
+      line.recountCount = toNumber(line.recountCount, 0) + 1;
+    }
     line.scannedAt = new Date();
     line.scannedBy = req.user._id;
 
@@ -232,6 +267,7 @@ router.post(
     const populated = await InventoryAudit.findById(audit._id)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("approvedBy", "fullName username")
       .populate("lines.product", "name sku barcode productNumber category brand")
       .populate("lines.scannedBy", "fullName username")
@@ -243,7 +279,12 @@ router.post(
 
 router.put(
   "/:id/line",
-  [body("productId").notEmpty(), body("countedQuantity").isFloat({ min: 0 }), body("note").optional().trim()],
+  [
+    body("productId").notEmpty(),
+    body("countedQuantity").isFloat({ min: 0 }),
+    body("note").optional().trim(),
+    body("reasonCode").optional().isIn(["missing", "damage", "wrong-transfer", "counting-error", "other"])
+  ],
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -257,6 +298,10 @@ router.put(
 
     if (["completed", "cancelled"].includes(audit.status)) {
       return res.status(400).json({ message: "Ревизията е заключена." });
+    }
+
+    if (audit.status === "review") {
+      return res.status(400).json({ message: "Ревизията е в преглед. Върни я в режим броене за промени." });
     }
 
     let line = audit.lines.find((item) => String(item.product) === String(req.body.productId));
@@ -274,21 +319,32 @@ router.put(
         product: req.body.productId,
         expectedQuantity: toNumber(inventoryItem?.quantity, 0),
         countedQuantity: toNumber(req.body.countedQuantity, 0),
+        reasonCode: req.body.reasonCode || "other",
         note: req.body.note?.trim() || ""
       });
       line = audit.lines[audit.lines.length - 1];
     }
 
     line.countedQuantity = toNumber(req.body.countedQuantity, 0);
+    line.reasonCode = req.body.reasonCode || line.reasonCode || "other";
     line.note = req.body.note?.trim() || "";
+    line.needsRecount = shouldRequireRecount(audit, line.expectedQuantity, line.countedQuantity);
+    if (line.needsRecount) {
+      line.recountCount = toNumber(line.recountCount, 0) + 1;
+    }
     line.scannedAt = new Date();
     line.scannedBy = req.user._id;
+
+    if (requiresReasonCode(line.expectedQuantity, line.countedQuantity) && !line.reasonCode) {
+      return res.status(400).json({ message: "Избери причина за разлика в количеството." });
+    }
 
     await audit.save();
 
     const populated = await InventoryAudit.findById(audit._id)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("approvedBy", "fullName username")
       .populate("lines.product", "name sku barcode productNumber category brand")
       .populate("lines.scannedBy", "fullName username")
@@ -299,8 +355,92 @@ router.put(
 );
 
 router.post(
-  "/:id/finalize",
+  "/:id/submit-review",
   asyncHandler(async (req, res) => {
+    const audit = await InventoryAudit.findById(req.params.id);
+    if (!audit) {
+      return res.status(404).json({ message: "Ревизията не е намерена." });
+    }
+
+    if (["completed", "cancelled"].includes(audit.status)) {
+      return res.status(400).json({ message: "Ревизията е заключена." });
+    }
+
+    const lines = Array.isArray(audit.lines) ? audit.lines : [];
+    const missingReason = lines.find(
+      (line) => requiresReasonCode(line.expectedQuantity, line.countedQuantity) && !String(line.reasonCode || "").trim()
+    );
+
+    if (missingReason) {
+      return res.status(400).json({ message: "Има редове с разлика без причина. Добави reason code." });
+    }
+
+    const pendingRecount = lines.some((line) => line.needsRecount);
+    if (pendingRecount) {
+      return res.status(400).json({ message: "Има редове за повторно броене. Приключи re-count преди преглед." });
+    }
+
+    audit.status = "review";
+    audit.reviewRequestedAt = new Date();
+    await audit.save();
+
+    await AuditLog.create({
+      action: "review",
+      module: "inventory-audit",
+      message: `Ревизия ${audit.auditNumber} е подадена за одобрение.`,
+      severity: "info",
+      actorName: req.user?.fullName || req.user?.username || "Потребител"
+    });
+
+    const populated = await InventoryAudit.findById(audit._id)
+      .populate("store", "name city")
+      .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
+      .populate("approvedBy", "fullName username")
+      .populate("lines.product", "name sku barcode productNumber category brand")
+      .populate("lines.scannedBy", "fullName username")
+      .lean();
+
+    return res.json(mapAuditDetail(populated));
+  })
+);
+
+router.post(
+  "/:id/reopen-counting",
+  asyncHandler(async (req, res) => {
+    const audit = await InventoryAudit.findById(req.params.id);
+    if (!audit) {
+      return res.status(404).json({ message: "Ревизията не е намерена." });
+    }
+
+    if (audit.status !== "review") {
+      return res.status(400).json({ message: "Само ревизия в статус Преглед може да се върне за броене." });
+    }
+
+    audit.status = "counting";
+    audit.reviewedBy = undefined;
+    await audit.save();
+
+    const populated = await InventoryAudit.findById(audit._id)
+      .populate("store", "name city")
+      .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
+      .populate("approvedBy", "fullName username")
+      .populate("lines.product", "name sku barcode productNumber category brand")
+      .populate("lines.scannedBy", "fullName username")
+      .lean();
+
+    return res.json(mapAuditDetail(populated));
+  })
+);
+
+router.post(
+  "/:id/approve",
+  asyncHandler(async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ message: "Само администратор може да одобрява ревизия." });
+    }
+
     const audit = await InventoryAudit.findById(req.params.id).lean();
     if (!audit) {
       return res.status(404).json({ message: "Ревизията не е намерена." });
@@ -312,6 +452,14 @@ router.post(
 
     if (audit.status === "cancelled") {
       return res.status(400).json({ message: "Отказана ревизия не може да бъде приключена." });
+    }
+
+    if (audit.status !== "review") {
+      return res.status(400).json({ message: "Ревизията трябва да е в статус Преглед преди одобрение." });
+    }
+
+    if (String(audit.createdBy) === String(req.user?._id)) {
+      return res.status(400).json({ message: "Одобрението трябва да бъде от различен потребител." });
     }
 
     const updates = (audit.lines || []).filter(
@@ -337,6 +485,7 @@ router.post(
       audit._id,
       {
         status: "completed",
+        reviewedBy: req.user._id,
         approvedBy: req.user._id,
         completedAt: new Date()
       },
@@ -356,6 +505,7 @@ router.post(
     const populated = await InventoryAudit.findById(audit._id)
       .populate("store", "name city")
       .populate("createdBy", "fullName username")
+      .populate("reviewedBy", "fullName username")
       .populate("approvedBy", "fullName username")
       .populate("lines.product", "name sku barcode productNumber category brand")
       .populate("lines.scannedBy", "fullName username")

@@ -7,6 +7,7 @@ import StoreRoundedIcon from "@mui/icons-material/StoreRounded";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import toast from "react-hot-toast";
@@ -207,6 +208,15 @@ export default function ExecutiveDashboardPagePolished() {
             helper="Свързани обекти в мрежата"
             icon={<StoreRoundedIcon />}
             onClick={() => navigate("/stores")}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}>
+          <MetricPanel
+            title="Точност ревизии"
+            value={`${toNumber(dashboard?.totals?.avgAuditAccuracy).toFixed(1)}%`}
+            helper={`Активни ${toNumber(dashboard?.totals?.activeAudits)} | Re-count ${toNumber(dashboard?.totals?.pendingRecount)}`}
+            icon={<FactCheckRoundedIcon />}
+            onClick={() => navigate("/inventory-audits")}
           />
         </Grid>
       </Grid>

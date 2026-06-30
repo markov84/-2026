@@ -16,6 +16,7 @@ import StatCard from "../components/StatCard";
 import { useFetch } from "../hooks/useFetch";
 import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
+import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 
 const statusLabelMap = {
@@ -34,7 +35,18 @@ const statusColorMap = {
   cancelled: "default"
 };
 
+const reasonCodeOptions = [
+  { value: "missing", label: "Липса" },
+  { value: "damage", label: "Повреда" },
+  { value: "wrong-transfer", label: "Грешен трансфер" },
+  { value: "counting-error", label: "Грешка при броене" },
+  { value: "other", label: "Друго" }
+];
+
+const reasonLabelMap = Object.fromEntries(reasonCodeOptions.map((item) => [item.value, item.label]));
+
 export default function InventoryAuditsPage() {
+  const { user } = useAuth();
   const { data: audits, loading, refresh } = useFetch("/inventory-audits");
   const { data: stores } = useFetch("/stores");
   const { data: products } = useFetch("/products");
@@ -47,6 +59,7 @@ export default function InventoryAuditsPage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [manualProduct, setManualProduct] = useState(null);
   const [manualCounted, setManualCounted] = useState("0");
+  const [manualReasonCode, setManualReasonCode] = useState("other");
   const [manualNote, setManualNote] = useState("");
 
   const [createForm, setCreateForm] = useState({
@@ -89,7 +102,7 @@ export default function InventoryAuditsPage() {
   }, [selectedAuditId]);
 
   useBarcodeKeyboardScan((code) => {
-    if (!selectedAudit?._id || selectedAudit?.status === "completed") return;
+    if (!selectedAudit?._id || ["completed", "review"].includes(selectedAudit?.status)) return;
     void handleScanDetected(code);
   });
 
@@ -115,11 +128,35 @@ export default function InventoryAuditsPage() {
     if (!selectedAudit?._id) return;
 
     try {
-      await api.post(`/inventory-audits/${selectedAudit._id}/finalize`);
+      await api.post(`/inventory-audits/${selectedAudit._id}/approve`);
       await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
-      toast.success("Ревизията е приключена и корекциите са приложени.");
+      toast.success("Ревизията е одобрена и приключена.");
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно приключване на ревизия.");
+    }
+  }
+
+  async function handleSubmitReview() {
+    if (!selectedAudit?._id) return;
+
+    try {
+      await api.post(`/inventory-audits/${selectedAudit._id}/submit-review`);
+      await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
+      toast.success("Ревизията е подадена за одобрение.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно подаване за преглед.");
+    }
+  }
+
+  async function handleReopenCounting() {
+    if (!selectedAudit?._id) return;
+
+    try {
+      await api.post(`/inventory-audits/${selectedAudit._id}/reopen-counting`);
+      await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
+      toast.success("Ревизията е върната в режим броене.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно връщане в броене.");
     }
   }
 
@@ -146,11 +183,13 @@ export default function InventoryAuditsPage() {
       await api.put(`/inventory-audits/${selectedAudit._id}/line`, {
         productId: manualProduct._id,
         countedQuantity: Number(manualCounted || 0),
+        reasonCode: manualReasonCode,
         note: manualNote
       });
       await Promise.all([refresh(), loadAudit(selectedAudit._id)]);
       setManualProduct(null);
       setManualCounted("0");
+      setManualReasonCode("other");
       setManualNote("");
       toast.success("Редът е обновен.");
     } catch (error) {
@@ -159,6 +198,10 @@ export default function InventoryAuditsPage() {
   }
 
   const canShowExpected = !selectedAudit?.blindMode || selectedAudit?.status === "completed";
+  const canEditLines = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
+  const canSubmitForReview = Boolean(selectedAudit && ["counting", "draft"].includes(selectedAudit.status));
+  const canApprove = Boolean(selectedAudit && selectedAudit.status === "review" && user?.role === "admin");
+  const canReopen = Boolean(selectedAudit && selectedAudit.status === "review");
 
   const auditRows = (Array.isArray(audits) ? audits : []).map((audit) => ({
     ...audit,
@@ -232,11 +275,17 @@ export default function InventoryAuditsPage() {
         icon={<PlaylistAddCheckRoundedIcon />}
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!selectedAudit || selectedAudit.status === "completed"}>
+            <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!canEditLines}>
               Сканирай
             </Button>
-            <Button variant="contained" color="success" onClick={handleFinalize} disabled={!selectedAudit || selectedAudit.status === "completed"}>
-              Приключи ревизия
+            <Button variant="outlined" onClick={handleSubmitReview} disabled={!canSubmitForReview}>
+              Подай за преглед
+            </Button>
+            <Button variant="outlined" color="warning" onClick={handleReopenCounting} disabled={!canReopen}>
+              Върни в броене
+            </Button>
+            <Button variant="contained" color="success" onClick={handleFinalize} disabled={!canApprove}>
+              Одобри и приключи
             </Button>
           </Stack>
         }
@@ -247,6 +296,9 @@ export default function InventoryAuditsPage() {
           <Stack spacing={2}>
             {selectedAudit.blindMode && selectedAudit.status !== "completed" ? (
               <Alert severity="warning">Режим Blind Count е активен. Системните количества са скрити до приключване.</Alert>
+            ) : null}
+            {selectedAudit.status === "review" ? (
+              <Alert severity="info">Ревизията чака одобрение. Редакцията е заключена до връщане в броене.</Alert>
             ) : null}
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
@@ -266,6 +318,20 @@ export default function InventoryAuditsPage() {
                 value={manualCounted}
                 onChange={(event) => setManualCounted(event.target.value)}
                 sx={{ width: { xs: "100%", md: 150 } }}
+                disabled={!canEditLines}
+              />
+              <TextField
+                select
+                size="small"
+                label="Причина"
+                value={manualReasonCode}
+                onChange={(event) => setManualReasonCode(event.target.value)}
+                sx={{ width: { xs: "100%", md: 210 } }}
+                disabled={!canEditLines}
+              >
+                {reasonCodeOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                ))}
               />
               <TextField
                 size="small"
@@ -273,8 +339,9 @@ export default function InventoryAuditsPage() {
                 value={manualNote}
                 onChange={(event) => setManualNote(event.target.value)}
                 sx={{ width: { xs: "100%", md: 260 } }}
+                disabled={!canEditLines}
               />
-              <Button variant="outlined" onClick={handleManualSetLine} disabled={selectedAudit.status === "completed"}>
+              <Button variant="outlined" onClick={handleManualSetLine} disabled={!canEditLines}>
                 Запиши ред
               </Button>
             </Stack>
@@ -304,6 +371,20 @@ export default function InventoryAuditsPage() {
                       const value = Number(params.value || 0);
                       return <Typography color={value === 0 ? "text.primary" : value > 0 ? "success.main" : "error.main"}>{value}</Typography>;
                     }
+                  },
+                  {
+                    field: "reasonCode",
+                    headerName: "Причина",
+                    flex: 0.8,
+                    valueGetter: (_, row) => reasonLabelMap[row.reasonCode] || "-"
+                  },
+                  {
+                    field: "needsRecount",
+                    headerName: "Re-count",
+                    flex: 0.6,
+                    renderCell: (params) => (
+                      params.value ? <Chip size="small" color="warning" label="Да" /> : <Chip size="small" label="Не" />
+                    )
                   },
                   { field: "note", headerName: "Бележка", flex: 1 }
                 ]}

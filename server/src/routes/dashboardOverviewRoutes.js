@@ -7,6 +7,7 @@ import { Order } from "../models/Order.js";
 import { InventoryItem } from "../models/InventoryItem.js";
 import { FinancialEntry } from "../models/FinancialEntry.js";
 import { AuditLog } from "../models/AuditLog.js";
+import { InventoryAudit } from "../models/InventoryAudit.js";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get("/", async (req, res) => {
   const startOfNextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const startOfLast30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const isAdmin = req.user?.role === "admin";
 
   const [
@@ -37,7 +39,8 @@ router.get("/", async (req, res) => {
     auditLogs,
     financeTotals,
     dailyTurnoverTotals,
-    monthlyTurnoverTotals
+    monthlyTurnoverTotals,
+    auditMetrics
   ] =
     await Promise.all([
       Product.countDocuments(),
@@ -108,7 +111,10 @@ router.get("/", async (req, res) => {
             total: { $sum: "$amount" }
           }
         }
-      ])
+      ]),
+      InventoryAudit.find()
+        .select("status lines updatedAt completedAt")
+        .lean()
     ]);
 
   const lowStockItems = inventoryItems.filter(
@@ -120,6 +126,31 @@ router.get("/", async (req, res) => {
   const bankBalance = Number(financeTotals?.[0]?.bankBalance || 0);
   const dailyTurnover = Number(dailyTurnoverTotals?.[0]?.total || 0);
   const monthlyTurnover = Number(monthlyTurnoverTotals?.[0]?.total || 0);
+
+  const activeAudits = (auditMetrics || []).filter((audit) => !["completed", "cancelled"].includes(audit.status)).length;
+  const pendingRecount = (auditMetrics || []).reduce(
+    (sum, audit) =>
+      sum +
+      (audit?.lines || []).filter((line) => {
+        const diff = Math.abs(Number(line?.countedQuantity || 0) - Number(line?.expectedQuantity || 0));
+        return Boolean(line?.needsRecount) || diff > 0;
+      }).length,
+    0
+  );
+  const completedLast30Days = (auditMetrics || []).filter(
+    (audit) => audit.status === "completed" && new Date(audit.completedAt || audit.updatedAt || 0) >= startOfLast30Days
+  );
+  const avgAuditAccuracy = completedLast30Days.length
+    ? completedLast30Days.reduce((sum, audit) => {
+        const totalExpected = (audit?.lines || []).reduce((acc, line) => acc + Number(line?.expectedQuantity || 0), 0);
+        const totalDiffAbs = (audit?.lines || []).reduce(
+          (acc, line) => acc + Math.abs(Number(line?.countedQuantity || 0) - Number(line?.expectedQuantity || 0)),
+          0
+        );
+        const accuracy = totalExpected > 0 ? Math.max(0, ((totalExpected - totalDiffAbs) / totalExpected) * 100) : 100;
+        return sum + accuracy;
+      }, 0) / completedLast30Days.length
+    : 100;
 
   return res.json({
     stats: [
@@ -149,6 +180,9 @@ router.get("/", async (req, res) => {
       netProfit: isAdmin ? totalRevenue - totalExpenses : null,
       dailyTurnover,
       monthlyTurnover,
+      activeAudits,
+      pendingRecount,
+      avgAuditAccuracy,
       bankBalance,
       orderCount,
       lowStockCount: lowStockItems.length
