@@ -757,7 +757,7 @@ export default function InventoryAuditsPage() {
                   { field: "sku", headerName: "SKU", flex: 0.8 },
                   {
                     field: "expectedQuantity",
-                    headerName: "Системно",
+                    headerName: "Налично (по система)",
                     flex: 0.7,
                     valueGetter: (_, row) => (canShowExpected ? Number(row.expectedQuantity || 0) : "***")
                   },
