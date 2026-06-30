@@ -561,18 +561,6 @@ export default function InventoryAuditsPage() {
                 ))}
               </TextField>
             ) : null}
-            <Button variant="outlined" startIcon={<QrCodeScannerRoundedIcon />} onClick={() => setScanOpen(true)} disabled={!canEditLines}>
-              Сканирай
-            </Button>
-            <Button variant="outlined" onClick={handleSubmitReview} disabled={!canSubmitForReview}>
-              Подай за преглед
-            </Button>
-            <Button variant="outlined" color="warning" onClick={handleReopenCounting} disabled={!canReopen}>
-              Върни в броене
-            </Button>
-            <Button variant="contained" color="success" onClick={handleFinalize} disabled={!canApprove}>
-              Одобри и приключи
-            </Button>
           </Stack>
         }
       >
