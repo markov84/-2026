@@ -3,7 +3,7 @@ import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedI
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import PlaylistAddCheckRoundedIcon from "@mui/icons-material/PlaylistAddCheckRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { Alert, Autocomplete, Button, Chip, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Button, Checkbox, Chip, DialogContent, DialogTitle, FormControlLabel, Grid2 as Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
@@ -68,6 +68,8 @@ export default function InventoryAuditsPage() {
   const [productFilterQuery, setProductFilterQuery] = useState("");
   const [productScanInput, setProductScanInput] = useState("");
   const [productSelectionModel, setProductSelectionModel] = useState([]);
+  const [showOnlyUncounted, setShowOnlyUncounted] = useState(false);
+  const [showOnlyWithDifference, setShowOnlyWithDifference] = useState(false);
 
   const [createForm, setCreateForm] = useState({
     store: "",
@@ -376,6 +378,21 @@ export default function InventoryAuditsPage() {
     sku: line.product?.sku || "-"
   }));
 
+  const filteredLineRows = useMemo(() => {
+    return lineRows.filter((row) => {
+      if (showOnlyUncounted && row?.isCounted) {
+        return false;
+      }
+
+      if (showOnlyWithDifference) {
+        if (!row?.isCounted) return false;
+        if (Number(row?.differenceQuantity || 0) === 0) return false;
+      }
+
+      return true;
+    });
+  }, [lineRows, showOnlyUncounted, showOnlyWithDifference]);
+
   const productRows = useMemo(
     () => (Array.isArray(products) ? products : []).map((product) => ({
       id: product._id,
@@ -579,6 +596,17 @@ export default function InventoryAuditsPage() {
             </Stack>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
+              <FormControlLabel
+                control={<Checkbox checked={showOnlyUncounted} onChange={(event) => setShowOnlyUncounted(event.target.checked)} />}
+                label="Само непреброени"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={showOnlyWithDifference} onChange={(event) => setShowOnlyWithDifference(event.target.checked)} />}
+                label="Само с разлика"
+              />
+            </Stack>
+
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
               <Autocomplete
                 fullWidth
                 options={Array.isArray(products) ? products : []}
@@ -627,7 +655,7 @@ export default function InventoryAuditsPage() {
               <DataGrid
                 autoHeight
                 loading={auditLoading}
-                rows={lineRows}
+                rows={filteredLineRows}
                 onRowClick={(params) => {
                   setManualProduct(params.row?.product || null);
                   setManualCounted(String(Number(params.row?.countedQuantity || 0)));
