@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import PlaylistAddCheckRoundedIcon from "@mui/icons-material/PlaylistAddCheckRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
-import { Alert, Autocomplete, Button, Checkbox, Chip, DialogContent, DialogTitle, FormControlLabel, Grid2 as Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Checkbox, Chip, DialogContent, DialogTitle, FormControlLabel, Grid2 as Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
@@ -452,37 +453,41 @@ export default function InventoryAuditsPage() {
         }
       >
         <ResponsiveTable>
-          <DataGrid
-            autoHeight
-            loading={loading}
-            rows={auditRows}
-            getRowId={(row) => row._id}
-            onRowClick={(params) => setSelectedAuditId(params.row._id)}
-            checkboxSelection
-            rowSelectionModel={selectedAuditIds}
-            onRowSelectionModelChange={(nextSelection) => setSelectedAuditIds(nextSelection)}
-            columns={[
-              { field: "auditNumber", headerName: "Номер", flex: 1 },
-              { field: "storeLabel", headerName: "Магазин", flex: 1.2 },
-              { field: "zone", headerName: "Зона", flex: 0.9 },
-              { field: "linesCount", headerName: "Редове", flex: 0.6 },
-              { field: "countedLinesCount", headerName: "Преброени", flex: 0.7 },
-              { field: "differencesCount", headerName: "Разлики", flex: 0.7 },
-              {
-                field: "statusLabel",
-                headerName: "Статус",
-                flex: 0.8,
-                renderCell: (params) => (
-                  <Chip
-                    size="small"
-                    label={params.value || "-"}
-                    color={statusColorMap[params.row.status] || "default"}
-                  />
-                )
-              }
-            ]}
-            disableRowSelectionOnClick
-          />
+          <Box sx={{ height: 360 }}>
+            <DataGrid
+              loading={loading}
+              rows={auditRows}
+              getRowId={(row) => row._id}
+              onRowClick={(params) => setSelectedAuditId(params.row._id)}
+              checkboxSelection
+              rowSelectionModel={selectedAuditIds}
+              onRowSelectionModelChange={(nextSelection) => setSelectedAuditIds(nextSelection)}
+              columns={[
+                { field: "auditNumber", headerName: "Номер", flex: 1 },
+                { field: "storeLabel", headerName: "Магазин", flex: 1.2 },
+                { field: "zone", headerName: "Зона", flex: 0.9 },
+                { field: "linesCount", headerName: "Редове", flex: 0.6 },
+                { field: "countedLinesCount", headerName: "Преброени", flex: 0.7 },
+                { field: "differencesCount", headerName: "Разлики", flex: 0.7 },
+                {
+                  field: "statusLabel",
+                  headerName: "Статус",
+                  flex: 0.8,
+                  renderCell: (params) => (
+                    <Chip
+                      size="small"
+                      label={params.value || "-"}
+                      color={statusColorMap[params.row.status] || "default"}
+                    />
+                  )
+                }
+              ]}
+              disableRowSelectionOnClick
+              density="compact"
+              pageSizeOptions={[10, 25, 50]}
+              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+            />
+          </Box>
         </ResponsiveTable>
       </DataSection>
 
@@ -538,62 +543,70 @@ export default function InventoryAuditsPage() {
               <Alert severity="warning">Ревизията е подадена. Финалното приключване се прави от администратор.</Alert>
             ) : null}
 
-            <Stack spacing={1.2}>
-              <Typography variant="subtitle2">Избор на продукт (таблица + филтър + сканиране)</Typography>
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Филтър по име, SKU, баркод, QR"
-                  value={productFilterQuery}
-                  onChange={(event) => setProductFilterQuery(event.target.value)}
-                />
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Сканирай/въведи код"
-                  value={productScanInput}
-                  onChange={(event) => setProductScanInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      handleScanProductInput();
-                    }
-                  }}
-                />
-                <Button variant="outlined" onClick={handleScanProductInput} disabled={!productScanInput.trim()}>
-                  Намери по код
-                </Button>
-                <Button variant="outlined" onClick={handleSelectProductFromTable} disabled={!productSelectionModel.length}>
-                  Избери продукт
-                </Button>
-              </Stack>
+            <Accordion disableGutters sx={{ borderRadius: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+                <Typography variant="subtitle2">Избор на продукт (таблица + филтър + сканиране)</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={1.2}>
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Филтър по име, SKU, баркод, QR"
+                      value={productFilterQuery}
+                      onChange={(event) => setProductFilterQuery(event.target.value)}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Сканирай/въведи код"
+                      value={productScanInput}
+                      onChange={(event) => setProductScanInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          handleScanProductInput();
+                        }
+                      }}
+                    />
+                    <Button variant="outlined" onClick={handleScanProductInput} disabled={!productScanInput.trim()}>
+                      Намери по код
+                    </Button>
+                    <Button variant="outlined" onClick={handleSelectProductFromTable} disabled={!productSelectionModel.length}>
+                      Избери продукт
+                    </Button>
+                  </Stack>
 
-              <ResponsiveTable>
-                <DataGrid
-                  autoHeight
-                  rows={filteredProductRows}
-                  loading={loading}
-                  checkboxSelection
-                  disableMultipleRowSelection
-                  rowSelectionModel={productSelectionModel}
-                  onRowSelectionModelChange={(nextSelection) => setProductSelectionModel(nextSelection)}
-                  columns={[
-                    { field: "name", headerName: "Продукт", flex: 1.2 },
-                    { field: "sku", headerName: "SKU", flex: 0.8 },
-                    { field: "barcode", headerName: "Баркод", flex: 0.9 },
-                    { field: "productNumber", headerName: "Номер", flex: 0.8 },
-                    { field: "qrCode", headerName: "QR", flex: 0.9 }
-                  ]}
-                  pageSizeOptions={[5, 10, 20]}
-                  initialState={{ pagination: { paginationModel: { pageSize: 5, page: 0 } } }}
-                  onRowClick={(params) => {
-                    setProductSelectionModel([params.row.id]);
-                    setManualProduct(params.row);
-                  }}
-                />
-              </ResponsiveTable>
-            </Stack>
+                  <ResponsiveTable>
+                    <Box sx={{ height: 300 }}>
+                      <DataGrid
+                        rows={filteredProductRows}
+                        loading={loading}
+                        checkboxSelection
+                        disableMultipleRowSelection
+                        rowSelectionModel={productSelectionModel}
+                        onRowSelectionModelChange={(nextSelection) => setProductSelectionModel(nextSelection)}
+                        columns={[
+                          { field: "name", headerName: "Продукт", flex: 1.2 },
+                          { field: "sku", headerName: "SKU", flex: 0.8 },
+                          { field: "barcode", headerName: "Баркод", flex: 0.9 },
+                          { field: "productNumber", headerName: "Номер", flex: 0.8 },
+                          { field: "qrCode", headerName: "QR", flex: 0.9 }
+                        ]}
+                        pageSizeOptions={[5, 10, 20]}
+                        initialState={{ pagination: { paginationModel: { pageSize: 5, page: 0 } } }}
+                        density="compact"
+                        onRowClick={(params) => {
+                          setProductSelectionModel([params.row.id]);
+                          setManualProduct(params.row);
+                        }}
+                      />
+                    </Box>
+                  </ResponsiveTable>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
               <FormControlLabel
@@ -606,63 +619,70 @@ export default function InventoryAuditsPage() {
               />
             </Stack>
 
-            <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
-              <Autocomplete
-                fullWidth
-                options={Array.isArray(products) ? products : []}
-                value={manualProduct}
-                onChange={(_, value) => setManualProduct(value)}
-                getOptionLabel={(item) => [item?.name, item?.sku].filter(Boolean).join(" | ")}
-                isOptionEqualToValue={(option, value) => option?._id === value?._id}
-                renderInput={(params) => <TextField {...params} label="Ръчна корекция: продукт" size="small" />}
-              />
-              <TextField
-                size="small"
-                label="Преброено"
-                type="number"
-                value={manualCounted}
-                onChange={(event) => setManualCounted(event.target.value)}
-                sx={{ width: { xs: "100%", md: 150 } }}
-                disabled={!canEditLines}
-              />
-              <TextField
-                select
-                size="small"
-                label="Причина"
-                value={manualReasonCode}
-                onChange={(event) => setManualReasonCode(event.target.value)}
-                sx={{ width: { xs: "100%", md: 210 } }}
-                disabled={!canEditLines}
-              >
-                {reasonCodeOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                size="small"
-                label="Бележка"
-                value={manualNote}
-                onChange={(event) => setManualNote(event.target.value)}
-                sx={{ width: { xs: "100%", md: 260 } }}
-                disabled={!canEditLines}
-              />
-              <Button variant="outlined" onClick={handleManualSetLine} disabled={!canEditLines}>
-                Запиши ред
-              </Button>
-            </Stack>
+            <Accordion disableGutters defaultExpanded sx={{ borderRadius: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+                <Typography variant="subtitle2">Ръчна корекция</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
+                  <Autocomplete
+                    fullWidth
+                    options={Array.isArray(products) ? products : []}
+                    value={manualProduct}
+                    onChange={(_, value) => setManualProduct(value)}
+                    getOptionLabel={(item) => [item?.name, item?.sku].filter(Boolean).join(" | ")}
+                    isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                    renderInput={(params) => <TextField {...params} label="Ръчна корекция: продукт" size="small" />}
+                  />
+                  <TextField
+                    size="small"
+                    label="Преброено"
+                    type="number"
+                    value={manualCounted}
+                    onChange={(event) => setManualCounted(event.target.value)}
+                    sx={{ width: { xs: "100%", md: 150 } }}
+                    disabled={!canEditLines}
+                  />
+                  <TextField
+                    select
+                    size="small"
+                    label="Причина"
+                    value={manualReasonCode}
+                    onChange={(event) => setManualReasonCode(event.target.value)}
+                    sx={{ width: { xs: "100%", md: 210 } }}
+                    disabled={!canEditLines}
+                  >
+                    {reasonCodeOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    size="small"
+                    label="Бележка"
+                    value={manualNote}
+                    onChange={(event) => setManualNote(event.target.value)}
+                    sx={{ width: { xs: "100%", md: 260 } }}
+                    disabled={!canEditLines}
+                  />
+                  <Button variant="outlined" onClick={handleManualSetLine} disabled={!canEditLines}>
+                    Запиши ред
+                  </Button>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
 
             <ResponsiveTable>
-              <DataGrid
-                autoHeight
-                loading={auditLoading}
-                rows={filteredLineRows}
-                onRowClick={(params) => {
-                  setManualProduct(params.row?.product || null);
-                  setManualCounted(String(Number(params.row?.countedQuantity || 0)));
-                  setManualReasonCode(params.row?.reasonCode || "other");
-                  setManualNote(params.row?.note || "");
-                }}
-                columns={[
+              <Box sx={{ height: { xs: 420, md: 560 } }}>
+                <DataGrid
+                  loading={auditLoading}
+                  rows={filteredLineRows}
+                  onRowClick={(params) => {
+                    setManualProduct(params.row?.product || null);
+                    setManualCounted(String(Number(params.row?.countedQuantity || 0)));
+                    setManualReasonCode(params.row?.reasonCode || "other");
+                    setManualNote(params.row?.note || "");
+                  }}
+                  columns={[
                   { field: "productName", headerName: "Продукт", flex: 1.3 },
                   { field: "sku", headerName: "SKU", flex: 0.8 },
                   {
@@ -757,16 +777,20 @@ export default function InventoryAuditsPage() {
                       </Button>
                     )
                   }
-                ]}
-                disableRowSelectionOnClick
-                getRowClassName={(params) => (params.row?.isCounted && Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : "")}
-                sx={{
-                  "& .audit-row-diff .MuiDataGrid-cell": {
-                    bgcolor: "rgba(255, 152, 0, 0.06)",
-                    borderLeft: "4px solid rgba(255, 152, 0, 0.5)"
-                  }
-                }}
-              />
+                  ]}
+                  disableRowSelectionOnClick
+                  density="compact"
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
+                  getRowClassName={(params) => (params.row?.isCounted && Number(params.row.differenceQuantity || 0) !== 0 ? "audit-row-diff" : "")}
+                  sx={{
+                    "& .audit-row-diff .MuiDataGrid-cell": {
+                      bgcolor: "rgba(255, 152, 0, 0.06)",
+                      borderLeft: "4px solid rgba(255, 152, 0, 0.5)"
+                    }
+                  }}
+                />
+              </Box>
             </ResponsiveTable>
           </Stack>
         )}
