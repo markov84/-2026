@@ -332,7 +332,7 @@ export default function InventoryAuditsPage() {
                 {reasonCodeOptions.map((option) => (
                   <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
                 ))}
-              />
+              </TextField>
               <TextField
                 size="small"
                 label="Бележка"
