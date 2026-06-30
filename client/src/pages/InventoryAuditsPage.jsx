@@ -5,7 +5,7 @@ import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import PlaylistAddCheckRoundedIcon from "@mui/icons-material/PlaylistAddCheckRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Checkbox, Chip, DialogContent, DialogTitle, FormControlLabel, Grid2 as Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -49,6 +49,7 @@ const reasonCodeOptions = [
 const reasonLabelMap = Object.fromEntries(reasonCodeOptions.map((item) => [item.value, item.label]));
 
 export default function InventoryAuditsPage() {
+  const lineGridApiRef = useGridApiRef();
   const { user } = useAuth();
   const { data: audits, loading, refresh } = useFetch("/inventory-audits");
   const { data: stores } = useFetch("/stores");
@@ -418,6 +419,15 @@ export default function InventoryAuditsPage() {
     return found?.id || null;
   }, [filteredLineRows, focusLineProductId]);
 
+  useEffect(() => {
+    if (!focusedLineRowId || !lineGridApiRef?.current?.getRowIndexRelativeToVisibleRows) return;
+
+    const rowIndex = lineGridApiRef.current.getRowIndexRelativeToVisibleRows(focusedLineRowId);
+    if (rowIndex == null || rowIndex < 0) return;
+
+    lineGridApiRef.current.scrollToIndexes({ rowIndex });
+  }, [focusedLineRowId, lineGridApiRef]);
+
   const productRows = useMemo(
     () => (Array.isArray(products) ? products : []).map((product) => ({
       id: product._id,
@@ -732,6 +742,7 @@ export default function InventoryAuditsPage() {
             <ResponsiveTable>
               <Box sx={{ height: { xs: 420, md: 560 } }}>
                 <DataGrid
+                  apiRef={lineGridApiRef}
                   loading={auditLoading}
                   rows={filteredLineRows}
                   rowSelectionModel={focusedLineRowId ? [focusedLineRowId] : []}
