@@ -16,6 +16,21 @@ function formatDate(value) {
   return date.toLocaleDateString("bg-BG");
 }
 
+async function loadImageAsDataUrl(imageUrl) {
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return "";
+  }
+}
+
 function getItemRows(items = [], { priceIncludesVat = false } = {}) {
   return items
     .map((item, index) => {
@@ -447,6 +462,132 @@ export function printTransfer(transfer) {
       </section>
     `
   );
+}
+
+export async function exportTransferPdf(transfer) {
+  const { jsPDF } = await import("jspdf");
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 14;
+  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+  const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
+
+  let y = margin;
+
+  if (logoDataUrl) {
+    pdf.addImage(logoDataUrl, "PNG", margin, y, 18, 18);
+  }
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.text("MARKLIGHT", margin + 24, y + 7);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.text("LIGHTING TRADE", margin + 24, y + 13);
+
+  y += 24;
+  pdf.setLineWidth(0.4);
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("ДОКУМЕНТ ЗА ТРАНСФЕР", margin, y);
+  y += 8;
+
+  const totals = (transfer.items || []).reduce(
+    (acc, item) => {
+      const quantity = Number(item.quantity || 0);
+      const price = Number(item.product?.price || 0);
+      const gross = quantity * price;
+      return {
+        quantity: acc.quantity + quantity,
+        total: acc.total + gross
+      };
+    },
+    { quantity: 0, total: 0 }
+  );
+
+  const infoLines = [
+    `Номер: ${transfer.transferNumber || "-"}`,
+    `Дата: ${formatDate(transfer.createdAt)}`,
+    `Статус: ${transfer.status || "-"}`,
+    `От: ${transfer.fromStore?.name || "-"} | ${transfer.fromStore?.city || ""}`,
+    `Към: ${transfer.toStore?.name || "-"} | ${transfer.toStore?.city || ""}`,
+    `Заявил: ${transfer.requestedBy || "-"}`
+  ];
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  infoLines.forEach((line) => {
+    pdf.text(line, margin, y);
+    y += 5;
+  });
+
+  y += 3;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  const columns = [
+    { label: "№", x: margin, width: 10 },
+    { label: "Продукт", x: margin + 10, width: 58 },
+    { label: "Номер", x: margin + 68, width: 28 },
+    { label: "SKU", x: margin + 96, width: 28 },
+    { label: "Кол.", x: margin + 124, width: 16 },
+    { label: "Цена", x: margin + 140, width: 24 },
+    { label: "Сума", x: margin + 164, width: 28 }
+  ];
+  columns.forEach((column) => pdf.text(column.label, column.x, y));
+  y += 3;
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  (transfer.items || []).forEach((item, index) => {
+    if (y > pageHeight - 20) {
+      pdf.addPage();
+      y = margin;
+    }
+
+    const product = item.product || {};
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(product.price || 0);
+    const lineTotal = quantity * unitPrice;
+    const values = [
+      String(index + 1),
+      String(product.name || "-").slice(0, 30),
+      String(product.productNumber || "-").slice(0, 14),
+      String(product.sku || "-").slice(0, 14),
+      String(quantity),
+      formatCurrencyEUR(unitPrice),
+      formatCurrencyEUR(lineTotal)
+    ];
+
+    columns.forEach((column, valueIndex) => {
+      const alignRight = valueIndex >= 4;
+      pdf.text(values[valueIndex], alignRight ? column.x + column.width : column.x, y, { align: alignRight ? "right" : "left" });
+    });
+    y += 5;
+  });
+
+  y += 4;
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 7;
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`Общо бройки: ${totals.quantity}`, margin, y);
+  pdf.text(`Обща стойност: ${formatCurrencyEUR(totals.total)}`, pageWidth - margin, y, { align: "right" });
+
+  if (transfer.notes) {
+    y += 10;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Бележки:", margin, y);
+    y += 5;
+    pdf.setFont("helvetica", "normal");
+    const wrappedNotes = pdf.splitTextToSize(String(transfer.notes), pageWidth - margin * 2);
+    pdf.text(wrappedNotes, margin, y);
+  }
+
+  pdf.save(`transfer-${transfer.transferNumber || transfer._id || "document"}.pdf`);
 }
 
 export function printVatReport(data) {

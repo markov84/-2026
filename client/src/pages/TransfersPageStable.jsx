@@ -41,7 +41,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
-import { printTransfer } from "../lib/printDocuments";
+import { exportTransferPdf, printTransfer } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 let transferItemKey = 0;
@@ -784,6 +784,9 @@ export default function TransfersPageStable() {
                 <Button variant="outlined" color="secondary" onClick={() => printTransfer(selectedTransfer)}>
                   Документ
                 </Button>
+                <Button variant="outlined" onClick={() => void exportTransferPdf(selectedTransfer)}>
+                  PDF
+                </Button>
                 <Button variant="outlined" onClick={() => openEditDialog(selectedTransfer)}>
                   Редактирай
                 </Button>
@@ -867,6 +870,9 @@ export default function TransfersPageStable() {
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <Button variant="outlined" color="secondary" onClick={() => printTransfer(editingTransfer)}>
                 Документ за трансфера
+              </Button>
+              <Button variant="outlined" onClick={() => void exportTransferPdf(editingTransfer)}>
+                PDF
               </Button>
             </Stack>
             <FormGridFull>
