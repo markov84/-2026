@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -26,6 +26,7 @@ import {
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
@@ -575,6 +576,17 @@ export default function TransfersPageStable() {
   const [selectedTransferId, setSelectedTransferId] = useState("");
   const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("openCreateTransfer") !== "1") return;
+    setEditingTransfer(null);
+    setForm(createInitialTransfer());
+    setOpen(true);
+    navigate("/transfers", { replace: true });
+  }, [location.search, navigate]);
 
   const rows = useMemo(
     () =>
@@ -766,9 +778,9 @@ export default function TransfersPageStable() {
 
   return (
     <Stack spacing={3}>
-      <PageHeader eyebrow="Логистика" title="Трансфери между магазини" subtitle="Създавай, редактирай и изтривай трансфери с един или повече продукта." icon={<CompareArrowsRoundedIcon />} />
+      <PageHeader eyebrow="Заявки" title="Заявки и трансфери между обекти" subtitle="Тук магазините и складът заявяват стока един към друг и подготвят документ за движение." icon={<CompareArrowsRoundedIcon />} />
 
-      <DataSection title="Регистър на трансферите" subtitle="Заявки за движение на стока между обекти" icon={<CompareArrowsRoundedIcon />} actions={<Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => setOpen(true)}>Нов трансфер</Button>}>
+      <DataSection title="Регистър на заявки и трансфери" subtitle="Вътрешни заявки за движение на стока между магазин и склад" icon={<CompareArrowsRoundedIcon />} actions={<Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => setOpen(true)}>Нова заявка / трансфер</Button>}>
         {selectedTransfer ? (
           <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.14)", bgcolor: "rgba(39,86,107,0.04)" }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "center" }}>
@@ -827,7 +839,7 @@ export default function TransfersPageStable() {
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>
-        <DialogTitle>Нов трансфер</DialogTitle>
+        <DialogTitle>Нова заявка / трансфер</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
             <FormGrid min={230}>

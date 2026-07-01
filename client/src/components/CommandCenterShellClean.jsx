@@ -42,13 +42,13 @@ const navItems = [
   { label: "Наличности", path: "/inventory", iconKey: "inventory", color: "#0ca678", bg: "rgba(12,166,120,0.16)" },
   { label: "Движения", path: "/inventory-movements", iconKey: "movements", color: "#0b7285", bg: "rgba(11,114,133,0.16)" },
   { label: "Ревизии", path: "/inventory-audits", iconKey: "audits", color: "#1971c2", bg: "rgba(25,113,194,0.16)" },
-  { label: "Продажби", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
+  { label: "Поръчки", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
   { label: "Сканиране", path: "/scan", iconKey: "scan", color: "#f59f00", bg: "rgba(245,159,0,0.16)", action: "scan" },
   { label: "Финанси", path: "/finance", iconKey: "finance", color: "#2f9e44", bg: "rgba(47,158,68,0.16)" },
   { label: "Фактури", path: "/invoices", iconKey: "invoices", color: "#15aabf", bg: "rgba(21,170,191,0.16)" },
   { label: "ДДС отчети", path: "/vat-reports", iconKey: "vat", color: "#9c36b5", bg: "rgba(156,54,181,0.16)" },
   { label: "Служители", path: "/employees", iconKey: "employees", color: "#5c7cfa", bg: "rgba(92,124,250,0.16)" },
-  { label: "Трансфери", path: "/transfers", iconKey: "transfers", color: "#f08c00", bg: "rgba(240,140,0,0.16)" }
+  { label: "Заявки", path: "/transfers", iconKey: "transfers", color: "#f08c00", bg: "rgba(240,140,0,0.16)" }
 ];
 
 function getVisibleNavItems(user) {

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
+import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { Autocomplete, Box, Button, Chip, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -1216,15 +1217,26 @@ export default function OrdersPageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader
-        eyebrow="Продажби"
-        title="Продажби и търговски поток"
-        subtitle="Създавай продажби с един или повече продукти, сканиране и бързо премахване от кошницата."
+        eyebrow="Поръчки"
+        title="Поръчки и продажби"
+        subtitle="Тук се правят клиентски поръчки и продажби. За вътрешни заявки между магазин и склад използвай страницата Заявки."
         icon={<ReceiptLongRoundedIcon />}
       />
 
+      <Alert
+        severity="info"
+        action={
+          <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1")}>
+            Заявка към склад/магазин
+          </Button>
+        }
+      >
+        Клиентски поръчки и продажби се създават тук. Ако магазин или склад иска стока от друг обект, използвай „Заявки“.
+      </Alert>
+
       <DataSection
-        title="Регистър на продажбите"
-        subtitle="Последни търговски операции"
+        title="Регистър на поръчки и продажби"
+        subtitle="Последни клиентски поръчки и продажби"
         icon={<ReceiptLongRoundedIcon />}
         toolbar={
           <Stack spacing={1.25} sx={{ width: "100%" }}>
@@ -1286,7 +1298,10 @@ export default function OrdersPageStable() {
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
-              Нова продажба
+              Нова поръчка
+            </Button>
+            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1")}>
+              Заявка към склад/магазин
             </Button>
             {canSeeOrderAuthor ? (
               <Button
@@ -1319,7 +1334,7 @@ export default function OrdersPageStable() {
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
-        <DialogTitle>Нова продажба</DialogTitle>
+        <DialogTitle>Нова поръчка</DialogTitle>
         <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode, scanFieldRef)}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
@@ -1333,7 +1348,7 @@ export default function OrdersPageStable() {
       />
 
       <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
-        <DialogTitle>Редактиране на продажба</DialogTitle>
+        <DialogTitle>Редактиране на поръчка</DialogTitle>
         <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode, editScanFieldRef) : null}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingOrder(null)} onConfirm={handleUpdate} />
       </Dialog>
