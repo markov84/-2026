@@ -11,7 +11,7 @@ export const env = {
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   adminUsername: process.env.ADMIN_USERNAME || "admin",
   adminPassword: process.env.ADMIN_PASSWORD || "Markov8406162224",
-  smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+  smtpHost: process.env.SMTP_HOST || "",
   smtpPort: process.env.SMTP_PORT || "587",
   smtpSecure: process.env.SMTP_SECURE || "false",
   smtpUser: process.env.SMTP_USER || "",
