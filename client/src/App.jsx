@@ -1,24 +1,26 @@
- import { CircularProgress, Stack } from "@mui/material";
+ import { lazy, Suspense } from "react";
+import { CircularProgress, Stack } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./providers/AuthProviderStable";
-import CommandCenterShell from "./components/CommandCenterShellClean";
 
-import LoginPage from "./pages/LoginPage";
-import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPagePolished";
-import ProductsPage from "./pages/ProductsPagePolished";
-import SuppliersPage from "./pages/SuppliersPage";
-import CustomersPage from "./pages/CustomersPageStable";
-import StoresPage from "./pages/StoresPageStable";
-import SupplierOrdersPage from "./pages/SupplierOrdersPage";
-import InventoryPage from "./pages/InventoryPageReady";
-import InventoryAuditsPage from "./pages/InventoryAuditsPage";
-import InventoryMovementsPage from "./pages/InventoryMovementsPage";
-import OrdersPage from "./pages/OrdersPageStable";
-import FinancePage from "./pages/FinancePageStable";
-import EmployeesPage from "./pages/EmployeesPageStable";
-import TransfersPage from "./pages/TransfersPageStable";
-import InvoicesPage from "./pages/InvoicesPageStable";
-import VatReportsPage from "./pages/VatReportsPageClean";
+const CommandCenterShell = lazy(() => import("./components/CommandCenterShellClean"));
+
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ExecutiveDashboardPage = lazy(() => import("./pages/ExecutiveDashboardPagePolished"));
+const ProductsPage = lazy(() => import("./pages/ProductsPagePolished"));
+const SuppliersPage = lazy(() => import("./pages/SuppliersPage"));
+const CustomersPage = lazy(() => import("./pages/CustomersPageStable"));
+const StoresPage = lazy(() => import("./pages/StoresPageStable"));
+const SupplierOrdersPage = lazy(() => import("./pages/SupplierOrdersPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPageReady"));
+const InventoryAuditsPage = lazy(() => import("./pages/InventoryAuditsPage"));
+const InventoryMovementsPage = lazy(() => import("./pages/InventoryMovementsPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPageStable"));
+const FinancePage = lazy(() => import("./pages/FinancePageStable"));
+const EmployeesPage = lazy(() => import("./pages/EmployeesPageStable"));
+const TransfersPage = lazy(() => import("./pages/TransfersPageStable"));
+const InvoicesPage = lazy(() => import("./pages/InvoicesPageStable"));
+const VatReportsPage = lazy(() => import("./pages/VatReportsPageClean"));
 
 function AppLoader() {
   return (
@@ -30,41 +32,43 @@ function AppLoader() {
 
 function PrivateRoutes({ user }) {
   return (
-    <CommandCenterShell>
-      <Routes>
-        <Route path="/" element={<ExecutiveDashboardPage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/suppliers" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SuppliersPage /> : <Navigate to="/" replace />} />
-        <Route path="/customers" element={<CustomersPage />} />
-        <Route path="/stores" element={<StoresPage />} />
-        <Route path="/supplier-orders" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SupplierOrdersPage /> : <Navigate to="/" replace />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route
-          path="/inventory-movements"
-          element={[
-            "admin",
-            "manager"
-          ].includes(user?.role) ? <InventoryMovementsPage /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/inventory-audits"
-          element={[
-            "admin",
-            "manager"
-          ].includes(user?.role) ? <InventoryAuditsPage /> : <Navigate to="/" replace />}
-        />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/finance" element={user?.role === "admin" ? <FinancePage /> : <Navigate to="/" replace />} />
-        <Route path="/invoices" element={<InvoicesPage />} />
-        <Route path="/vat-reports" element={<VatReportsPage />} />
-        <Route
-          path="/employees"
-          element={["admin", "manager"].includes(user?.role) ? <EmployeesPage /> : <Navigate to="/" replace />}
-        />
-        <Route path="/transfers" element={<TransfersPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </CommandCenterShell>
+    <Suspense fallback={<AppLoader />}>
+      <CommandCenterShell>
+        <Routes>
+          <Route path="/" element={<ExecutiveDashboardPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/suppliers" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SuppliersPage /> : <Navigate to="/" replace />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/stores" element={<StoresPage />} />
+          <Route path="/supplier-orders" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SupplierOrdersPage /> : <Navigate to="/" replace />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route
+            path="/inventory-movements"
+            element={[
+              "admin",
+              "manager"
+            ].includes(user?.role) ? <InventoryMovementsPage /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/inventory-audits"
+            element={[
+              "admin",
+              "manager"
+            ].includes(user?.role) ? <InventoryAuditsPage /> : <Navigate to="/" replace />}
+          />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/finance" element={user?.role === "admin" ? <FinancePage /> : <Navigate to="/" replace />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/vat-reports" element={<VatReportsPage />} />
+          <Route
+            path="/employees"
+            element={["admin", "manager"].includes(user?.role) ? <EmployeesPage /> : <Navigate to="/" replace />}
+          />
+          <Route path="/transfers" element={<TransfersPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </CommandCenterShell>
+    </Suspense>
   );
 }
 
@@ -80,12 +84,14 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      {user ? (
-        <Route path="/*" element={<PrivateRoutes user={user} />} />
-      ) : (
-        <Route path="*" element={<LoginPage />} />
-      )}
-    </Routes>
+    <Suspense fallback={<AppLoader />}>
+      <Routes>
+        {user ? (
+          <Route path="/*" element={<PrivateRoutes user={user} />} />
+        ) : (
+          <Route path="*" element={<LoginPage />} />
+        )}
+      </Routes>
+    </Suspense>
   );
 }
