@@ -2,7 +2,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
-import { Button, Chip, DialogContent, DialogTitle, InputAdornment, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, DialogContent, DialogTitle, InputAdornment, Stack, Switch, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
