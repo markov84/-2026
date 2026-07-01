@@ -1,10 +1,12 @@
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { Button, DialogContent, DialogTitle, InputAdornment, Stack, Switch, TextField, Typography } from "@mui/material";
+import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
+import { Button, Chip, DialogContent, DialogTitle, InputAdornment, Stack, Switch, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
 import Dialog from "../components/DraggableDialog";
@@ -35,12 +37,15 @@ function validateSupplier(supplier) {
 
 export default function SuppliersPage() {
   const { data = [], loading, setData } = useFetch("/suppliers");
+  const { data: supplierOrders = [] } = useFetch("/supplier-orders");
   const isMobile = useMobileDetection();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [deletingSupplier, setDeletingSupplier] = useState(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
 
   const filteredSuppliers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -51,6 +56,61 @@ export default function SuppliersPage() {
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
   }, [data, query]);
+
+  const selectedSupplier = useMemo(
+    () => filteredSuppliers.find((item) => String(item._id) === String(selectedSupplierId)) || data.find((item) => String(item._id) === String(selectedSupplierId)) || null,
+    [data, filteredSuppliers, selectedSupplierId]
+  );
+
+  const supplierHistory = useMemo(() => {
+    if (!selectedSupplier) return null;
+
+    const orders = (supplierOrders || []).filter((order) => {
+      if (order.supplierRef && String(order.supplierRef) === String(selectedSupplier._id)) return true;
+      return String(order.supplier?.name || "").trim().toLowerCase() === String(selectedSupplier.name || "").trim().toLowerCase();
+    });
+
+    const totalOrders = orders.length;
+    const totalValue = orders.reduce((sum, order) => {
+      return sum + (order.items || []).reduce((itemsSum, item) => itemsSum + Number(item.quantity || 0) * Number(item.unitCost || 0), 0);
+    }, 0);
+    const receivedOrders = orders.filter((order) => order.status === "received").length;
+    const lastDelivery = orders
+      .filter((order) => order.receivedAt || order.updatedAt || order.createdAt)
+      .sort((a, b) => new Date(b.receivedAt || b.updatedAt || b.createdAt).getTime() - new Date(a.receivedAt || a.updatedAt || a.createdAt).getTime())[0] || null;
+
+    const productMap = new Map();
+    orders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const product = item.product || {};
+        const key = String(product._id || product.productNumber || product.name || "");
+        if (!key) return;
+        const current = productMap.get(key) || {
+          name: product.name || "-",
+          productNumber: product.productNumber || "-",
+          quantity: 0,
+          total: 0
+        };
+        current.quantity += Number(item.quantity || 0);
+        current.total += Number(item.quantity || 0) * Number(item.unitCost || 0);
+        productMap.set(key, current);
+      });
+    });
+
+    const topProducts = [...productMap.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+    const recentOrders = [...orders]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 5);
+
+    return {
+      totalOrders,
+      totalValue,
+      receivedOrders,
+      lastDelivery,
+      topProducts,
+      recentOrders
+    };
+  }, [selectedSupplier, supplierOrders]);
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -147,12 +207,58 @@ export default function SuppliersPage() {
         }
         actions={<Button variant="contained" startIcon={<PersonAddRoundedIcon />} onClick={openCreateDialog}>Нов доставчик</Button>}
       >
+        {selectedSupplier && supplierHistory ? (
+          <Stack spacing={1.25} sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.14)", bgcolor: "rgba(39,86,107,0.04)" }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "center" }}>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={900}>{selectedSupplier.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedSupplier.contactPerson || "-"} | {selectedSupplier.phone || "-"} | {selectedSupplier.email || "-"}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button variant="outlined" startIcon={<ShoppingCartCheckoutRoundedIcon />} onClick={() => navigate("/supplier-orders")}>Поръчки към доставчика</Button>
+              </Stack>
+            </Stack>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Chip label={`Поръчки: ${supplierHistory.totalOrders}`} size="small" />
+              <Chip label={`Получени: ${supplierHistory.receivedOrders}`} size="small" color={supplierHistory.receivedOrders ? "success" : "default"} />
+              <Chip label={`Обща стойност: ${new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" }).format(supplierHistory.totalValue || 0)}`} size="small" color="info" variant="outlined" />
+              <Chip label={`Последна доставка: ${supplierHistory.lastDelivery ? new Date(supplierHistory.lastDelivery.receivedAt || supplierHistory.lastDelivery.updatedAt || supplierHistory.lastDelivery.createdAt).toLocaleDateString("bg-BG") : "-"}`} size="small" variant="outlined" />
+            </Stack>
+            {supplierHistory.topProducts.length ? (
+              <Box>
+                <Typography variant="body2" fontWeight={800} sx={{ mb: 0.5 }}>Най-поръчвани артикули</Typography>
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {supplierHistory.topProducts.map((product) => (
+                    <Chip key={`${product.name}-${product.productNumber}`} label={`${product.name} | № ${product.productNumber} | ${product.quantity} бр.`} />
+                  ))}
+                </Stack>
+              </Box>
+            ) : null}
+            {supplierHistory.recentOrders.length ? (
+              <Box>
+                <Typography variant="body2" fontWeight={800} sx={{ mb: 0.5 }}>Последни поръчки</Typography>
+                <Stack spacing={0.5}>
+                  {supplierHistory.recentOrders.map((order) => (
+                    <Typography key={order._id} variant="body2" color="text.secondary">
+                      {order.orderNumber} | {new Date(order.createdAt).toLocaleDateString("bg-BG")} | {order.status}
+                    </Typography>
+                  ))}
+                </Stack>
+              </Box>
+            ) : null}
+          </Stack>
+        ) : null}
         <ResponsiveTable>
           <DataGrid
             autoHeight
             loading={loading}
             rows={filteredSuppliers}
             getRowId={(row) => row._id}
+            rowSelectionModel={selectedSupplierId ? [selectedSupplierId] : []}
+            onRowSelectionModelChange={(nextSelection) => setSelectedSupplierId(String(nextSelection?.[0] || ""))}
+            onRowClick={(params) => setSelectedSupplierId(String(params.row._id))}
             columns={[
               { field: "name", headerName: "Доставчик", flex: 1.1, minWidth: 180 },
               { field: "contactPerson", headerName: "Лице за контакт", flex: 0.9, minWidth: 150 },

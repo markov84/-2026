@@ -3,6 +3,7 @@ import { body, validationResult } from "express-validator";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { SupplierOrder } from "../models/SupplierOrder.js";
+import { Supplier } from "../models/Supplier.js";
 import { Product } from "../models/Product.js";
 import { Store } from "../models/Store.js";
 import { getNextDocumentNumber } from "../lib/documentNumbers.js";
@@ -60,6 +61,13 @@ router.post(
       return res.status(404).json({ message: "Магазинът/складът не е намерен." });
     }
 
+    if (req.body.supplierRef) {
+      const supplierExists = await Supplier.exists({ _id: req.body.supplierRef });
+      if (!supplierExists) {
+        return res.status(404).json({ message: "Доставчикът не е намерен." });
+      }
+    }
+
     const productIds = [...new Set((req.body.items || []).map((item) => String(item.product)))];
     const productCount = await Product.countDocuments({ _id: { $in: productIds } });
     if (productCount !== productIds.length) {
@@ -68,6 +76,7 @@ router.post(
 
     const order = await SupplierOrder.create({
       orderNumber: req.body.orderNumber?.trim() || (await getNextSupplierOrderNumber()),
+      supplierRef: req.body.supplierRef || undefined,
       supplier: req.body.supplier,
       store: req.body.store,
       items: (req.body.items || []).map((item) => ({
@@ -119,6 +128,13 @@ router.put(
       return res.status(404).json({ message: "Магазинът/складът не е намерен." });
     }
 
+    if (req.body.supplierRef) {
+      const supplierExists = await Supplier.exists({ _id: req.body.supplierRef });
+      if (!supplierExists) {
+        return res.status(404).json({ message: "Доставчикът не е намерен." });
+      }
+    }
+
     const nextItems = req.body.items || existing.items;
     const productIds = [...new Set((nextItems || []).map((item) => String(item.product?._id || item.product)))];
     const productCount = await Product.countDocuments({ _id: { $in: productIds } });
@@ -129,6 +145,7 @@ router.put(
     const updated = await SupplierOrder.findByIdAndUpdate(
       req.params.id,
       {
+        supplierRef: req.body.supplierRef || existing.supplierRef || undefined,
         supplier: req.body.supplier || existing.supplier,
         store: nextStore,
         items: nextItems.map((item) => ({

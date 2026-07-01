@@ -61,6 +61,7 @@ function createSupplierOrderItem(overrides = {}) {
 function createInitialOrder(requestedBy = "") {
   return {
     orderNumber: "Генерира се автоматично",
+    supplierRef: "",
     supplier: {
       name: "",
       contactPerson: "",
@@ -305,6 +306,7 @@ export default function SupplierOrdersPage() {
     setEditingOrder(order);
     setForm({
       orderNumber: order.orderNumber || "",
+      supplierRef: order.supplierRef || "",
       supplier: {
         name: order.supplier?.name || "",
         contactPerson: order.supplier?.contactPerson || "",
@@ -335,6 +337,7 @@ export default function SupplierOrdersPage() {
     if (!supplier) return;
     setForm((current) => ({
       ...current,
+      supplierRef: supplier._id || "",
       supplier: {
         name: supplier.name || "",
         contactPerson: supplier.contactPerson || "",
@@ -349,6 +352,7 @@ export default function SupplierOrdersPage() {
   function buildPayload(source) {
     return {
       orderNumber: source.orderNumber,
+      supplierRef: source.supplierRef || undefined,
       supplier: source.supplier,
       store: source.store,
       requestedBy: source.requestedBy,

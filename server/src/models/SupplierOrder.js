@@ -24,6 +24,7 @@ const supplierOrderItemSchema = new mongoose.Schema(
 const supplierOrderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, trim: true },
+    supplierRef: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     supplier: { type: supplierOrderSupplierSchema, required: true },
     store: { type: mongoose.Schema.Types.ObjectId, ref: "Store", required: true },
     items: { type: [supplierOrderItemSchema], default: [] },
