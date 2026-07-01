@@ -102,6 +102,8 @@ export function ProductIdentity({ product, compact = false, showSku = true, onIm
     );
   }
 
+  const secondaryCode = product.sku ? `SKU: ${product.sku}` : product.barcode ? `Баркод: ${product.barcode}` : "";
+
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, width: "100%", py: 0.25 }}>
       <Avatar
@@ -161,10 +163,7 @@ export function ProductIdentity({ product, compact = false, showSku = true, onIm
         </Stack>
         {showSku ? (
           <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", lineHeight: 1.15 }}>
-            {[
-              product.sku ? `SKU: ${product.sku}` : "",
-              product.barcode ? `Баркод: ${product.barcode}` : ""
-            ].filter(Boolean).join(" | ") || "Без код"}
+            {secondaryCode || "Без код"}
           </Typography>
         ) : null}
       </Box>
@@ -233,9 +232,9 @@ export function ProductPreviewCard({ product }) {
           {product.name}
         </Typography>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {product.productNumber ? <Chip size="small" label={`№ ${product.productNumber}`} /> : null}
           {product.sku ? <Chip size="small" label={`SKU: ${product.sku}`} /> : null}
-          {product.productNumber ? <Chip size="small" label={`Номер: ${product.productNumber}`} /> : null}
-          {product.barcode ? <Chip size="small" label={`Баркод: ${product.barcode}`} /> : null}
+          {!product.sku && product.barcode ? <Chip size="small" label={`Баркод: ${product.barcode}`} /> : null}
           {product.category ? <Chip size="small" label={product.category} variant="outlined" /> : null}
           {product.brand ? <Chip size="small" label={product.brand} variant="outlined" /> : null}
         </Stack>
