@@ -43,7 +43,6 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
-import { sendTransferByEmail } from "../lib/emailDocuments";
 import { exportTransferPdf, printTransfer } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -833,9 +832,6 @@ export default function TransfersPageStable() {
                 <Button variant="outlined" onClick={() => void exportTransferPdf(selectedTransfer)}>
                   PDF
                 </Button>
-                <Button variant="outlined" color="info" onClick={() => sendTransferByEmail(selectedTransfer)}>
-                  Имейл
-                </Button>
                 <Button variant="outlined" onClick={() => openEditDialog(selectedTransfer)}>
                   Редактирай
                 </Button>
@@ -868,7 +864,7 @@ export default function TransfersPageStable() {
               { field: "totalAmount", headerName: "Общо с ДДС", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 105, renderCell: (params) => <Chip label={params?.value || "-"} size="small" color={params?.value === "completed" ? "success" : "warning"} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 180, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEmail={() => sendTransferByEmail(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -940,9 +936,6 @@ export default function TransfersPageStable() {
               </Button>
               <Button variant="outlined" onClick={() => void exportTransferPdf(editingTransfer)}>
                 PDF
-              </Button>
-              <Button variant="outlined" color="info" onClick={() => sendTransferByEmail(editingTransfer)}>
-                Имейл
               </Button>
             </Stack>
             <FormGridFull>

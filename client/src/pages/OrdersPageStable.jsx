@@ -24,7 +24,6 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
-import { sendOrderByEmail } from "../lib/emailDocuments";
 import { printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
@@ -770,7 +769,6 @@ export default function OrdersPageStable() {
         renderCell: (params) => (
           <GridRowActions
             onPrint={() => printOrder(params.row)}
-            onEmail={() => sendOrderByEmail(params.row)}
             onEdit={() => openEditDialog(params.row)}
             onDelete={canSeeOrderAuthor ? () => setDeletingOrder(params.row) : undefined}
           />
