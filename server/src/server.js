@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import { env } from "./config/env.js";
 import { connectDb } from "./config/db.js";
 import routes from "./routes/index.js";
+import authRoutes from "./routes/authRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -93,6 +94,8 @@ app.use(
 
 app.set("io", io);
 
+// Compatibility route for stale frontend bundles still calling /auth/login.
+app.use("/auth", authRoutes);
 app.use("/api", routes);
 app.use(errorHandler);
 
