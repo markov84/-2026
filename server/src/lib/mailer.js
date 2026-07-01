@@ -1,4 +1,7 @@
+import dns from "node:dns";
+import net from "node:net";
 import nodemailer from "nodemailer";
+import tls from "node:tls";
 import { env } from "../config/env.js";
 
 const cachedTransporters = new Map();
@@ -31,6 +34,11 @@ function validateMailConfig(config) {
   }
 }
 
+async function resolveIpv4(hostname) {
+  const result = await dns.promises.lookup(hostname, { family: 4 });
+  return result.address;
+}
+
 function createTransporter(config) {
   validateMailConfig(config);
 
@@ -38,10 +46,34 @@ function createTransporter(config) {
     host: config.host,
     port: config.port,
     secure: config.secure,
-    family: 4,
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 30000,
+    tls: {
+      servername: config.host
+    },
+    getSocket(options, callback) {
+      resolveIpv4(config.host)
+        .then((address) => {
+          const socketOptions = {
+            host: address,
+            port: Number(options.port || config.port)
+          };
+
+          const connection = config.secure
+            ? tls.connect({
+                ...socketOptions,
+                servername: config.host
+              })
+            : net.connect({
+                ...socketOptions,
+                family: 4
+              });
+
+          callback(null, { connection });
+        })
+        .catch((error) => callback(error));
+    },
     auth: {
       user: config.user,
       pass: config.pass
