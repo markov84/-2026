@@ -1,10 +1,12 @@
 const PRODUCTION_API_URL = "https://2026-s9jh.onrender.com/api";
 const PRODUCTION_SOCKET_URL = "https://2026-s9jh.onrender.com";
+const LEGACY_API_URL = "https://mark-light-api.onrender.com/api";
+const LEGACY_SOCKET_URL = "https://mark-light-api.onrender.com";
 
 export function getApiBaseUrl() {
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const configuredBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").trim();
 
-  if (configuredBaseUrl) {
+  if (configuredBaseUrl && configuredBaseUrl !== LEGACY_API_URL) {
     return configuredBaseUrl;
   }
 
@@ -12,9 +14,9 @@ export function getApiBaseUrl() {
 }
 
 export function getSocketBaseUrl() {
-  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL;
+  const configuredSocketUrl = String(import.meta.env.VITE_SOCKET_URL || "").trim();
 
-  if (configuredSocketUrl) {
+  if (configuredSocketUrl && configuredSocketUrl !== LEGACY_SOCKET_URL) {
     return configuredSocketUrl;
   }
 
