@@ -1,11 +1,19 @@
  const PRODUCTION_API_URL = "https://2026-s9jh.onrender.com/api";
 const PRODUCTION_SOCKET_URL = "https://2026-s9jh.onrender.com";
 
+function normalizeApiBaseUrl(url) {
+  const trimmedUrl = url.trim().replace(/\/+$/, "");
+  if (trimmedUrl.endsWith("/api")) {
+    return trimmedUrl;
+  }
+  return `${trimmedUrl}/api`;
+}
+
 export function getApiBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
+  if (configuredBaseUrl && configuredBaseUrl.trim()) {
+    return normalizeApiBaseUrl(configuredBaseUrl);
   }
 
   return PRODUCTION_API_URL;
