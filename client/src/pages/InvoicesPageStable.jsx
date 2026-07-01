@@ -198,7 +198,7 @@ function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
 
 function getProductOptionLabel(product) {
   if (!product) return "";
-  return [product.name, product.sku, product.barcode].filter(Boolean).join(" | ");
+  return [product.name, product.productNumber, product.sku, product.barcode].filter(Boolean).join(" | ");
 }
 
 function findProductByInvoiceItem(products, item) {
@@ -502,7 +502,7 @@ function InvoiceForm({ invoice, setInvoice, stores, products = [] }) {
                   onChange={(_, product) => applyProductToItem(index, product)}
                   isOptionEqualToValue={(option, value) => option?._id === value?._id}
                   noOptionsText="Няма продукт"
-                  renderInput={(params) => <TextField {...params} size="small" label="Продукт" placeholder="Търси по име/SKU/баркод" />}
+                  renderInput={(params) => <TextField {...params} size="small" label="Продукт" placeholder="Търси по име/номер/SKU/баркод" />}
                 />
                 <Stack direction="row" spacing={0.75}>
                   <TextField size="small" label="Мярка" value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} fullWidth />

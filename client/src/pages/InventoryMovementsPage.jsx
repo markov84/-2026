@@ -136,6 +136,7 @@ export default function InventoryMovementsPage() {
             columns={[
               { field: "createdAt", headerName: "Дата/час", flex: 0.95, valueFormatter: (params) => formatDateTime(params?.value ?? params) },
               { field: "product", headerName: "Продукт", flex: 1.35, valueGetter: (_, row) => row.product?.name || "-" },
+              { field: "productNumber", headerName: "Номер", flex: 0.85, valueGetter: (_, row) => row.product?.productNumber || "-" },
               { field: "sku", headerName: "SKU", flex: 0.8, valueGetter: (_, row) => row.product?.sku || "-" },
               { field: "barcode", headerName: "Баркод", flex: 0.9, valueGetter: (_, row) => row.product?.barcode || row.product?.productNumber || "-" },
               { field: "store", headerName: "Магазин", flex: 1, valueGetter: (_, row) => row.store?.name || "-" },

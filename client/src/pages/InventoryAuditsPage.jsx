@@ -788,7 +788,7 @@ export default function InventoryAuditsPage() {
                     options={Array.isArray(products) ? products : []}
                     value={manualProduct}
                     onChange={(_, value) => setManualProduct(value)}
-                    getOptionLabel={(item) => [item?.name, item?.sku].filter(Boolean).join(" | ")}
+                    getOptionLabel={(item) => [item?.name, item?.productNumber, item?.sku].filter(Boolean).join(" | ")}
                     isOptionEqualToValue={(option, value) => option?._id === value?._id}
                     renderInput={(params) => <TextField {...params} label="Ръчна корекция: продукт" size="small" />}
                   />
