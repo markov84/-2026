@@ -134,13 +134,6 @@ PORT=5000
 CLIENT_URL=http://localhost:5173
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=Markov8406162224
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-smtp-user
-SMTP_PASS=your-smtp-pass
-SMTP_FROM=no-reply@marklight.bg
-SMTP_FROM_NAME=MARKLIGHT
 ```
 
 Notes:
@@ -148,7 +141,6 @@ Notes:
 - Do not commit real database passwords or JWT secrets.
 - If the MongoDB password contains special characters, encode them in the URI. For example, `+` must be written as `%2B`.
 - MongoDB Atlas network access must allow the machine that runs the server.
-- Direct email sending from the app requires SMTP variables to be set.
 
 ## Local Development
 
