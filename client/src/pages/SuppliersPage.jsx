@@ -192,7 +192,7 @@ export default function SuppliersPage() {
         icon={<LocalShippingRoundedIcon />}
         toolbar={
           <TextField
-            placeholder="Търси по име, лице, телефон, имейл или ДДС номер"
+            placeholder="Търси по име, лице, телефон, имейл или ЕИК"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             InputProps={{
@@ -264,7 +264,7 @@ export default function SuppliersPage() {
               { field: "contactPerson", headerName: "Лице за контакт", flex: 0.9, minWidth: 150 },
               { field: "phone", headerName: "Телефон", flex: 0.8, minWidth: 130 },
               { field: "email", headerName: "Email", flex: 1, minWidth: 180 },
-              { field: "vatNumber", headerName: "ДДС номер", flex: 0.8, minWidth: 130 },
+              { field: "vatNumber", headerName: "ЕИК", flex: 0.8, minWidth: 130 },
               { field: "address", headerName: "Адрес", flex: 1.1, minWidth: 190 },
               { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingSupplier(params.row)} /> }
             ]}
@@ -282,7 +282,7 @@ export default function SuppliersPage() {
               <TextField label="Лице за контакт" value={form.contactPerson} onChange={(event) => updateField("contactPerson", event.target.value)} />
               <TextField label="Телефон" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} />
               <TextField label="Email" value={form.email} onChange={(event) => updateField("email", event.target.value)} />
-              <TextField label="ДДС номер" value={form.vatNumber} onChange={(event) => updateField("vatNumber", event.target.value)} />
+              <TextField label="ЕИК" value={form.vatNumber} onChange={(event) => updateField("vatNumber", event.target.value)} />
               <TextField label="Адрес" value={form.address} onChange={(event) => updateField("address", event.target.value)} />
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minHeight: 56 }}>
                 <Typography variant="body2" fontWeight={700}>Активен доставчик</Typography>

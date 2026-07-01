@@ -265,6 +265,8 @@ export default function SupplierOrdersPage() {
   const { data: suppliers = [] } = useFetch("/suppliers");
   const { data: stores = [] } = useFetch("/stores");
   const { data: products = [] } = useFetch("/products");
+  const { data: inventory = [] } = useFetch("/inventory/summary");
+  const { data: salesOrders = [] } = useFetch("/orders");
   const isMobile = useMobileDetection();
 
   const [open, setOpen] = useState(false);
@@ -363,6 +365,36 @@ export default function SupplierOrdersPage() {
     };
   }
 
+  function addSuggestedProduct(product, quantity) {
+    if (!product?._id || Number(quantity || 0) <= 0) return;
+
+    setForm((current) => {
+      const existingItem = (current.items || []).find((item) => String(item.product) === String(product._id));
+      if (existingItem) {
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.key === existingItem.key
+              ? { ...item, quantity: String(Number(item.quantity || 0) + Number(quantity || 0)) }
+              : item
+          )
+        };
+      }
+
+      return {
+        ...current,
+        items: [
+          ...(current.items || []),
+          createSupplierOrderItem({
+            product: product._id,
+            quantity: String(quantity),
+            unitCost: String(product.cost ?? product.price ?? 0)
+          })
+        ]
+      };
+    });
+  }
+
   async function handleCreate() {
     const validationMessage = validateSupplierOrder(form);
     if (validationMessage) {
@@ -426,6 +458,59 @@ export default function SupplierOrdersPage() {
       toast.error(error.response?.data?.message || "Неуспешно приемане на доставката.");
     }
   }
+
+  const purchaseSuggestions = useMemo(() => {
+    if (!form.store) return [];
+
+    const recentThreshold = new Date();
+    recentThreshold.setDate(recentThreshold.getDate() - 30);
+
+    const soldByProduct = new Map();
+    (salesOrders || []).forEach((order) => {
+      const orderStoreId = order?.store?._id || order?.store;
+      const orderDate = new Date(order?.createdAt || order?.updatedAt || 0);
+      if (String(orderStoreId) !== String(form.store) || Number.isNaN(orderDate.getTime()) || orderDate < recentThreshold) {
+        return;
+      }
+
+      (order.items || []).forEach((item) => {
+        const productId = item?.product?._id || item?.product;
+        if (!productId) return;
+        soldByProduct.set(String(productId), (soldByProduct.get(String(productId)) || 0) + Number(item.quantity || 0));
+      });
+    });
+
+    return (inventory || [])
+      .filter((row) => String(row?.store?._id || row?.store) === String(form.store))
+      .map((row) => {
+        const product = row.product;
+        if (!product?._id) return null;
+        const currentQty = Number(row.quantity || 0);
+        const reorderLevel = Number(row.reorderLevel || 0);
+        const soldLast30 = Number(soldByProduct.get(String(product._id)) || 0);
+        const suggestedQty = Math.max(
+          0,
+          Math.max(
+            reorderLevel > currentQty ? reorderLevel - currentQty : 0,
+            soldLast30 > currentQty ? soldLast30 - currentQty : 0,
+            row.isLowStock ? Math.max(reorderLevel, 1) : 0
+          )
+        );
+
+        if (!suggestedQty && !row.isLowStock && soldLast30 <= 0) return null;
+
+        return {
+          product,
+          currentQty,
+          reorderLevel,
+          soldLast30,
+          suggestedQty
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.suggestedQty - a.suggestedQty || b.soldLast30 - a.soldLast30)
+      .slice(0, 8);
+  }, [form.store, inventory, salesOrders]);
 
   return (
     <Stack spacing={3}>
@@ -506,7 +591,7 @@ export default function SupplierOrdersPage() {
                 <TextField label="Лице за контакт" value={form.supplier.contactPerson} onChange={(event) => updateSupplierField("contactPerson", event.target.value)} />
                 <TextField label="Телефон" value={form.supplier.phone} onChange={(event) => updateSupplierField("phone", event.target.value)} />
                 <TextField label="Email" value={form.supplier.email} onChange={(event) => updateSupplierField("email", event.target.value)} />
-                <TextField label="ДДС номер" value={form.supplier.vatNumber} onChange={(event) => updateSupplierField("vatNumber", event.target.value)} />
+                <TextField label="ЕИК" value={form.supplier.vatNumber} onChange={(event) => updateSupplierField("vatNumber", event.target.value)} />
                 <TextField label="Адрес" value={form.supplier.address} onChange={(event) => updateSupplierField("address", event.target.value)} />
               </FormGrid>
             </Stack>
@@ -528,6 +613,33 @@ export default function SupplierOrdersPage() {
                 </TextField>
               </FormGrid>
             </Stack>
+
+            <FormGridFull>
+              <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.10)", bgcolor: "rgba(39,86,107,0.05)" }}>
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2" fontWeight={900}>Предложения за поръчка</Typography>
+                  {!form.store ? (
+                    <Typography variant="body2" color="text.secondary">Избери обект за получаване, за да видиш кои артикули са за дозареждане.</Typography>
+                  ) : purchaseSuggestions.length ? (
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                      {purchaseSuggestions.map((suggestion) => (
+                        <Chip
+                          key={suggestion.product._id}
+                          color={suggestion.currentQty <= suggestion.reorderLevel ? "warning" : "default"}
+                          variant="outlined"
+                          label={`${suggestion.product.name} | № ${suggestion.product.productNumber || "-"} | Нал.: ${suggestion.currentQty} | Прод.30д: ${suggestion.soldLast30} | Поръчай: ${suggestion.suggestedQty}`}
+                          onClick={() => addSuggestedProduct(suggestion.product, suggestion.suggestedQty)}
+                          onDelete={() => addSuggestedProduct(suggestion.product, suggestion.suggestedQty)}
+                          deleteIcon={<AddBusinessRoundedIcon />}
+                        />
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">Няма критични предложения за дозареждане по текущите наличности и продажби.</Typography>
+                  )}
+                </Stack>
+              </Box>
+            </FormGridFull>
 
             <FormGridFull>
               <SupplierOrderItemsEditor value={form.items} products={products} onChange={(items) => updateField("items", items)} />
