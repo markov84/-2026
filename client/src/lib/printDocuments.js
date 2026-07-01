@@ -376,6 +376,28 @@ export function printTransfer(transfer) {
   );
   const totalAmount = subtotal + vatAmount;
 
+  const transferRows = items
+    .map((item, index) => {
+      const product = item.product || {};
+      const quantityValue = Number(item.quantity || 0);
+      const unitPrice = Number(product.price || 0);
+      const vatRate = Number(product.vatRate ?? 20);
+      const grossAmount = quantityValue * unitPrice;
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(product.name || "-")}</td>
+          <td>${escapeHtml(product.productNumber || "-")}</td>
+          <td>${escapeHtml(product.sku || "-")}</td>
+          <td class="num">${quantityValue}</td>
+          <td class="num">${formatCurrencyEUR(unitPrice)}</td>
+          <td class="num">${vatRate ? `${vatRate}%` : "-"}</td>
+          <td class="num">${formatCurrencyEUR(grossAmount)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
   printHtml(
     `Трансфер ${transfer.transferNumber || ""}`,
     `
@@ -405,9 +427,9 @@ export function printTransfer(transfer) {
       <h2>Артикули</h2>
       <table>
         <thead>
-          <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
+          <tr><th>№</th><th>Продукт</th><th>Номер</th><th>SKU</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: Number(item.product?.price || 0), vatRate: Number(item.product?.vatRate ?? 20) })), { priceIncludesVat: true })}</tbody>
+        <tbody>${transferRows}</tbody>
       </table>
       <section class="totals">
         <p><span>Общо бройки:</span><strong>${quantity}</strong></p>

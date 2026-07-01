@@ -572,6 +572,7 @@ export default function TransfersPageStable() {
   const [deletingTransfer, setDeletingTransfer] = useState(null);
   const [scanCode, setScanCode] = useState("");
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
+  const [selectedTransferId, setSelectedTransferId] = useState("");
   const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
 
@@ -588,6 +589,11 @@ export default function TransfersPageStable() {
         };
       }),
     [transfers]
+  );
+
+  const selectedTransfer = useMemo(
+    () => rows.find((item) => String(item._id) === String(selectedTransferId)) || null,
+    [rows, selectedTransferId]
   );
 
   function playScanFeedback(type = "success") {
@@ -763,6 +769,31 @@ export default function TransfersPageStable() {
       <PageHeader eyebrow="Логистика" title="Трансфери между магазини" subtitle="Създавай, редактирай и изтривай трансфери с един или повече продукта." icon={<CompareArrowsRoundedIcon />} />
 
       <DataSection title="Регистър на трансферите" subtitle="Заявки за движение на стока между обекти" icon={<CompareArrowsRoundedIcon />} actions={<Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => setOpen(true)}>Нов трансфер</Button>}>
+        {selectedTransfer ? (
+          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.14)", bgcolor: "rgba(39,86,107,0.04)" }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "center" }}>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={900}>
+                  Избран трансфер: {selectedTransfer.transferNumber || "-"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedTransfer.fromStore?.name || "-"} {"->"} {selectedTransfer.toStore?.name || "-"} | {selectedTransfer.totalQuantity || 0} бр. | {formatCurrencyEUR(selectedTransfer.totalAmount || 0)}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button variant="outlined" color="secondary" onClick={() => printTransfer(selectedTransfer)}>
+                  Документ
+                </Button>
+                <Button variant="outlined" onClick={() => openEditDialog(selectedTransfer)}>
+                  Редактирай
+                </Button>
+                <Button variant="outlined" color="error" onClick={() => setDeletingTransfer(selectedTransfer)}>
+                  Изтрий
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+        ) : null}
         <ResponsiveTable>
           <DataGrid
             autoHeight
@@ -771,6 +802,9 @@ export default function TransfersPageStable() {
             columnHeaderHeight={44}
             rows={rows}
             getRowId={(row) => row._id}
+            rowSelectionModel={selectedTransferId ? [selectedTransferId] : []}
+            onRowSelectionModelChange={(nextSelection) => setSelectedTransferId(String(nextSelection?.[0] || ""))}
+            onRowClick={(params) => setSelectedTransferId(String(params.row._id))}
             columns={[
               { field: "transferNumber", headerName: "Трансфер", flex: 0.75, minWidth: 120 },
               { field: "fromStore", headerName: "От", flex: 0.75, minWidth: 120, valueGetter: (_, row) => row.fromStore?.name || "-" },
@@ -782,7 +816,7 @@ export default function TransfersPageStable() {
               { field: "totalAmount", headerName: "Общо с ДДС", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 105, renderCell: (params) => <Chip label={params?.value || "-"} size="small" color={params?.value === "completed" ? "success" : "warning"} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -830,6 +864,11 @@ export default function TransfersPageStable() {
                 <MenuItem value="cancelled">Отказан</MenuItem>
               </TextField>
             </FormGrid>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Button variant="outlined" color="secondary" onClick={() => printTransfer(editingTransfer)}>
+                Документ за трансфера
+              </Button>
+            </Stack>
             <FormGridFull>
               <TransferItemsEditor
                 value={editingTransfer?.items || []}
