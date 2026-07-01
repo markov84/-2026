@@ -29,6 +29,14 @@ function toNumber(value, fallback = 0) {
 }
 
 router.get(
+  "/next-number",
+  asyncHandler(async (req, res) => {
+    const nextNumber = await getNextSupplierOrderNumber();
+    return res.json({ orderNumber: nextNumber });
+  })
+);
+
+router.get(
   "/",
   asyncHandler(async (req, res) => {
     const orders = await SupplierOrder.find()

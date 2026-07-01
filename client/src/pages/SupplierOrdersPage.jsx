@@ -4,6 +4,7 @@ import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
 import {
+  Alert,
   Autocomplete,
   Box,
   Button,
@@ -60,7 +61,7 @@ function createSupplierOrderItem(overrides = {}) {
 
 function createInitialOrder(requestedBy = "") {
   return {
-    orderNumber: "Генерира се автоматично",
+    orderNumber: "",
     supplierRef: "",
     supplier: {
       name: "",
@@ -298,10 +299,20 @@ export default function SupplierOrdersPage() {
     setForm(createInitialOrder(user?.fullName || user?.username || ""));
   }
 
+  async function assignNextOrderNumber() {
+    try {
+      const response = await api.get("/supplier-orders/next-number");
+      setForm((current) => ({ ...current, orderNumber: response.data?.orderNumber || current.orderNumber }));
+    } catch {
+      // Keep empty value if preview number fails; backend still assigns on save.
+    }
+  }
+
   function openCreateDialog() {
     setEditingOrder(null);
     resetForm();
     setOpen(true);
+    void assignNextOrderNumber();
   }
 
   function openEditDialog(order) {
@@ -521,6 +532,10 @@ export default function SupplierOrdersPage() {
         icon={<LocalShippingRoundedIcon />}
       />
 
+      <Alert severity="info">
+        Тази страница е само за външни доставчици. Вътрешните заявки между магазин и склад се правят в „Заявки“, а клиентските поръчки в „Поръчки“.
+      </Alert>
+
       <DataSection
         title="Регистър на поръчките към доставчици"
         subtitle="Входящи доставки и поръчки за зареждане"
@@ -599,7 +614,7 @@ export default function SupplierOrdersPage() {
             <Stack spacing={1}>
               <Typography variant="subtitle1" fontWeight={800}>Детайли на поръчката</Typography>
               <FormGrid min={220}>
-                <TextField label="Номер" value={form.orderNumber} disabled />
+                <TextField label="Номер на поръчка" value={form.orderNumber || "Генерира се..."} disabled helperText="Номерът се генерира автоматично и върви последователно." />
                 <TextField select label="Получаване в обект" value={form.store} onChange={(event) => updateField("store", event.target.value)}>
                   {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name} | {store.city}</MenuItem>)}
                 </TextField>
