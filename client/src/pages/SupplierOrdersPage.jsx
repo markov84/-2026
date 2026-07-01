@@ -261,6 +261,7 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
 export default function SupplierOrdersPage() {
   const { user } = useAuth();
   const { data: orders = [], loading, setData } = useFetch("/supplier-orders");
+  const { data: suppliers = [] } = useFetch("/suppliers");
   const { data: stores = [] } = useFetch("/stores");
   const { data: products = [] } = useFetch("/products");
   const isMobile = useMobileDetection();
@@ -328,6 +329,21 @@ export default function SupplierOrdersPage() {
 
   function updateSupplierField(key, value) {
     setForm((current) => ({ ...current, supplier: { ...current.supplier, [key]: value } }));
+  }
+
+  function applySupplierSelection(supplier) {
+    if (!supplier) return;
+    setForm((current) => ({
+      ...current,
+      supplier: {
+        name: supplier.name || "",
+        contactPerson: supplier.contactPerson || "",
+        phone: supplier.phone || "",
+        email: supplier.email || "",
+        address: supplier.address || "",
+        vatNumber: supplier.vatNumber || ""
+      }
+    }));
   }
 
   function buildPayload(source) {
@@ -473,6 +489,14 @@ export default function SupplierOrdersPage() {
           <Stack spacing={2.5}>
             <Stack spacing={1}>
               <Typography variant="subtitle1" fontWeight={800}>Доставчик</Typography>
+              <Autocomplete
+                options={Array.isArray(suppliers) ? suppliers : []}
+                getOptionLabel={(item) => [item?.name, item?.contactPerson, item?.phone].filter(Boolean).join(" | ")}
+                value={suppliers.find((item) => item.name === form.supplier.name) || null}
+                onChange={(_, supplier) => applySupplierSelection(supplier)}
+                isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                renderInput={(params) => <TextField {...params} label="Избери от регистъра" />}
+              />
               <FormGrid min={220}>
                 <TextField label="Име на доставчик" value={form.supplier.name} onChange={(event) => updateSupplierField("name", event.target.value)} />
                 <TextField label="Лице за контакт" value={form.supplier.contactPerson} onChange={(event) => updateSupplierField("contactPerson", event.target.value)} />

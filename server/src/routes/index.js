@@ -11,6 +11,7 @@ import inventoryAuditRoutes from "./inventoryAuditRoutes.js";
 import inventoryMovementRoutes from "./inventoryMovementRoutes.js";
 import orderRoutes from "./orderRoutes.js";
 import productRoutes from "./productRoutes.js";
+import supplierRoutes from "./supplierRoutes.js";
 import storeRoutes from "./storeRoutes.js";
 import supplierOrderRoutes from "./supplierOrderRoutes.js";
 import transferRoutes from "./transferRoutes.js";
@@ -35,6 +36,7 @@ router.get("/health", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/products", productRoutes);
+router.use("/suppliers", supplierRoutes);
 router.use("/customers", customerRoutes);
 router.use("/stores", storeRoutes);
 router.use("/inventory", inventoryRoutes);

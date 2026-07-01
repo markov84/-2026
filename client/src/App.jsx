@@ -6,6 +6,7 @@ import CommandCenterShell from "./components/CommandCenterShellClean";
 import LoginPage from "./pages/LoginPage";
 import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPagePolished";
 import ProductsPage from "./pages/ProductsPagePolished";
+import SuppliersPage from "./pages/SuppliersPage";
 import CustomersPage from "./pages/CustomersPageStable";
 import StoresPage from "./pages/StoresPageStable";
 import SupplierOrdersPage from "./pages/SupplierOrdersPage";
@@ -33,6 +34,7 @@ function PrivateRoutes({ user }) {
       <Routes>
         <Route path="/" element={<ExecutiveDashboardPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/suppliers" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SuppliersPage /> : <Navigate to="/" replace />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/stores" element={<StoresPage />} />
         <Route path="/supplier-orders" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SupplierOrdersPage /> : <Navigate to="/" replace />} />
