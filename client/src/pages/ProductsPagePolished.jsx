@@ -646,14 +646,6 @@ export default function ProductsPagePolished() {
                     <ProductIdentity product={existingProductByBarcode} />
                   </Box>
                 ) : null}
-                {existingProductByBarcode ? (
-                  <Box sx={{ p: 1.25, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)", bgcolor: "rgba(39,86,107,0.03)" }}>
-                    <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>
-                      Този код вече съществува за продукт:
-                    </Typography>
-                    <ProductIdentity product={existingProductByBarcode} />
-                  </Box>
-                ) : null}
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minHeight: 56 }}>
                   <Typography variant="body2" fontWeight={700}>Активен продукт</Typography>
                   <Switch checked={form.isActive} onChange={(e) => updateField("isActive", e.target.checked)} />
