@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import authRoutes from "./authRoutes.js";
 import customerRoutes from "./customerRoutes.js";
 import dashboardRoutes from "./dashboardOverviewRoutes.js";
+import emailRoutes from "./emailRoutes.js";
 import employeeRoutes from "./employeeRoutes.js";
 import financeRoutes from "./financeRoutes.js";
 import invoiceRoutes from "./invoiceRoutes.js";
@@ -35,6 +36,7 @@ router.get("/health", (req, res) => {
 
 router.use("/auth", authRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/emails", emailRoutes);
 router.use("/products", productRoutes);
 router.use("/suppliers", supplierRoutes);
 router.use("/customers", customerRoutes);

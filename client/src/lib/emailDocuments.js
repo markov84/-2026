@@ -1,4 +1,6 @@
 import { formatCurrencyEUR } from "./currency";
+import api from "./api";
+import toast from "react-hot-toast";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -11,29 +13,42 @@ function sanitizeEmail(value) {
   return String(value || "").trim();
 }
 
-function composeMailtoUrl({ to = "", subject = "", body = "" }) {
-  const params = new URLSearchParams();
-  params.set("subject", subject);
-  params.set("body", body);
-  const encodedTo = encodeURIComponent(to);
-  return `mailto:${encodedTo}?${params.toString()}`;
+function askRecipientEmail(defaultEmail = "") {
+  return sanitizeEmail(window.prompt("Въведи имейл адрес на получателя:", defaultEmail));
 }
 
-function openDocumentEmail({ to = "", subject = "", body = "" }) {
-  const candidate = sanitizeEmail(to) || sanitizeEmail(window.prompt("Въведи имейл адрес на получателя:", ""));
-  if (!candidate) return false;
-
-  const mailtoUrl = composeMailtoUrl({
-    to: candidate,
-    subject,
-    body
-  });
-
-  window.location.href = mailtoUrl;
-  return true;
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""));
 }
 
-export function sendOrderByEmail(order) {
+async function sendDocumentEmail({ to = "", subject = "", body = "", successMessage = "Имейлът е изпратен." }) {
+  const recipient = sanitizeEmail(to) || askRecipientEmail("");
+  if (!recipient) {
+    toast.error("Не е въведен имейл адрес.");
+    return false;
+  }
+
+  if (!isValidEmail(recipient)) {
+    toast.error("Невалиден имейл адрес.");
+    return false;
+  }
+
+  try {
+    await api.post("/emails/send-document", {
+      to: recipient,
+      subject,
+      text: body
+    });
+    toast.success(successMessage);
+    return true;
+  } catch (error) {
+    const details = error?.response?.data?.details;
+    toast.error(details || error?.response?.data?.message || "Грешка при изпращане на имейл.");
+    return false;
+  }
+}
+
+export async function sendOrderByEmail(order) {
   if (!order) return false;
 
   const totalAmount = Number(order.totalAmount || 0);
@@ -54,14 +69,15 @@ export function sendOrderByEmail(order) {
     "MARKLIGHT"
   ].join("\n");
 
-  return openDocumentEmail({
+  return sendDocumentEmail({
     to: sanitizeEmail(order.customer?.email),
     subject,
-    body
+    body,
+    successMessage: "Поръчката е изпратена по имейл."
   });
 }
 
-export function sendTransferByEmail(transfer) {
+export async function sendTransferByEmail(transfer) {
   if (!transfer) return false;
 
   const totalAmount = Number(transfer.totalAmount || 0);
@@ -83,10 +99,14 @@ export function sendTransferByEmail(transfer) {
     "MARKLIGHT"
   ].join("\n");
 
-  return openDocumentEmail({ subject, body });
+  return sendDocumentEmail({
+    subject,
+    body,
+    successMessage: "Трансферът е изпратен по имейл."
+  });
 }
 
-export function sendInvoiceByEmail(invoice) {
+export async function sendInvoiceByEmail(invoice) {
   if (!invoice) return false;
 
   const totalAmount = Number(invoice.totalAmount || 0);
@@ -105,10 +125,15 @@ export function sendInvoiceByEmail(invoice) {
     "MARKLIGHT"
   ].join("\n");
 
-  return openDocumentEmail({ subject, body });
+  return sendDocumentEmail({
+    to: sanitizeEmail(invoice.customerEmail),
+    subject,
+    body,
+    successMessage: "Фактурата е изпратена по имейл."
+  });
 }
 
-export function sendSupplierOrderByEmail(order) {
+export async function sendSupplierOrderByEmail(order) {
   if (!order) return false;
 
   const totalAmount = Number(order.totalAmount || 0);
@@ -130,14 +155,15 @@ export function sendSupplierOrderByEmail(order) {
     "MARKLIGHT"
   ].join("\n");
 
-  return openDocumentEmail({
+  return sendDocumentEmail({
     to: sanitizeEmail(order.supplier?.email),
     subject,
-    body
+    body,
+    successMessage: "Поръчката към доставчик е изпратена по имейл."
   });
 }
 
-export function sendInventoryAuditByEmail(audit) {
+export async function sendInventoryAuditByEmail(audit) {
   if (!audit) return false;
 
   const lines = Array.isArray(audit.lines) ? audit.lines : [];
@@ -158,5 +184,9 @@ export function sendInventoryAuditByEmail(audit) {
     "MARKLIGHT"
   ].join("\n");
 
-  return openDocumentEmail({ subject, body });
+  return sendDocumentEmail({
+    subject,
+    body,
+    successMessage: "Ревизионният протокол е изпратен по имейл."
+  });
 }
