@@ -40,6 +40,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
+import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 import { exportTransferPdf, printTransfer } from "../lib/printDocuments";
@@ -66,7 +67,7 @@ function createTransferItems(count = defaultTransferItemRows) {
   return Array.from({ length: count }, () => createTransferItem());
 }
 
-function createInitialTransfer() {
+function createInitialTransfer(overrides = {}) {
   return {
     transferNumber: "Генерира се автоматично",
     fromStore: "",
@@ -74,7 +75,8 @@ function createInitialTransfer() {
     requestedBy: "",
     notes: "",
     status: "pending",
-    items: createTransferItems()
+    items: createTransferItems(),
+    ...overrides
   };
 }
 
@@ -563,6 +565,7 @@ function TransferTotals({ transfer, products, inventory, stores }) {
 }
 
 export default function TransfersPageStable() {
+  const { user } = useAuth();
   const { data: transfers, loading, setData } = useFetch("/transfers");
   const { data: stores } = useFetch("/stores");
   const { data: products } = useFetch("/products");
@@ -574,6 +577,7 @@ export default function TransfersPageStable() {
   const [scanCode, setScanCode] = useState("");
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [selectedTransferId, setSelectedTransferId] = useState("");
+  const [requestType, setRequestType] = useState("general");
   const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
   const location = useLocation();
@@ -582,11 +586,40 @@ export default function TransfersPageStable() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("openCreateTransfer") !== "1") return;
+    const nextRequestType = params.get("requestType") || "general";
+    setRequestType(nextRequestType);
     setEditingTransfer(null);
-    setForm(createInitialTransfer());
+    setForm(
+      createInitialTransfer({
+        requestedBy: user?.fullName || user?.username || "",
+        notes:
+          nextRequestType === "warehouse"
+            ? "Заявка към склад"
+            : nextRequestType === "store"
+              ? "Заявка към друг магазин"
+              : ""
+      })
+    );
     setOpen(true);
     navigate("/transfers", { replace: true });
-  }, [location.search, navigate]);
+  }, [location.search, navigate, user]);
+
+  function openCreateTransferWithType(type = "general") {
+    setRequestType(type);
+    setEditingTransfer(null);
+    setForm(
+      createInitialTransfer({
+        requestedBy: user?.fullName || user?.username || "",
+        notes:
+          type === "warehouse"
+            ? "Заявка към склад"
+            : type === "store"
+              ? "Заявка към друг магазин"
+              : ""
+      })
+    );
+    setOpen(true);
+  }
 
   const rows = useMemo(
     () =>
@@ -780,7 +813,7 @@ export default function TransfersPageStable() {
     <Stack spacing={3}>
       <PageHeader eyebrow="Заявки" title="Заявки и трансфери между обекти" subtitle="Тук магазините и складът заявяват стока един към друг и подготвят документ за движение." icon={<CompareArrowsRoundedIcon />} />
 
-      <DataSection title="Регистър на заявки и трансфери" subtitle="Вътрешни заявки за движение на стока между магазин и склад" icon={<CompareArrowsRoundedIcon />} actions={<Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => setOpen(true)}>Нова заявка / трансфер</Button>}>
+      <DataSection title="Регистър на заявки и трансфери" subtitle="Вътрешни заявки за движение на стока между магазин и склад" icon={<CompareArrowsRoundedIcon />} actions={<Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"><Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCreateTransferWithType("warehouse")}>Заявка към склад</Button><Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCreateTransferWithType("store")}>Заявка към друг магазин</Button></Stack>}>
         {selectedTransfer ? (
           <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.14)", bgcolor: "rgba(39,86,107,0.04)" }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} justifyContent="space-between" alignItems={{ md: "center" }}>
@@ -839,9 +872,27 @@ export default function TransfersPageStable() {
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>
-        <DialogTitle>Нова заявка / трансфер</DialogTitle>
+        <DialogTitle>
+          {requestType === "warehouse"
+            ? "Нова заявка към склад"
+            : requestType === "store"
+              ? "Нова заявка към друг магазин"
+              : "Нова заявка / трансфер"}
+        </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
+            <Chip
+              label={
+                requestType === "warehouse"
+                  ? "Режим: заявка от магазин към склад"
+                  : requestType === "store"
+                    ? "Режим: заявка между магазини"
+                    : "Режим: общ вътрешен трансфер"
+              }
+              color="info"
+              variant="outlined"
+              sx={{ alignSelf: "flex-start" }}
+            />
             <FormGrid min={230}>
               <TextField label="Номер на трансфер" value={form.transferNumber} disabled />
               <TextField label="Заявил" value={form.requestedBy} onChange={(e) => setForm({ ...form, requestedBy: e.target.value })} />

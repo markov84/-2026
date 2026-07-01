@@ -1226,9 +1226,14 @@ export default function OrdersPageStable() {
       <Alert
         severity="info"
         action={
-          <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1")}>
-            Заявка към склад/магазин
-          </Button>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=warehouse")}>
+              Към склад
+            </Button>
+            <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=store")}>
+              Към друг магазин
+            </Button>
+          </Stack>
         }
       >
         Клиентски поръчки и продажби се създават тук. Ако магазин или склад иска стока от друг обект, използвай „Заявки“.
@@ -1300,8 +1305,11 @@ export default function OrdersPageStable() {
             <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
               Нова поръчка
             </Button>
-            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1")}>
-              Заявка към склад/магазин
+            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=warehouse")}>
+              Заявка към склад
+            </Button>
+            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=store")}>
+              Заявка към друг магазин
             </Button>
             {canSeeOrderAuthor ? (
               <Button
