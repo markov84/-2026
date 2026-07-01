@@ -38,7 +38,6 @@ function createTransporter(config) {
     host: config.host,
     port: config.port,
     secure: config.secure,
-    family: 4,
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 30000,
