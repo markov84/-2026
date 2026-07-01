@@ -38,6 +38,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
+import { sendInvoiceByEmail } from "../lib/emailDocuments";
 import { printInvoice } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -768,7 +769,7 @@ export default function InvoicesPageStable() {
               { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <StatusChip value={params?.value} /> },
               { field: "vatAmount", headerName: "ДДС", flex: 0.75, minWidth: 105, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "totalAmount", headerName: "Общо", flex: 0.85, minWidth: 115, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printInvoice(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 180, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printInvoice(params.row)} onEmail={() => sendInvoiceByEmail(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />

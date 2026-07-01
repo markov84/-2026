@@ -39,6 +39,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
+import { sendSupplierOrderByEmail } from "../lib/emailDocuments";
 import { exportSupplierOrderPdf, printSupplierOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 
@@ -554,6 +555,7 @@ export default function SupplierOrdersPage() {
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                 <Button variant="outlined" color="secondary" onClick={() => printSupplierOrder(selectedOrder)}>Документ</Button>
                 <Button variant="outlined" onClick={() => void exportSupplierOrderPdf(selectedOrder)}>PDF</Button>
+                <Button variant="outlined" color="info" onClick={() => sendSupplierOrderByEmail(selectedOrder)}>Имейл</Button>
                 <Button variant="outlined" onClick={() => openEditDialog(selectedOrder)} disabled={selectedOrder.status === "received"}>Редактирай</Button>
                 <Button variant="contained" color="success" onClick={() => void handleReceive(selectedOrder)} disabled={selectedOrder.status === "received" || selectedOrder.status === "cancelled"}>Приеми доставка</Button>
                 <Button variant="outlined" color="error" onClick={() => setDeletingOrder(selectedOrder)} disabled={selectedOrder.status === "received"}>Изтрий</Button>
@@ -580,7 +582,7 @@ export default function SupplierOrdersPage() {
               { field: "totalAmount", headerName: "Стойност", flex: 0.7, minWidth: 120, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 110, renderCell: (params) => <Chip size="small" label={statusLabel(params.value)} color={statusColor(params.value)} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printSupplierOrder(params.row)} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 180, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printSupplierOrder(params.row)} onEmail={() => sendSupplierOrderByEmail(params.row)} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />

@@ -21,6 +21,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
+import { sendInventoryAuditByEmail } from "../lib/emailDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 import { printInventoryAudit } from "../lib/printDocuments";
 
@@ -667,6 +668,9 @@ export default function InventoryAuditsPage() {
                 </Button>
                 <Button variant="outlined" onClick={handlePrintAuditProtocol}>
                   Протокол
+                </Button>
+                <Button variant="outlined" color="info" onClick={() => sendInventoryAuditByEmail(selectedAudit)}>
+                  Имейл
                 </Button>
                 <Button variant="outlined" onClick={handleExportAuditCsv}>
                   CSV
