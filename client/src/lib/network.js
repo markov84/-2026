@@ -1,5 +1,5 @@
- const PRODUCTION_API_URL = "https://mark-light-api.onrender.com/api";
-const PRODUCTION_SOCKET_URL = "https://mark-light-api.onrender.com";
+ const PRODUCTION_API_URL = "https://2026-s9jh.onrender.com/api";
+const PRODUCTION_SOCKET_URL = "https://2026-s9jh.onrender.com";
 
 export function getApiBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
