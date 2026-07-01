@@ -4,6 +4,7 @@ import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRound
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -1232,6 +1233,9 @@ export default function OrdersPageStable() {
             </Button>
             <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=store")}>
               Към друг магазин
+            </Button>
+            <Button color="info" size="small" startIcon={<ShoppingCartCheckoutRoundedIcon />} onClick={() => navigate("/supplier-orders") }>
+              Към доставчик
             </Button>
           </Stack>
         }

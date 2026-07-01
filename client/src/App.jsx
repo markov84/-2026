@@ -8,6 +8,7 @@ import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPagePolished";
 import ProductsPage from "./pages/ProductsPagePolished";
 import CustomersPage from "./pages/CustomersPageStable";
 import StoresPage from "./pages/StoresPageStable";
+import SupplierOrdersPage from "./pages/SupplierOrdersPage";
 import InventoryPage from "./pages/InventoryPageReady";
 import InventoryAuditsPage from "./pages/InventoryAuditsPage";
 import InventoryMovementsPage from "./pages/InventoryMovementsPage";
@@ -34,6 +35,7 @@ function PrivateRoutes({ user }) {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/stores" element={<StoresPage />} />
+        <Route path="/supplier-orders" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SupplierOrdersPage /> : <Navigate to="/" replace />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route
           path="/inventory-movements"

@@ -12,6 +12,7 @@ import inventoryMovementRoutes from "./inventoryMovementRoutes.js";
 import orderRoutes from "./orderRoutes.js";
 import productRoutes from "./productRoutes.js";
 import storeRoutes from "./storeRoutes.js";
+import supplierOrderRoutes from "./supplierOrderRoutes.js";
 import transferRoutes from "./transferRoutes.js";
 
 const router = Router();
@@ -44,5 +45,6 @@ router.use("/finance", financeRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/employees", employeeRoutes);
 router.use("/transfers", transferRoutes);
+router.use("/supplier-orders", supplierOrderRoutes);
 
 export default router;

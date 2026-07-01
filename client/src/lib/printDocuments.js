@@ -726,3 +726,180 @@ export function printInventoryAudit(audit) {
     `
   );
 }
+
+export function printSupplierOrder(order) {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const totalAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitCost || 0), 0);
+
+  const rows = items
+    .map(
+      (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(item.product?.name || "-")}</td>
+          <td>${escapeHtml(item.product?.productNumber || "-")}</td>
+          <td>${escapeHtml(item.product?.sku || "-")}</td>
+          <td class="num">${Number(item.quantity || 0)}</td>
+          <td class="num">${formatCurrencyEUR(item.unitCost || 0)}</td>
+          <td class="num">${formatCurrencyEUR(Number(item.quantity || 0) * Number(item.unitCost || 0))}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  printHtml(
+    `Поръчка към доставчик ${order?.orderNumber || ""}`,
+    `
+      <section class="header">
+        <div>
+          <div class="brand">MARK LIGHT LTD</div>
+          <p class="muted">Поръчка към доставчик</p>
+        </div>
+        <div>
+          <h1>ПОРЪЧКА КЪМ ДОСТАВЧИК</h1>
+          <p><strong>№:</strong> ${escapeHtml(order?.orderNumber || "-")}</p>
+          <p><strong>Дата:</strong> ${formatDate(order?.orderedAt || order?.createdAt)}</p>
+          <p><strong>Статус:</strong> ${escapeHtml(order?.status || "-")}</p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="box">
+          <h2>Доставчик</h2>
+          <p><strong>${escapeHtml(order?.supplier?.name || "-")}</strong></p>
+          <p>${escapeHtml(order?.supplier?.address || "")}</p>
+          <p>Лице: ${escapeHtml(order?.supplier?.contactPerson || "-")}</p>
+          <p>Телефон: ${escapeHtml(order?.supplier?.phone || "-")}</p>
+          <p>Email: ${escapeHtml(order?.supplier?.email || "-")}</p>
+        </div>
+        <div class="box">
+          <h2>Получаване</h2>
+          <p><strong>Обект:</strong> ${escapeHtml(order?.store?.name || "-")}</p>
+          <p><strong>Град:</strong> ${escapeHtml(order?.store?.city || "-")}</p>
+          <p><strong>Заявил:</strong> ${escapeHtml(order?.requestedBy || "-")}</p>
+          <p><strong>Очаквана дата:</strong> ${formatDate(order?.expectedDate)}</p>
+        </div>
+      </section>
+
+      <h2>Артикули</h2>
+      <table>
+        <thead>
+          <tr><th>№</th><th>Продукт</th><th>Номер</th><th>SKU</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">Сума</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <section class="totals">
+        <p><span>Общо бройки:</span><strong>${totalQuantity}</strong></p>
+        <p class="total"><span>Обща стойност:</span><span>${formatCurrencyEUR(totalAmount)}</span></p>
+      </section>
+
+      ${order?.notes ? `<h2>Бележки</h2><p>${escapeHtml(order.notes)}</p>` : ""}
+
+      <section class="footer">
+        <div class="signature">Заявил</div>
+        <div class="signature">Доставчик</div>
+      </section>
+    `
+  );
+}
+
+export async function exportSupplierOrderPdf(order) {
+  const { jsPDF } = await import("jspdf");
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 14;
+  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+  const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
+
+  let y = margin;
+  if (logoDataUrl) {
+    pdf.addImage(logoDataUrl, "PNG", margin, y, 18, 18);
+  }
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.text("MARKLIGHT", margin + 24, y + 7);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.text("LIGHTING TRADE", margin + 24, y + 13);
+  y += 24;
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 8;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("ПОРЪЧКА КЪМ ДОСТАВЧИК", margin, y);
+  y += 8;
+
+  const infoLines = [
+    `Номер: ${order?.orderNumber || "-"}`,
+    `Доставчик: ${order?.supplier?.name || "-"}`,
+    `Обект: ${order?.store?.name || "-"}`,
+    `Заявил: ${order?.requestedBy || "-"}`,
+    `Очаквана дата: ${formatDate(order?.expectedDate)}`,
+    `Статус: ${order?.status || "-"}`
+  ];
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  infoLines.forEach((line) => {
+    pdf.text(line, margin, y);
+    y += 5;
+  });
+
+  y += 3;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  const columns = [
+    { label: "№", x: margin, width: 10 },
+    { label: "Продукт", x: margin + 10, width: 56 },
+    { label: "Номер", x: margin + 66, width: 28 },
+    { label: "SKU", x: margin + 94, width: 28 },
+    { label: "Кол.", x: margin + 122, width: 16 },
+    { label: "Цена", x: margin + 138, width: 24 },
+    { label: "Сума", x: margin + 162, width: 28 }
+  ];
+  columns.forEach((column) => pdf.text(column.label, column.x, y));
+  y += 3;
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  let totalAmount = 0;
+  let totalQuantity = 0;
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  (order?.items || []).forEach((item, index) => {
+    if (y > pageHeight - 20) {
+      pdf.addPage();
+      y = margin;
+    }
+    const quantity = Number(item.quantity || 0);
+    const unitCost = Number(item.unitCost || 0);
+    const lineTotal = quantity * unitCost;
+    totalQuantity += quantity;
+    totalAmount += lineTotal;
+    const product = item.product || {};
+    const values = [
+      String(index + 1),
+      String(product.name || "-").slice(0, 28),
+      String(product.productNumber || "-").slice(0, 14),
+      String(product.sku || "-").slice(0, 14),
+      String(quantity),
+      formatCurrencyEUR(unitCost),
+      formatCurrencyEUR(lineTotal)
+    ];
+    columns.forEach((column, valueIndex) => {
+      const alignRight = valueIndex >= 4;
+      pdf.text(values[valueIndex], alignRight ? column.x + column.width : column.x, y, { align: alignRight ? "right" : "left" });
+    });
+    y += 5;
+  });
+
+  y += 4;
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 7;
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`Общо бройки: ${totalQuantity}`, margin, y);
+  pdf.text(`Обща стойност: ${formatCurrencyEUR(totalAmount)}`, pageWidth - margin, y, { align: "right" });
+  pdf.save(`supplier-order-${order?.orderNumber || order?._id || "document"}.pdf`);
+}

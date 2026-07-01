@@ -39,6 +39,7 @@ const navItems = [
   { label: "Продукти", path: "/products", iconKey: "products", color: "#12b886", bg: "rgba(18,184,134,0.16)" },
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
+  { label: "Доставчици", path: "/supplier-orders", iconKey: "suppliers", color: "#4263eb", bg: "rgba(66,99,235,0.16)" },
   { label: "Наличности", path: "/inventory", iconKey: "inventory", color: "#0ca678", bg: "rgba(12,166,120,0.16)" },
   { label: "Движения", path: "/inventory-movements", iconKey: "movements", color: "#0b7285", bg: "rgba(11,114,133,0.16)" },
   { label: "Ревизии", path: "/inventory-audits", iconKey: "audits", color: "#1971c2", bg: "rgba(25,113,194,0.16)" },
@@ -55,6 +56,7 @@ function getVisibleNavItems(user) {
   return navItems.filter((item) => {
     if (item.path === "/finance") return user?.role === "admin";
     if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
+    if (item.path === "/supplier-orders") return ["admin", "manager", "warehouse"].includes(user?.role);
     if (item.path === "/inventory-movements") return ["admin", "manager"].includes(user?.role);
     if (item.path === "/inventory-audits") return ["admin", "manager"].includes(user?.role);
     return true;
@@ -101,6 +103,14 @@ function ModernModuleIcon({ type, size }) {
           <path {...common} d="M8 13v12h16V13" />
           <path {...common} d="M12 25v-7h8v7" />
           <path {...common} d="M7 13c1.2 2.4 3.7 2.4 5 0 1.2 2.4 3.8 2.4 5 0 1.2 2.4 3.8 2.4 5 0 1.2 2.4 3.8 2.4 5 0" />
+        </>
+      ) : null}
+      {type === "suppliers" ? (
+        <>
+          <path {...common} d="M7 25V11l9-4 9 4v14" />
+          <path {...common} d="M12 25v-6h8v6" />
+          <path {...common} d="M11 13h10M11 16h10" />
+          <path {...common} d="M16 7v4" opacity="0.8" />
         </>
       ) : null}
       {type === "inventory" ? (
