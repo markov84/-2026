@@ -129,6 +129,8 @@ export default function ProductsPagePolished() {
   const location = useLocation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [highlightedProductId, setHighlightedProductId] = useState("");
+  const [selectionModel, setSelectionModel] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [form, setForm] = useState(initialForm);
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
@@ -381,8 +383,44 @@ export default function ProductsPagePolished() {
     setScanBarcodeOpen(false);
   }
 
+  function findProductByCode(rawCode) {
+    const normalizedCode = parseScannedInput(rawCode);
+    if (!normalizedCode) return null;
+
+    return data.find((product) =>
+      [product.barcode, product.sku, product.productNumber]
+        .filter(Boolean)
+        .some((value) => normalizeScanCode(value).toLowerCase() === normalizedCode.toLowerCase())
+    ) || null;
+  }
+
+  function focusProductInTable(product) {
+    if (!product?._id) return;
+    setHighlightedProductId(String(product._id));
+    setSelectionModel([String(product._id)]);
+    setQuery(product.name || product.productNumber || product.sku || product.barcode || "");
+    setPaginationModel((current) => ({ ...current, page: 0 }));
+  }
+
   useBarcodeKeyboardScan((code) => {
-    handleProductBarcodeDetected(code);
+    if (open) {
+      handleProductBarcodeDetected(code);
+      return;
+    }
+
+    const product = findProductByCode(code);
+    if (!product) {
+      const parsedCode = parseScannedInput(code);
+      if (parsedCode) {
+        setQuery(parsedCode);
+        setHighlightedProductId("");
+      }
+      toast.error("Няма намерен продукт по този код.");
+      return;
+    }
+
+    focusProductInTable(product);
+    toast.success(`Маркиран продукт: ${product.name}`);
   });
 
   async function handleDelete() {
@@ -442,14 +480,32 @@ export default function ProductsPagePolished() {
             loading={loading}
             rows={filteredProducts}
             getRowId={(row) => row._id}
+            rowSelectionModel={selectionModel}
+            onRowSelectionModelChange={(nextSelection) => setSelectionModel(nextSelection)}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
+            onRowClick={(params) => {
+              setHighlightedProductId(String(params.row._id));
+              setSelectionModel([String(params.row._id)]);
+            }}
             rowHeight={60}
             columnHeaderHeight={54}
+            getRowClassName={(params) => {
+              if (String(params.row._id) === String(highlightedProductId)) return "product-row-scanned";
+              if (query.trim()) return "product-row-filter-hit";
+              return "";
+            }}
             sx={{
               "& .product-cell": {
                 pl: 0.5,
                 pr: 0.5
+              },
+              "& .product-row-filter-hit .MuiDataGrid-cell": {
+                bgcolor: "rgba(39, 86, 107, 0.06)"
+              },
+              "& .product-row-scanned .MuiDataGrid-cell": {
+                bgcolor: "rgba(255, 193, 7, 0.18)",
+                borderLeft: "4px solid rgba(255, 143, 0, 0.85)"
               }
             }}
             columns={[
