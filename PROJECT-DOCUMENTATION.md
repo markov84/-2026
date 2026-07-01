@@ -143,6 +143,13 @@ SMTP_FROM=no-reply@marklight.bg
 SMTP_FROM_NAME=MARKLIGHT
 ```
 
+Gmail / Google Workspace setup:
+
+- Use your company mailbox (for example sales@your-domain.com) as `SMTP_USER` and `SMTP_FROM`.
+- Turn on 2-Step Verification for this Google account.
+- Create an App Password in Google Account security settings and use it as `SMTP_PASS`.
+- Keep `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`.
+
 Notes:
 
 - Do not commit real database passwords or JWT secrets.
