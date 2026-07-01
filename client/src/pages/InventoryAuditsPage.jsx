@@ -475,6 +475,7 @@ export default function InventoryAuditsPage() {
     id: `${line.product?._id || line.product || index}-${index}`,
     ...line,
     productName: line.product?.name || "-",
+    productNumber: line.product?.productNumber || "-",
     sku: line.product?.sku || "-"
   }));
 
@@ -845,6 +846,7 @@ export default function InventoryAuditsPage() {
                   }}
                   columns={[
                   { field: "productName", headerName: "Продукт", flex: 1.3 },
+                  { field: "productNumber", headerName: "Номер", flex: 0.8 },
                   { field: "sku", headerName: "SKU", flex: 0.8 },
                   {
                     field: "expectedQuantity",

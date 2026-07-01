@@ -123,7 +123,7 @@ function validateTransfer(transfer) {
 
 function getProductOptionLabel(product) {
   if (!product) return "";
-  return [product.name, product.productNumber, product.sku, product.barcode, product.category, product.brand].filter(Boolean).join(" | ");
+  return [product.name, product.productNumber ? `№ ${product.productNumber}` : "", product.sku, product.barcode, product.category, product.brand].filter(Boolean).join(" | ");
 }
 
 function getTransferItems(transfer) {

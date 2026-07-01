@@ -140,16 +140,29 @@ export function ProductIdentity({ product, compact = false, showSku = true, onIm
         {product.name?.[0] || "P"}
       </Avatar>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Tooltip title={product.name || ""}>
-          <Typography variant="body2" fontWeight={800} noWrap sx={{ lineHeight: 1.15 }}>
-            {product.name}
-          </Typography>
-        </Tooltip>
+        <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap" sx={{ minWidth: 0 }}>
+          <Tooltip title={product.name || ""}>
+            <Typography variant="body2" fontWeight={800} noWrap sx={{ lineHeight: 1.15, maxWidth: compact ? 180 : 260 }}>
+              {product.name}
+            </Typography>
+          </Tooltip>
+          {product.productNumber ? (
+            <Chip
+              size="small"
+              label={`№ ${product.productNumber}`}
+              sx={{
+                height: 20,
+                fontWeight: 800,
+                bgcolor: "rgba(39,86,107,0.14)",
+                border: "1px solid rgba(39,86,107,0.28)"
+              }}
+            />
+          ) : null}
+        </Stack>
         {showSku ? (
           <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", lineHeight: 1.15 }}>
             {[
               product.sku ? `SKU: ${product.sku}` : "",
-              product.productNumber ? `Номер: ${product.productNumber}` : "",
               product.barcode ? `Баркод: ${product.barcode}` : ""
             ].filter(Boolean).join(" | ") || "Без код"}
           </Typography>

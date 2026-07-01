@@ -554,7 +554,7 @@ export default function InventoryPageReady() {
                 </Box>
               ) : null}
               <TextField select label="Продукт" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}>
-                {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | {product.productNumber || "-"} | {product.sku}</MenuItem>)}
+                {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | № {product.productNumber || "-"} | {product.sku}</MenuItem>)}
               </TextField>
               <TextField select label="Магазин" value={form.store} onChange={(e) => setForm({ ...form, store: e.target.value })}>
                 {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name} | {store.city}</MenuItem>)}
@@ -601,7 +601,7 @@ export default function InventoryPageReady() {
         <DialogContent dividers>
           <FormGrid min={230}>
             <TextField select disabled label="Продукт" value={editingItem?.product || ""}>
-              {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | {product.productNumber || "-"}</MenuItem>)}
+              {products.map((product) => <MenuItem key={product._id} value={product._id}>{product.name} | № {product.productNumber || "-"}</MenuItem>)}
             </TextField>
             <TextField select disabled label="Магазин" value={editingItem?.store || ""}>
               {stores.map((store) => <MenuItem key={store._id} value={store._id}>{store.name}</MenuItem>)}

@@ -187,7 +187,7 @@ function getInventoryForItem(inventory, productId, storeId) {
 
 function getProductOptionLabel(product) {
   if (!product) return "";
-  return [product.name, product.productNumber, product.sku, product.barcode].filter(Boolean).join(" | ");
+  return [product.name, product.productNumber ? `№ ${product.productNumber}` : "", product.sku, product.barcode].filter(Boolean).join(" | ");
 }
 
 function isOrderItemFilled(item) {
