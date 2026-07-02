@@ -1,4 +1,4 @@
-import { Card, CardActionArea, CardContent, Chip, Divider, Grid2 as Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { Alert, Card, CardActionArea, CardContent, Chip, CircularProgress, Divider, Grid2 as Grid, LinearProgress, Stack, Typography } from "@mui/material";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import ShoppingBagRoundedIcon from "@mui/icons-material/ShoppingBagRounded";
@@ -118,16 +118,51 @@ function MetricPanel({ title, value, helper, icon, onClick }) {
 
 export default function ExecutiveDashboardPagePolished() {
   const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
   const canViewProfit = Boolean(dashboard?.permissions?.canViewProfit ?? (user?.role === "admin"));
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError("");
+
     api
       .get("/dashboard")
       .then((response) => setDashboard(response.data))
-      .catch((error) => toast.error(error.response?.data?.message || "Неуспешно зареждане на таблото."));
+      .catch((error) => {
+        const message = error.response?.data?.message || "Неуспешно зареждане на таблото.";
+        setLoadError(message);
+        toast.error(message);
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  if (loading && !dashboard) {
+    return (
+      <Stack spacing={3}>
+        <PageHeader
+          eyebrow="Оперативен обзор"
+          title="Продажби, наличности и финанси в едно табло"
+          subtitle="Зареждаме данните от сървъра. При първо отваряне е възможно да има кратко забавяне."
+          icon={<DashboardRoundedIcon />}
+        />
+
+        <Card sx={{ borderRadius: 5 }}>
+          <CardContent sx={{ py: 6 }}>
+            <Stack spacing={2} alignItems="center" textAlign="center">
+              <CircularProgress />
+              <Typography variant="h6">Подготвям данните за таблото</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 520 }}>
+                Ако отваряш приложението от ново устройство, backend сървърът може да се събуди за няколко секунди.
+              </Typography>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={3}>
@@ -137,6 +172,8 @@ export default function ExecutiveDashboardPagePolished() {
         subtitle="Ясен преглед на мрежата с по-компактен layout, по-малко шум и по-лесно четене на най-важните показатели."
         icon={<DashboardRoundedIcon />}
       />
+
+      {loadError ? <Alert severity="warning">{loadError}</Alert> : null}
 
       <Grid container spacing={2.5}>
         {(dashboard?.stats || []).map((stat, index) => (
