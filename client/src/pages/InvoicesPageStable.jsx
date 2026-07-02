@@ -32,6 +32,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
@@ -749,6 +750,8 @@ export default function InvoicesPageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Фактуриране" title="Фактури" subtitle="Регистър и форма с основните реквизити за издаване на фактура." icon={<DescriptionRoundedIcon />} />
+
+      {loading && !invoices.length ? <PageLoadingNotice subject="фактурите" /> : null}
 
       <DataSection title="Регистър на фактурите" subtitle="Издадени документи, статуси и суми" icon={<DescriptionRoundedIcon />} actions={<Button variant="contained" startIcon={<NoteAddRoundedIcon />} onClick={() => setOpen(true)}>Нова фактура</Button>}>
         <ResponsiveTable>

@@ -34,6 +34,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
@@ -812,6 +813,8 @@ export default function TransfersPageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Заявки" title="Заявки и трансфери между обекти" subtitle="Тук магазините и складът заявяват стока един към друг и подготвят документ за движение." icon={<CompareArrowsRoundedIcon />} />
+
+      {loading && !transfers.length ? <PageLoadingNotice subject="заявките и трансферите" /> : null}
 
       <DataSection title="Регистър на заявки и трансфери" subtitle="Вътрешни заявки за движение на стока между магазин и склад" icon={<CompareArrowsRoundedIcon />} actions={<Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"><Button variant="contained" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCreateTransferWithType("warehouse")}>Заявка към склад</Button><Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCreateTransferWithType("store")}>Заявка към друг магазин</Button></Stack>}>
         {selectedTransfer ? (

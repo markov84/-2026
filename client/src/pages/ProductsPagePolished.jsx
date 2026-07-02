@@ -35,6 +35,7 @@ import DataSection from "../components/DataSection";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
@@ -445,6 +446,8 @@ export default function ProductsPagePolished() {
         subtitle="Поддържай пълни продуктови профили със снимка, цена, минимална наличност, ДДС и подробно описание."
         icon={<Inventory2RoundedIcon />}
       />
+
+      {loading && !data.length ? <PageLoadingNotice subject="продуктите" /> : null}
 
       <DataSection
         title="Продуктов каталог"

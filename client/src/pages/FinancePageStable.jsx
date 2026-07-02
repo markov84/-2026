@@ -17,6 +17,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
@@ -366,6 +367,8 @@ export default function FinancePageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Финанси" title="Финансов дневник" subtitle="Приходи, разходи и банка с редакция и изтриване на всеки запис." icon={<AccountBalanceWalletRoundedIcon />} />
+
+      {loading && !entries.length ? <PageLoadingNotice subject="финансовите записи" /> : null}
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
         <TextField

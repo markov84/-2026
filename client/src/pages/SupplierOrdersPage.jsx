@@ -32,6 +32,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
@@ -531,6 +532,8 @@ export default function SupplierOrdersPage() {
         subtitle="Създавай поръчки към доставчици, печатай документ и приемай доставка директно в наличността."
         icon={<LocalShippingRoundedIcon />}
       />
+
+      {loading && !orders.length ? <PageLoadingNotice subject="поръчките към доставчици" /> : null}
 
       <Alert severity="info">
         Тази страница е само за външни доставчици. Вътрешните заявки между магазин и склад се правят в „Заявки“, а клиентските поръчки в „Поръчки“.

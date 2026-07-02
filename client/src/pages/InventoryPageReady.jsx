@@ -13,6 +13,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
@@ -394,6 +395,8 @@ export default function InventoryPageReady() {
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Наличности" title="Складови нива" subtitle="Добавяй, редактирай и изтривай наличности по обекти." icon={<WarehouseRoundedIcon />} />
+
+      {loading && !data.length ? <PageLoadingNotice subject="наличностите" /> : null}
 
       <DataSection
         title="Наличности по обекти"

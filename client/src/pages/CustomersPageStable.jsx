@@ -29,6 +29,7 @@ import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import FormPanel from "../components/FormPanel";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
@@ -294,6 +295,8 @@ export default function CustomersPageStable() {
         subtitle="Управлявай физически лица и фирми с ясни контактни, данъчни и търговски данни."
         icon={<PeopleAltRoundedIcon />}
       />
+
+      {loading && !data.length ? <PageLoadingNotice subject="клиентите" /> : null}
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 4 }}>

@@ -17,6 +17,7 @@ import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
+import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
@@ -1223,6 +1224,8 @@ export default function OrdersPageStable() {
         subtitle="Тук се правят клиентски поръчки и продажби. За вътрешни заявки между магазин и склад използвай страницата Заявки."
         icon={<ReceiptLongRoundedIcon />}
       />
+
+      {loading && !orders.length ? <PageLoadingNotice subject="поръчките и продажбите" /> : null}
 
       <Alert
         severity="info"
