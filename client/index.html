@@ -10,74 +10,119 @@
   <link rel="icon" type="image/png" href="/MARKLIGHT.png" />
 
   <title>MARKLIGHT Lighting Trade</title>
-</head>
-  <body>
-    <div id="root"></div>
-    <script>
-      (function () {
-        var BUILD_ID = "2026-07-03-boot-2";
-        var BUILD_KEY = "mark-light-last-build-id";
-        var KEY = "mark-light-bootstrap-reload-once";
-        var BOOT_TIMEOUT_KEY = "mark-light-bootstrap-timeout-reload-once";
-        var BOOT_TIMEOUT_MS = 9000;
+  <script>
+    (function () {
+      var BUILD_ID = "2026-07-03-boot-3";
+      var BUILD_KEY = "mark-light-last-build-id";
+      var KEY = "mark-light-bootstrap-reload-once";
+      var BOOT_TIMEOUT_KEY = "mark-light-bootstrap-timeout-reload-once";
+      var SW_EVICT_KEY = "mark-light-sw-evict-once";
+      var BOOT_TIMEOUT_MS = 9000;
 
+      function replaceWithCurrentUrl(params) {
+        location.replace(location.pathname + "?" + params.toString() + location.hash);
+      }
+
+      try {
+        var params = new URLSearchParams(location.search);
+        var currentVersion = params.get("mlv") || "";
+        var storedVersion = sessionStorage.getItem(BUILD_KEY) || "";
+
+        if (storedVersion !== BUILD_ID || currentVersion !== BUILD_ID) {
+          sessionStorage.setItem(BUILD_KEY, BUILD_ID);
+          params.set("mlv", BUILD_ID);
+          replaceWithCurrentUrl(params);
+          return;
+        }
+      } catch (error) {
+        void error;
+      }
+
+      // If an old service worker still controls the page, evict it before app module loading.
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         try {
-          var params = new URLSearchParams(location.search);
-          var currentVersion = params.get("mlv") || "";
-          var storedVersion = sessionStorage.getItem(BUILD_KEY) || "";
+          if (sessionStorage.getItem(SW_EVICT_KEY) !== "1") {
+            sessionStorage.setItem(SW_EVICT_KEY, "1");
 
-          if (storedVersion !== BUILD_ID || currentVersion !== BUILD_ID) {
-            sessionStorage.setItem(BUILD_KEY, BUILD_ID);
-            params.set("mlv", BUILD_ID);
-            location.replace(location.pathname + "?" + params.toString() + location.hash);
+            Promise.resolve()
+              .then(function () {
+                return navigator.serviceWorker.getRegistrations();
+              })
+              .then(function (registrations) {
+                return Promise.all(
+                  registrations.map(function (registration) {
+                    return registration.unregister();
+                  })
+                );
+              })
+              .then(function () {
+                return caches.keys();
+              })
+              .then(function (keys) {
+                return Promise.all(
+                  keys.map(function (key) {
+                    return caches.delete(key);
+                  })
+                );
+              })
+              .finally(function () {
+                var params = new URLSearchParams(location.search);
+                params.set("swfix", String(Date.now()));
+                replaceWithCurrentUrl(params);
+              });
+
             return;
           }
         } catch (error) {
           void error;
         }
+      }
 
-        function shouldReload(message) {
-          var text = String(message || "").toLowerCase();
-          return (
-            text.indexOf("failed to load module script") >= 0 ||
-            text.indexOf("importing a module script failed") >= 0 ||
-            text.indexOf("failed to fetch dynamically imported module") >= 0 ||
-            text.indexOf("chunkloaderror") >= 0
-          );
+      function shouldReload(message) {
+        var text = String(message || "").toLowerCase();
+        return (
+          text.indexOf("failed to load module script") >= 0 ||
+          text.indexOf("importing a module script failed") >= 0 ||
+          text.indexOf("failed to fetch dynamically imported module") >= 0 ||
+          text.indexOf("chunkloaderror") >= 0
+        );
+      }
+
+      function reloadOnce() {
+        try {
+          if (sessionStorage.getItem(KEY) === "1") return;
+          sessionStorage.setItem(KEY, "1");
+          location.reload();
+        } catch (error) {
+          void error;
         }
+      }
 
-        function reloadOnce() {
-          try {
-            if (sessionStorage.getItem(KEY) === "1") return;
-            sessionStorage.setItem(KEY, "1");
-            location.reload();
-          } catch (error) {
-            void error;
-          }
+      window.addEventListener("error", function (event) {
+        if (shouldReload(event && event.message)) reloadOnce();
+      });
+
+      window.addEventListener("unhandledrejection", function (event) {
+        var reason = event && event.reason;
+        var message = typeof reason === "string" ? reason : reason && reason.message;
+        if (shouldReload(message)) reloadOnce();
+      });
+
+      window.setTimeout(function () {
+        try {
+          if (window.__MARKLIGHT_APP_BOOTED) return;
+          if (sessionStorage.getItem(BOOT_TIMEOUT_KEY) === "1") return;
+          sessionStorage.setItem(BOOT_TIMEOUT_KEY, "1");
+          location.reload();
+        } catch (error) {
+          void error;
         }
-
-        window.addEventListener("error", function (event) {
-          if (shouldReload(event && event.message)) reloadOnce();
-        });
-
-        window.addEventListener("unhandledrejection", function (event) {
-          var reason = event && event.reason;
-          var message = typeof reason === "string" ? reason : reason && reason.message;
-          if (shouldReload(message)) reloadOnce();
-        });
-
-        window.setTimeout(function () {
-          try {
-            if (window.__MARKLIGHT_APP_BOOTED) return;
-            if (sessionStorage.getItem(BOOT_TIMEOUT_KEY) === "1") return;
-            sessionStorage.setItem(BOOT_TIMEOUT_KEY, "1");
-            location.reload();
-          } catch (error) {
-            void error;
-          }
-        }, BOOT_TIMEOUT_MS);
-      })();
-    </script>
+      }, BOOT_TIMEOUT_MS);
+    })();
+  </script>
+</head>
+  <body>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
   </html>
