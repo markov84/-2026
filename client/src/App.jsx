@@ -2,8 +2,7 @@
 import { CircularProgress, Stack } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./providers/AuthProviderStable";
-
-const CommandCenterShell = lazy(() => import("./components/CommandCenterShellClean"));
+import CommandCenterShell from "./components/CommandCenterShellClean";
 
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const ExecutiveDashboardPage = lazy(() => import("./pages/ExecutiveDashboardPagePolished"));
