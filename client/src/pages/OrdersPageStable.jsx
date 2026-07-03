@@ -1272,37 +1272,7 @@ export default function OrdersPageStable() {
         icon={<ReceiptLongRoundedIcon />}
       />
 
-      <Button 
-        variant="contained" 
-        color="success"
-        size="large"
-        startIcon={<AddShoppingCartRoundedIcon />} 
-        onClick={openCreateDialog}
-        sx={{ alignSelf: "flex-end", py: 1.5, px: 3 }}
-      >
-        ➕ НОВА ПРОДАЖБА
-      </Button>
-
       {loading && !orders.length ? <PageLoadingNotice subject="продажбите" /> : null}
-
-      <Alert
-        severity="info"
-        action={
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=warehouse")}>
-              Към склад
-            </Button>
-            <Button color="info" size="small" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=store")}>
-              Към друг магазин
-            </Button>
-            <Button color="info" size="small" startIcon={<ShoppingCartCheckoutRoundedIcon />} onClick={() => navigate("/supplier-orders") }>
-              Към доставчик
-            </Button>
-          </Stack>
-        }
-      >
-        Продажбите се създават тук. Ако магазин или склад иска стока от друг обект, използвай „Заявки“.
-      </Alert>
 
       <DataSection
         title="Регистър на продажби"
@@ -1367,14 +1337,15 @@ export default function OrdersPageStable() {
         }
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
-              Нова продажба
-            </Button>
-            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=warehouse")}>
-              Заявка към склад
-            </Button>
-            <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=store")}>
-              Заявка към друг магазин
+            <Button
+              variant="contained"
+              color="success"
+              size="large"
+              startIcon={<AddShoppingCartRoundedIcon />}
+              onClick={openCreateDialog}
+              sx={{ py: 1, px: 2 }}
+            >
+              ➡️ НОВА ПРОДАЖБА
             </Button>
             {canSeeOrderAuthor ? (
               <Button
@@ -1444,5 +1415,6 @@ export default function OrdersPageStable() {
     </Stack>
   );
 }
+
 
 
