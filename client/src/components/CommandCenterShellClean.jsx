@@ -345,7 +345,7 @@ function Navigation({ onNavigate }) {
           </Typography>
           <ListItemButton onClick={logout} sx={{ px: 0, color: "#fff", borderRadius: 2 }}>
             <ListItemIcon sx={{ color: "inherit", minWidth: 36 }}>
-              <LogoutRoundedIcon />
+              <AppGlyph name="logout" />
             </ListItemIcon>
             <ListItemText primary="Изход" />
           </ListItemButton>
