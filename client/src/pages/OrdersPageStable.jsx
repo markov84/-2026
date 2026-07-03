@@ -1079,10 +1079,13 @@ export default function OrdersPageStable() {
 
   useEffect(() => {
     if (open || editingOrder) {
-      const timeoutId = setTimeout(() => {
-        scanFieldRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timeoutId);
+      // Focus scan field immediately and repeatedly to ensure it's focused
+      const focusTimers = [
+        setTimeout(() => scanFieldRef.current?.focus(), 0),
+        setTimeout(() => scanFieldRef.current?.focus(), 50),
+        setTimeout(() => scanFieldRef.current?.focus(), 150)
+      ];
+      return () => focusTimers.forEach(timer => clearTimeout(timer));
     }
   }, [open, editingOrder]);
 
@@ -1151,14 +1154,37 @@ export default function OrdersPageStable() {
   function renderSharedOrderFields(order, setOrder, scanValue, setScanValue, scanFieldRef) {
     return (
       <Stack spacing={2.5}>
+        <Alert severity="success" sx={{ mb: 1 }}>
+          <strong>Как да скаиираш:</strong> Поставь скенера срещу баркода → полето ще прихвати кода автоматично → продуктът се добавя. Повторен скан увеличава количеството.
+        </Alert>
         <TextField
           fullWidth
           autoFocus
-          label="Сканирай баркод или SKU"
+          label="📱 Сканирай баркод или SKU"
           value={scanValue}
           inputRef={scanFieldRef}
-          onChange={(event) => setScanValue(event.target.value)}
-          onKeyDown={(event) => handleScanKeyDown(event, setOrder, setScanValue, order, scanValue)}
+          onChange={(event) => {
+            setScanValue(event.target.value);
+            // Auto-scan if code looks complete (ends with Enter or looks like a barcode)
+            const value = event.target.value.trim();
+            if (value && value.length > 6) {
+              // Trigger scan immediately if it looks like a barcode
+              const delayId = setTimeout(() => {
+                if (scanFieldRef.current?.value === value) {
+                  void applyScannedProduct(value, setOrder, setScanValue, order);
+                }
+              }, 50);
+              return () => clearTimeout(delayId);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === "Tab") {
+              event.preventDefault();
+              if (scanValue && scanValue.trim().length > 0) {
+                void applyScannedProduct(scanValue, setOrder, setScanValue, order);
+              }
+            }
+          }}
           helperText="Сканирай продукт, за да го добавиш в продажбата. Повторно сканиране увеличава количеството."
           InputProps={{
             startAdornment: (
@@ -1243,6 +1269,16 @@ export default function OrdersPageStable() {
         subtitle="Тук се правят клиентски поръчки и продажби. За вътрешни заявки между магазин и склад използвай страницата Заявки."
         icon={<ReceiptLongRoundedIcon />}
       />
+
+      <Button 
+        variant="contained" 
+        size="large"
+        startIcon={<AddShoppingCartRoundedIcon />} 
+        onClick={openCreateDialog}
+        sx={{ alignSelf: "flex-start", py: 1.5 }}
+      >
+        ➕ НОВА ПРОДАЖБА
+      </Button>
 
       {loading && !orders.length ? <PageLoadingNotice subject="поръчките и продажбите" /> : null}
 
