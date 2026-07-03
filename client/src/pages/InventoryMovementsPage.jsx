@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
-import { Button, Grid2 as Grid, MenuItem, Stack, TextField } from "@mui/material";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import DataSection from "../components/DataSection";
@@ -10,6 +13,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
 import { useFetch } from "../hooks/useFetch";
 import api from "../lib/api";
+import { formatDate } from "../lib/currency";
 
 const movementTypeLabels = {
   all: "Всички",
@@ -76,56 +80,151 @@ export default function InventoryMovementsPage() {
     const inCount = rows.filter((row) => row.movementType === "in").length;
     const outCount = rows.filter((row) => row.movementType === "out").length;
     const adjustmentCount = rows.filter((row) => row.movementType === "adjustment").length;
+    const inQuantity = rows.filter((row) => row.movementType === "in").reduce((sum, row) => sum + (row.quantityDelta || 0), 0);
+    const outQuantity = rows.filter((row) => row.movementType === "out").reduce((sum, row) => sum + (row.quantityDelta || 0), 0);
     return {
       total: rows.length,
       inCount,
       outCount,
-      adjustmentCount
+      adjustmentCount,
+      inQuantity,
+      outQuantity,
+      netBalance: inQuantity - outQuantity
     };
   }, [rows]);
 
   return (
     <Stack spacing={3}>
       <PageHeader
-        eyebrow="Складови движения"
-        title="Дневник на вход и изход на стока"
-        subtitle="Филтрирай по име, баркод/QR, магазин, тип движение и период."
+        eyebrow="Управление на склад"
+        title="Дневник на движенията на стока"
+        subtitle="Всички входове, изходи и корекции на наличности - история на промяната на всяко количество в системата."
         icon={<SwapHorizRoundedIcon />}
       />
 
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Общо" value={String(summary.total)} accent="primary" icon={<SwapHorizRoundedIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Вход" value={String(summary.inCount)} accent="success" icon={<SwapHorizRoundedIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Изход" value={String(summary.outCount)} accent="danger" icon={<SwapHorizRoundedIcon />} /></Grid>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}><StatCard label="Корекции" value={String(summary.adjustmentCount)} accent="warning" icon={<SwapHorizRoundedIcon />} /></Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard 
+            label="Движения" 
+            value={String(summary.total)} 
+            accent="primary" 
+            icon={<SwapHorizRoundedIcon />} 
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard 
+            label="Входи" 
+            value={String(summary.inCount)} 
+            accent="success" 
+            icon={<TrendingUpRoundedIcon />} 
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard 
+            label="Изходи" 
+            value={String(summary.outCount)} 
+            accent="error" 
+            icon={<TrendingDownRoundedIcon />} 
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+          <StatCard 
+            label="Корекции" 
+            value={String(summary.adjustmentCount)} 
+            accent="warning" 
+            icon={<AutoFixHighRoundedIcon />} 
+          />
+        </Grid>
+      </Grid>
       </Grid>
 
       <DataSection
-        title="Филтър и резултати"
-        subtitle="Търсене по име, SKU, баркод и QR код"
+        title="Преглед на движенията"
+        subtitle="Търсете, филтрирайте и анализирайте историята на наличностите"
         icon={<ManageSearchRoundedIcon />}
-        actions={<Button variant="contained" onClick={loadMovements}>Обнови</Button>}
+        actions={
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+            <Button variant="contained" onClick={loadMovements}>Обнови</Button>
+            {(search || store !== "all" || movementType !== "all" || from || to) && (
+              <Button 
+                variant="text" 
+                size="small"
+                onClick={() => {
+                  setSearch("");
+                  setStore("all");
+                  setMovementType("all");
+                  setFrom("");
+                  setTo("");
+                  setRows([]);
+                }}
+              >
+                Изчисти
+              </Button>
+            )}
+          </Stack>
+        }
       >
-        <Stack direction={{ xs: "column", lg: "row" }} spacing={1.2} useFlexGap flexWrap="wrap" mb={1.5}>
-          <TextField
-            size="small"
-            label="Търси"
-            placeholder="Име, SKU, баркод, QR код"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            sx={{ minWidth: { xs: "100%", lg: 300 } }}
-          />
-          <TextField select size="small" label="Магазин" value={store} onChange={(event) => setStore(event.target.value)} sx={{ minWidth: 210 }}>
-            <MenuItem value="all">Всички магазини</MenuItem>
-            {stores.map((item) => <MenuItem key={item._id} value={item._id}>{item.name} | {item.city}</MenuItem>)}
-          </TextField>
-          <TextField select size="small" label="Тип" value={movementType} onChange={(event) => setMovementType(event.target.value)} sx={{ minWidth: 170 }}>
-            {Object.entries(movementTypeLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
-          </TextField>
-          <TextField size="small" type="date" label="От дата" value={from} onChange={(event) => setFrom(event.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-          <TextField size="small" type="date" label="До дата" value={to} onChange={(event) => setTo(event.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-          <Button variant="outlined" onClick={loadMovements}>Приложи</Button>
-        </Stack>
+        <Stack spacing={1.5}>
+          <Box>
+            <Typography variant="caption" fontWeight={800} color="text.secondary" display="block" mb={0.75}>
+              Филтри на търсенето
+            </Typography>
+            <Stack direction={{ xs: "column", lg: "row" }} spacing={1.2} useFlexGap flexWrap="wrap">
+              <TextField
+                size="small"
+                label="Търси по име, SKU, баркод"
+                placeholder="Напр. Кола, 123456, 8712345"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                sx={{ minWidth: { xs: "100%", lg: 300 } }}
+              />
+              <TextField 
+                select 
+                size="small" 
+                label="Магазин" 
+                value={store} 
+                onChange={(event) => setStore(event.target.value)} 
+                sx={{ minWidth: 210 }}
+              >
+                <MenuItem value="all">Всички магазини</MenuItem>
+                {stores.map((item) => <MenuItem key={item._id} value={item._id}>{item.name} | {item.city}</MenuItem>)}
+              </TextField>
+              <TextField 
+                select 
+                size="small" 
+                label="Вид движение" 
+                value={movementType} 
+                onChange={(event) => setMovementType(event.target.value)} 
+                sx={{ minWidth: 180 }}
+              >
+                {Object.entries(movementTypeLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
+              </TextField>
+              <TextField 
+                size="small" 
+                type="date" 
+                label="От дата" 
+                value={from} 
+                onChange={(event) => setFrom(event.target.value)} 
+                InputLabelProps={{ shrink: true }} 
+                sx={{ minWidth: 160 }} 
+              />
+              <TextField 
+                size="small" 
+                type="date" 
+                label="До дата" 
+                value={to} 
+                onChange={(event) => setTo(event.target.value)} 
+                InputLabelProps={{ shrink: true }} 
+                sx={{ minWidth: 160 }} 
+              />
+              <Button variant="outlined" onClick={loadMovements}>Приложи</Button>
+            </Stack>
+          </Box>
+          <Box>
+            <Typography variant="caption" fontWeight={800} color="text.secondary" display="block" mb={1}>
+              Резултати: {rows.length} движения
+            </Typography>
+          </Box>
 
         <ResponsiveTable>
           <DataGrid
@@ -134,28 +233,133 @@ export default function InventoryMovementsPage() {
             rows={rows}
             getRowId={(row) => row._id}
             columns={[
-              { field: "createdAt", headerName: "Дата/час", flex: 0.95, valueFormatter: (params) => formatDateTime(params?.value ?? params) },
-              { field: "product", headerName: "Продукт", flex: 1.35, valueGetter: (_, row) => row.product?.name || "-" },
-              { field: "productNumber", headerName: "Номер", flex: 0.85, valueGetter: (_, row) => row.product?.productNumber || "-" },
-              { field: "sku", headerName: "SKU", flex: 0.8, valueGetter: (_, row) => row.product?.sku || "-" },
-              { field: "barcode", headerName: "Баркод", flex: 0.9, valueGetter: (_, row) => row.product?.barcode || row.product?.productNumber || "-" },
-              { field: "store", headerName: "Магазин", flex: 1, valueGetter: (_, row) => row.store?.name || "-" },
-              { field: "movementType", headerName: "Тип", flex: 0.65, valueGetter: (_, row) => movementTypeLabels[row.movementType] || row.movementType || "-" },
-              { field: "quantityBefore", headerName: "Преди", flex: 0.55 },
-              { field: "quantityDelta", headerName: "Промяна", flex: 0.65 },
-              { field: "quantityAfter", headerName: "След", flex: 0.55 },
-              { field: "sourceModule", headerName: "Източник", flex: 0.8, valueGetter: (_, row) => sourceLabels[row.sourceModule] || row.sourceModule || "-" },
-              { field: "reason", headerName: "Причина", flex: 1.2 },
+              { 
+                field: "createdAt", 
+                headerName: "Дата / Час", 
+                flex: 1, 
+                minWidth: 140,
+                valueFormatter: (params) => formatDateTime(params?.value ?? params),
+                cellClassName: "font-mono"
+              },
+              { 
+                field: "product", 
+                headerName: "Продукт", 
+                flex: 1.4,
+                minWidth: 150,
+                valueGetter: (_, row) => row.product?.name || "-",
+                cellClassName: "font-semibold"
+              },
+              { 
+                field: "productNumber", 
+                headerName: "Код", 
+                flex: 0.8,
+                minWidth: 90,
+                valueGetter: (_, row) => row.product?.productNumber || "-" 
+              },
+              { 
+                field: "barcode", 
+                headerName: "Баркод", 
+                flex: 0.9,
+                minWidth: 100,
+                valueGetter: (_, row) => row.product?.barcode || "-",
+                cellClassName: "font-mono"
+              },
+              { 
+                field: "store", 
+                headerName: "Магазин", 
+                flex: 1,
+                minWidth: 110,
+                valueGetter: (_, row) => row.store?.name || "-" 
+              },
+              { 
+                field: "movementType", 
+                headerName: "Вид", 
+                flex: 0.75,
+                minWidth: 85,
+                valueGetter: (_, row) => movementTypeLabels[row.movementType] || row.movementType || "-",
+                renderCell: (params) => {
+                  const type = params.row.movementType;
+                  let color = "default";
+                  if (type === "in") color = "success";
+                  if (type === "out") color = "error";
+                  if (type === "adjustment") color = "warning";
+                  return <Chip label={movementTypeLabels[type] || type} size="small" color={color} variant="outlined" />;
+                }
+              },
+              { 
+                field: "quantityBefore", 
+                headerName: "Преди", 
+                flex: 0.65,
+                minWidth: 70,
+                align: "right",
+                type: "number"
+              },
+              { 
+                field: "quantityDelta", 
+                headerName: "Промяна", 
+                flex: 0.75,
+                minWidth: 80,
+                align: "right",
+                type: "number",
+                renderCell: (params) => {
+                  const value = params.value || 0;
+                  return (
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={700}
+                      color={value > 0 ? "success.main" : value < 0 ? "error.main" : "text.primary"}
+                    >
+                      {value > 0 ? `+${value}` : value}
+                    </Typography>
+                  );
+                }
+              },
+              { 
+                field: "quantityAfter", 
+                headerName: "След", 
+                flex: 0.65,
+                minWidth: 70,
+                align: "right",
+                type: "number",
+                cellClassName: "font-semibold"
+              },
+              { 
+                field: "sourceModule", 
+                headerName: "Източник", 
+                flex: 1,
+                minWidth: 110,
+                valueGetter: (_, row) => sourceLabels[row.sourceModule] || row.sourceModule || "-" 
+              },
+              { 
+                field: "reason", 
+                headerName: "Причина / Коментар", 
+                flex: 1.3,
+                minWidth: 130,
+                valueGetter: (_, row) => row.reason || "-"
+              },
               {
                 field: "actorName",
                 headerName: "Потребител",
-                flex: 0.85,
+                flex: 1,
+                minWidth: 120,
                 valueGetter: (_, row) => row.actorName || row.actorUser?.fullName || row.actorUser?.username || "-"
               }
             ]}
             disableRowSelectionOnClick
+            sx={{ 
+              "& .MuiDataGrid-cell": {
+                py: 1.2
+              },
+              "& .font-mono": {
+                fontFamily: "monospace"
+              },
+              "& .font-semibold": {
+                fontWeight: 600
+              }
+            }}
           />
         </ResponsiveTable>
+        </Stack>
       </DataSection>
     </Stack>
   );
