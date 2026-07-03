@@ -17,7 +17,6 @@ export default defineConfig({
           if (!id.includes("node_modules")) return;
           if (id.includes("recharts")) return "charts";
           if (id.includes("@mui/x-data-grid")) return "mui-x";
-          if (id.includes("@mui/icons-material")) return "mui-icons";
           if (id.includes("@emotion/react") || id.includes("@emotion/styled") || id.includes("@emotion/cache")) return "emotion";
           if (id.includes("@mui")) return "mui-core";
           if (id.includes("react-router")) return "router";
