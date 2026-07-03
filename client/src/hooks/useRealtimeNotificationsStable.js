@@ -10,10 +10,10 @@ export function useRealtimeNotifications(enabled) {
     const socket = io(getSocketBaseUrl(), {
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1500,
+      reconnectionDelay: 1200,
+      reconnectionDelayMax: 5000,
       timeout: 7000,
-      transports: ["websocket", "polling"]
+      transports: ["polling", "websocket"]
     });
 
     socket.on("notification", (payload) => {
