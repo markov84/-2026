@@ -185,7 +185,9 @@ function getProductById(products, productId) {
 }
 
 function getInventoryForItem(inventory, productId, storeId) {
-  return inventory.find((item) => item.product?._id === productId && item.store?._id === storeId);
+  const normalizedStoreId = typeof storeId === "object" ? storeId?._id : storeId;
+  const normalizedProductId = typeof productId === "object" ? productId?._id : productId;
+  return inventory.find((item) => item.product?._id === normalizedProductId && item.store?._id === normalizedStoreId);
 }
 
 function getProductOptionLabel(product) {
