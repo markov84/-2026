@@ -3,7 +3,9 @@ import toast from "react-hot-toast";
 import api from "../lib/api";
 import { clearAuthToken } from "../lib/authToken";
 
-export function useFetch(path) {
+export function useFetch(path, options = {}) {
+  const enabled = options.enabled ?? true;
+  const initialData = options.initialData;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +33,12 @@ export function useFetch(path) {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setData(initialData === undefined ? [] : initialData);
+      setLoading(false);
+      return undefined;
+    }
+
     let active = true;
 
     api
@@ -59,7 +67,7 @@ export function useFetch(path) {
     return () => {
       active = false;
     };
-  }, [path]);
+  }, [enabled, path]);
 
   return { data, loading, setData, refresh };
 }

@@ -513,12 +513,13 @@ export default function CommandCenterShellClean({ children }) {
   const isOrdersRoute = location.pathname.startsWith("/orders");
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
+  const scanDialogDataEnabled = scanDialogOpen || Boolean(pendingScannedCode);
   
   // Fetch data for scan dialog
-  const { data: products = [] } = useFetch("/products");
-  const { data: stores = [] } = useFetch("/stores");
-  const { data: inventory = [] } = useFetch("/inventory/summary");
-  const { data: customers = [] } = useFetch("/customers?compact=1");
+  const { data: products = [] } = useFetch("/products", { enabled: scanDialogDataEnabled });
+  const { data: stores = [] } = useFetch("/stores", { enabled: scanDialogDataEnabled });
+  const { data: inventory = [] } = useFetch("/inventory/summary", { enabled: scanDialogDataEnabled });
+  const { data: customers = [] } = useFetch("/customers?compact=1", { enabled: scanDialogDataEnabled });
   
   useRealtimeNotifications(true);
 
