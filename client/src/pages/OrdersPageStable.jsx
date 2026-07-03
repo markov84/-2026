@@ -1142,6 +1142,7 @@ export default function OrdersPageStable() {
       <Stack spacing={2.5}>
         <TextField
           fullWidth
+          autoFocus
           label="Сканирай баркод или SKU"
           value={scanValue}
           inputRef={scanFieldRef}
