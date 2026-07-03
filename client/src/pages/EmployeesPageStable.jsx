@@ -20,6 +20,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
+import { formatDate } from "../lib/currency";
 
 const initialEmployee = { username: "", fullName: "", password: "", role: "sales", active: true };
 

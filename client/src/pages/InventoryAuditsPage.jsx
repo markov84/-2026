@@ -21,6 +21,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
+import { formatDate } from "../lib/currency";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 import { printInventoryAudit } from "../lib/printDocuments";
 

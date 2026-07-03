@@ -18,6 +18,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
+import { formatDate } from "../lib/currency";
 
 const initialForm = {
   name: "",

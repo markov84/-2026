@@ -18,6 +18,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
+import { formatDate } from "../lib/currency";
 
 const emptyStore = { name: "", code: "", city: "", address: "" };
 
