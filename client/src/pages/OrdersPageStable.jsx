@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
@@ -1266,9 +1266,9 @@ export default function OrdersPageStable() {
   return (
     <Stack spacing={3}>
       <PageHeader
-        eyebrow="Поръчки"
-        title="Поръчки и продажби"
-        subtitle="Тук се правят клиентски поръчки и продажби. За вътрешни заявки между магазин и склад използвай страницата Заявки."
+        eyebrow="Продажби"
+        title="Продажби"
+        subtitle="Регистър на всички продажби. За вътрешни заявки между магазин и склад използвай страницата Заявки."
         icon={<ReceiptLongRoundedIcon />}
       />
 
@@ -1283,7 +1283,7 @@ export default function OrdersPageStable() {
         ➕ НОВА ПРОДАЖБА
       </Button>
 
-      {loading && !orders.length ? <PageLoadingNotice subject="поръчките и продажбите" /> : null}
+      {loading && !orders.length ? <PageLoadingNotice subject="продажбите" /> : null}
 
       <Alert
         severity="info"
@@ -1301,12 +1301,12 @@ export default function OrdersPageStable() {
           </Stack>
         }
       >
-        Клиентски поръчки и продажби се създават тук. Ако магазин или склад иска стока от друг обект, използвай „Заявки“.
+        Продажбите се създават тук. Ако магазин или склад иска стока от друг обект, използвай „Заявки“.
       </Alert>
 
       <DataSection
-        title="Регистър на поръчки и продажби"
-        subtitle="Последни клиентски поръчки и продажби"
+        title="Регистър на продажби"
+        subtitle="Последни продажби"
         icon={<ReceiptLongRoundedIcon />}
         toolbar={
           <Stack spacing={1.25} sx={{ width: "100%" }}>
@@ -1368,7 +1368,7 @@ export default function OrdersPageStable() {
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <Button variant="contained" startIcon={<AddShoppingCartRoundedIcon />} onClick={openCreateDialog}>
-              Нова поръчка
+              Нова продажба
             </Button>
             <Button variant="outlined" startIcon={<CompareArrowsRoundedIcon />} onClick={() => navigate("/transfers?openCreateTransfer=1&requestType=warehouse")}>
               Заявка към склад
@@ -1407,7 +1407,7 @@ export default function OrdersPageStable() {
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg" fullScreen={isMobile}>
-        <DialogTitle>Нова поръчка</DialogTitle>
+        <DialogTitle>Нова продажба</DialogTitle>
         <DialogContent dividers>{renderSharedOrderFields(form, setForm, scanCode, setScanCode, scanFieldRef)}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={handleCreate} />
       </Dialog>
@@ -1417,11 +1417,11 @@ export default function OrdersPageStable() {
         onClose={() => setOrderScanOpen(false)}
         onDetected={handleOrderScannerDetected}
         onError={() => setOrderScanOpen(false)}
-        title="Сканирай продукт за поръчката"
+        title="Сканирай продукт за продажбата"
       />
 
       <Dialog open={Boolean(editingOrder)} onClose={() => setEditingOrder(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
-        <DialogTitle>Редактиране на поръчка</DialogTitle>
+        <DialogTitle>Редактиране на продажба</DialogTitle>
         <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode, editScanFieldRef) : null}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingOrder(null)} onConfirm={handleUpdate} />
       </Dialog>
@@ -1444,3 +1444,5 @@ export default function OrdersPageStable() {
     </Stack>
   );
 }
+
+
