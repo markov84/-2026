@@ -1069,11 +1069,22 @@ export default function OrdersPageStable() {
     [resolveScannedProduct, orderScanTarget, editingOrder]
   );
 
-  function handleScanKeyDown(event, setter, clearScan, activeDraft) {
+  function handleScanKeyDown(event, setter, clearScan, activeDraft, scanValue) {
     if (event.key !== "Enter" && event.key !== "Tab") return;
     event.preventDefault();
-    void applyScannedProduct(event.currentTarget.value, setter, clearScan, activeDraft);
+    if (scanValue && scanValue.trim().length > 0) {
+      void applyScannedProduct(scanValue, setter, clearScan, activeDraft);
+    }
   }
+
+  useEffect(() => {
+    if (open || editingOrder) {
+      const timeoutId = setTimeout(() => {
+        scanFieldRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [open, editingOrder]);
 
   useEffect(() => {
     if (!open && !editingOrder) return undefined;
@@ -1147,7 +1158,7 @@ export default function OrdersPageStable() {
           value={scanValue}
           inputRef={scanFieldRef}
           onChange={(event) => setScanValue(event.target.value)}
-          onKeyDown={(event) => handleScanKeyDown(event, setOrder, setScanValue, order)}
+          onKeyDown={(event) => handleScanKeyDown(event, setOrder, setScanValue, order, scanValue)}
           helperText="Сканирай продукт, за да го добавиш в продажбата. Повторно сканиране увеличава количеството."
           InputProps={{
             startAdornment: (
