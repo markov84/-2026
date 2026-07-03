@@ -136,7 +136,6 @@ export default function InventoryMovementsPage() {
           />
         </Grid>
       </Grid>
-      </Grid>
 
       <DataSection
         title="Преглед на движенията"
