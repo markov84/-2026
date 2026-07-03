@@ -78,4 +78,16 @@ router.get(
   })
 );
 
+router.delete(
+  "/:id",
+  requireRole("admin"),
+  asyncHandler(async (req, res) => {
+    const movement = await StockMovement.findByIdAndDelete(req.params.id);
+    if (!movement) {
+      return res.status(404).json({ message: "Движението не е намерено." });
+    }
+    res.json({ message: "Движението е успешно изтрито.", movement });
+  })
+);
+
 export default router;
