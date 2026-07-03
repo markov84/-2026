@@ -267,8 +267,8 @@ export default function ExecutiveDashboardPagePolished() {
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip icon={<TrendingUpRoundedIcon />} label={`Банка ${money(dashboard?.totals?.bankBalance)}`} />
-                  <Chip icon={<WarningAmberRoundedIcon />} label={`${toNumber(dashboard?.totals?.lowStockCount)} предупреждения`} color="error" />
+                  <Chip icon={<AppGlyph name="trend" size={18} />} label={`Банка ${money(dashboard?.totals?.bankBalance)}`} />
+                  <Chip icon={<AppGlyph name="warning" size={18} />} label={`${toNumber(dashboard?.totals?.lowStockCount)} предупреждения`} color="error" />
                 </Stack>
               </Stack>
 
