@@ -1345,7 +1345,7 @@ export default function OrdersPageStable() {
               onClick={openCreateDialog}
               sx={{ py: 1, px: 2 }}
             >
-              ➡️ НОВА ПРОДАЖБА
+              ➕ НОВА ПРОДАЖБА
             </Button>
             {canSeeOrderAuthor ? (
               <Button
