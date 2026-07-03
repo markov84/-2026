@@ -8,6 +8,9 @@ import { AuthProvider } from "./providers/AuthProviderStable.jsx";
 import AppThemeProvider from "./providers/AppThemeProvider.jsx";
 import "./styles.css";
 
+window.__MARKLIGHT_APP_BOOTED = true;
+window.dispatchEvent(new Event("marklight:app-booted"));
+
 const CHUNK_RELOAD_KEY = "mark-light-chunk-reload-once";
 
 function shouldRecoverFromChunkError(message) {

@@ -16,6 +16,8 @@
     <script>
       (function () {
         var KEY = "mark-light-bootstrap-reload-once";
+        var BOOT_TIMEOUT_KEY = "mark-light-bootstrap-timeout-reload-once";
+        var BOOT_TIMEOUT_MS = 9000;
 
         function shouldReload(message) {
           var text = String(message || "").toLowerCase();
@@ -46,6 +48,17 @@
           var message = typeof reason === "string" ? reason : reason && reason.message;
           if (shouldReload(message)) reloadOnce();
         });
+
+        window.setTimeout(function () {
+          try {
+            if (window.__MARKLIGHT_APP_BOOTED) return;
+            if (sessionStorage.getItem(BOOT_TIMEOUT_KEY) === "1") return;
+            sessionStorage.setItem(BOOT_TIMEOUT_KEY, "1");
+            location.reload();
+          } catch (error) {
+            void error;
+          }
+        }, BOOT_TIMEOUT_MS);
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
