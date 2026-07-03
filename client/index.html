@@ -12,15 +12,60 @@
   <title>MARKLIGHT Lighting Trade</title>
   <script>
     (function () {
-      var BUILD_ID = "2026-07-03-boot-3";
+      var BUILD_ID = "2026-07-03-boot-4";
       var BUILD_KEY = "mark-light-last-build-id";
       var KEY = "mark-light-bootstrap-reload-once";
       var BOOT_TIMEOUT_KEY = "mark-light-bootstrap-timeout-reload-once";
       var SW_EVICT_KEY = "mark-light-sw-evict-once";
+      var HARD_RECOVERY_KEY = "mark-light-hard-recovery-once";
       var BOOT_TIMEOUT_MS = 9000;
 
       function replaceWithCurrentUrl(params) {
         location.replace(location.pathname + "?" + params.toString() + location.hash);
+      }
+
+      function runHardRecovery(reason) {
+        try {
+          if (sessionStorage.getItem(HARD_RECOVERY_KEY) === "1") {
+            return false;
+          }
+          sessionStorage.setItem(HARD_RECOVERY_KEY, "1");
+        } catch (error) {
+          void error;
+          return false;
+        }
+
+        Promise.resolve()
+          .then(function () {
+            if (!navigator.serviceWorker) return [];
+            return navigator.serviceWorker.getRegistrations();
+          })
+          .then(function (registrations) {
+            return Promise.all(
+              registrations.map(function (registration) {
+                return registration.unregister();
+              })
+            );
+          })
+          .then(function () {
+            if (typeof caches === "undefined") return [];
+            return caches.keys();
+          })
+          .then(function (keys) {
+            return Promise.all(
+              keys.map(function (key) {
+                return caches.delete(key);
+              })
+            );
+          })
+          .finally(function () {
+            var params = new URLSearchParams(location.search);
+            params.set("recover", String(Date.now()));
+            params.set("cause", reason || "unknown");
+            replaceWithCurrentUrl(params);
+          });
+
+        return true;
       }
 
       try {
@@ -38,39 +83,12 @@
         void error;
       }
 
-      // If an old service worker still controls the page, evict it before app module loading.
+      // If an old service worker still controls the page, run hard recovery before app module loading.
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         try {
           if (sessionStorage.getItem(SW_EVICT_KEY) !== "1") {
             sessionStorage.setItem(SW_EVICT_KEY, "1");
-
-            Promise.resolve()
-              .then(function () {
-                return navigator.serviceWorker.getRegistrations();
-              })
-              .then(function (registrations) {
-                return Promise.all(
-                  registrations.map(function (registration) {
-                    return registration.unregister();
-                  })
-                );
-              })
-              .then(function () {
-                return caches.keys();
-              })
-              .then(function (keys) {
-                return Promise.all(
-                  keys.map(function (key) {
-                    return caches.delete(key);
-                  })
-                );
-              })
-              .finally(function () {
-                var params = new URLSearchParams(location.search);
-                params.set("swfix", String(Date.now()));
-                replaceWithCurrentUrl(params);
-              });
-
+            runHardRecovery("sw-controlled");
             return;
           }
         } catch (error) {
@@ -92,7 +110,9 @@
         try {
           if (sessionStorage.getItem(KEY) === "1") return;
           sessionStorage.setItem(KEY, "1");
-          location.reload();
+          if (!runHardRecovery("chunk-error")) {
+            location.reload();
+          }
         } catch (error) {
           void error;
         }
@@ -113,7 +133,9 @@
           if (window.__MARKLIGHT_APP_BOOTED) return;
           if (sessionStorage.getItem(BOOT_TIMEOUT_KEY) === "1") return;
           sessionStorage.setItem(BOOT_TIMEOUT_KEY, "1");
-          location.reload();
+          if (!runHardRecovery("boot-timeout")) {
+            location.reload();
+          }
         } catch (error) {
           void error;
         }
