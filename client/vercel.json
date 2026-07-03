@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
+    },
+    {
+      "source": "/MARKLIGHT.png",
+      "destination": "/MARKLIGHT.png"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

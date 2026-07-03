@@ -13,6 +13,41 @@
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var KEY = "mark-light-bootstrap-reload-once";
+
+        function shouldReload(message) {
+          var text = String(message || "").toLowerCase();
+          return (
+            text.indexOf("failed to load module script") >= 0 ||
+            text.indexOf("importing a module script failed") >= 0 ||
+            text.indexOf("failed to fetch dynamically imported module") >= 0 ||
+            text.indexOf("chunkloaderror") >= 0
+          );
+        }
+
+        function reloadOnce() {
+          try {
+            if (sessionStorage.getItem(KEY) === "1") return;
+            sessionStorage.setItem(KEY, "1");
+            location.reload();
+          } catch (error) {
+            void error;
+          }
+        }
+
+        window.addEventListener("error", function (event) {
+          if (shouldReload(event && event.message)) reloadOnce();
+        });
+
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event && event.reason;
+          var message = typeof reason === "string" ? reason : reason && reason.message;
+          if (shouldReload(message)) reloadOnce();
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
   </html>
