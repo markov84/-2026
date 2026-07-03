@@ -8,6 +8,50 @@ import { AuthProvider } from "./providers/AuthProviderStable.jsx";
 import AppThemeProvider from "./providers/AppThemeProvider.jsx";
 import "./styles.css";
 
+const CHUNK_RELOAD_KEY = "mark-light-chunk-reload-once";
+
+function shouldRecoverFromChunkError(message) {
+  const text = String(message || "").toLowerCase();
+  return (
+    text.includes("failed to fetch dynamically imported module") ||
+    text.includes("importing a module script failed") ||
+    text.includes("loading chunk") ||
+    text.includes("chunkloaderror")
+  );
+}
+
+function scheduleChunkRecoveryReload() {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1") {
+      return;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+  } catch {
+    return;
+  }
+
+  window.setTimeout(() => {
+    window.location.reload();
+  }, 120);
+}
+
+function installChunkRecovery() {
+  window.addEventListener("error", (event) => {
+    const message = event?.message || event?.error?.message || "";
+    if (shouldRecoverFromChunkError(message)) {
+      scheduleChunkRecoveryReload();
+    }
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event?.reason;
+    const message = typeof reason === "string" ? reason : reason?.message || "";
+    if (shouldRecoverFromChunkError(message)) {
+      scheduleChunkRecoveryReload();
+    }
+  });
+}
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
@@ -18,6 +62,8 @@ if ("serviceWorker" in navigator) {
     }
   });
 }
+
+installChunkRecovery();
 
 class AppErrorBoundary extends React.Component {
   constructor(props) {
