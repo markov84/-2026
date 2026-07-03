@@ -1157,7 +1157,7 @@ export default function OrdersPageStable() {
     return (
       <Stack spacing={2.5}>
         <Alert severity="success" sx={{ mb: 1 }}>
-          <strong>Как да скаиираш:</strong> Поставь скенера срещу баркода → полето ще прихвати кода автоматично → продуктът се добавя. Повторен скан увеличава количеството.
+          <strong>Как да сканираш:</strong> Поставь скенер срещу баркода → полето автоматично ще прочете кода → продуктът се добавя. Повторно сканиране увеличава количеството.
         </Alert>
         <TextField
           fullWidth
@@ -1274,10 +1274,11 @@ export default function OrdersPageStable() {
 
       <Button 
         variant="contained" 
+        color="success"
         size="large"
         startIcon={<AddShoppingCartRoundedIcon />} 
         onClick={openCreateDialog}
-        sx={{ alignSelf: "flex-start", py: 1.5 }}
+        sx={{ alignSelf: "flex-end", py: 1.5, px: 3 }}
       >
         ➕ НОВА ПРОДАЖБА
       </Button>
