@@ -24,7 +24,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
@@ -702,6 +702,13 @@ export default function OrdersPageStable() {
   const orderColumns = useMemo(
     () => [
       { field: "orderNumber", headerName: "Продажба", flex: 0.75, minWidth: 115 },
+      {
+        field: "createdAt",
+        headerName: "Дата",
+        flex: 0.75,
+        minWidth: 110,
+        valueFormatter: (params) => formatDate(params?.value ?? params)
+      },
       {
         field: "customer",
         headerName: "Клиент",

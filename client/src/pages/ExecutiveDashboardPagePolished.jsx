@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { useAuth } from "../providers/AuthProviderStable";
 import AppGlyph from "../components/AppGlyph";
 

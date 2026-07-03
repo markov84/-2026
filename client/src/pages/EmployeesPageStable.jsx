@@ -135,6 +135,7 @@ export default function EmployeesPageStable() {
   const columns = [
     { field: "fullName", headerName: "Име", flex: 1.2, minWidth: 170 },
     { field: "username", headerName: "Потребител", flex: 0.9, minWidth: 140 },
+    { field: "createdAt", headerName: "Дата създаване", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
     { field: "role", headerName: "Роля", flex: 0.8, minWidth: 120, renderCell: (params) => <Chip label={params?.value || "-"} size="small" /> },
     { field: "active", headerName: "Статус", flex: 0.8, minWidth: 120, renderCell: (params) => <Chip label={params?.value ? "Активен" : "Изключен"} color={params?.value ? "success" : "default"} size="small" /> }
   ];

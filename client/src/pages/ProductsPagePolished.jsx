@@ -47,7 +47,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import { useAuth } from "../providers/AuthProviderStable";
 
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -520,6 +520,7 @@ export default function ProductsPagePolished() {
                 cellClassName: "product-cell",
                 renderCell: (params) => <ProductIdentity product={params?.row} />
               },
+              { field: "createdAt", headerName: "Дата създаване", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "category", headerName: "Категория", flex: 0.75, minWidth: 110 },
               { field: "brand", headerName: "Марка", flex: 0.7, minWidth: 100 },
               {

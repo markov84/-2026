@@ -261,6 +261,7 @@ export default function SuppliersPage() {
             onRowClick={(params) => setSelectedSupplierId(String(params.row._id))}
             columns={[
               { field: "name", headerName: "Доставчик", flex: 1.1, minWidth: 180 },
+              { field: "createdAt", headerName: "Дата създаване", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "contactPerson", headerName: "Лице за контакт", flex: 0.9, minWidth: 150 },
               { field: "phone", headerName: "Телефон", flex: 0.8, minWidth: 130 },
               { field: "email", headerName: "Email", flex: 1, minWidth: 180 },

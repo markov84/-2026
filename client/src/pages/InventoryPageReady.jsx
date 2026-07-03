@@ -20,7 +20,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };

@@ -39,7 +39,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { exportSupplierOrderPdf, printSupplierOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 
@@ -576,6 +576,7 @@ export default function SupplierOrdersPage() {
             onRowClick={(params) => setSelectedOrderId(String(params.row._id))}
             columns={[
               { field: "orderNumber", headerName: "Поръчка", flex: 0.8, minWidth: 130 },
+              { field: "createdAt", headerName: "Дата", flex: 0.75, minWidth: 110, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "supplierName", headerName: "Доставчик", flex: 0.95, minWidth: 170 },
               { field: "store", headerName: "Получаване", flex: 0.85, minWidth: 150, valueGetter: (_, row) => row.store?.name || "-" },
               { field: "items", headerName: "Продукти", flex: 2, minWidth: 360, sortable: false, renderCell: (params) => <SupplierOrderItemsCell items={params.row?.items || []} /> },

@@ -43,7 +43,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { exportTransferPdf, printTransfer } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -858,6 +858,7 @@ export default function TransfersPageStable() {
             onRowClick={(params) => setSelectedTransferId(String(params.row._id))}
             columns={[
               { field: "transferNumber", headerName: "Трансфер", flex: 0.75, minWidth: 120 },
+              { field: "createdAt", headerName: "Дата", flex: 0.75, minWidth: 110, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "fromStore", headerName: "От", flex: 0.75, minWidth: 120, valueGetter: (_, row) => row.fromStore?.name || "-" },
               { field: "toStore", headerName: "Към", flex: 0.75, minWidth: 120, valueGetter: (_, row) => row.toStore?.name || "-" },
               { field: "products", headerName: "Продукти", flex: 2.8, minWidth: 560, sortable: false, renderCell: (params) => <TransferProductsCell items={params?.row?.items || []} /> },

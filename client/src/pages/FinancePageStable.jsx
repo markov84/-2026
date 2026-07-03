@@ -25,7 +25,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 
 const initialEntry = { type: "income", category: "", description: "", amount: "", store: "" };
 
@@ -235,6 +235,13 @@ export default function FinancePageStable() {
     ? displayEntries.filter((entry) => entry.type === activeCardDefinition.type)
     : displayEntries.filter((entry) => entry.type === "income" || entry.type === "expense");
   const financeColumns = [
+    {
+      field: "createdAt",
+      headerName: "Дата",
+      flex: 0.75,
+      minWidth: 110,
+      valueFormatter: (params) => formatDate(params?.value ?? params)
+    },
     {
       field: "typeLabel",
       headerName: "Тип",

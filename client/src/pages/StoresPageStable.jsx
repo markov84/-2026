@@ -144,6 +144,7 @@ export default function StoresPageStable() {
             getRowId={(row) => row._id}
             columns={[
               { field: "name", headerName: "Магазин", flex: 1.2, minWidth: 180 },
+              { field: "createdAt", headerName: "Дата създаване", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "code", headerName: "Код", flex: 0.7, minWidth: 100 },
               { field: "city", headerName: "Град", flex: 0.8, minWidth: 120 },
               { field: "address", headerName: "Адрес", flex: 1.3, minWidth: 200 },

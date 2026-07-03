@@ -594,6 +594,7 @@ export default function InventoryAuditsPage() {
               onRowSelectionModelChange={(nextSelection) => setSelectedAuditIds(nextSelection)}
               columns={[
                 { field: "auditNumber", headerName: "Номер", flex: 1 },
+                { field: "createdAt", headerName: "Дата", flex: 0.75, minWidth: 110, valueFormatter: (params) => formatDate(params?.value ?? params) },
                 { field: "storeLabel", headerName: "Магазин", flex: 1.2 },
                 { field: "zone", headerName: "Зона", flex: 0.9 },
                 { field: "linesCount", headerName: "Редове", flex: 0.6 },

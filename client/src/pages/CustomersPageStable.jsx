@@ -36,7 +36,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
-import { formatCurrencyEUR } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 
 const initialForm = {
   customerType: "person",
@@ -356,6 +356,7 @@ export default function CustomersPageStable() {
             getRowId={(row) => row._id}
             columns={[
               { field: "displayName", headerName: "Клиент", flex: 1.25, minWidth: 190, valueGetter: (_, row) => getCustomerDisplayName(row) },
+              { field: "createdAt", headerName: "Дата създаване", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "company", headerName: "Фирма", flex: 1, minWidth: 170, valueGetter: (_, row) => row.company || "-" },
               { field: "taxNumber", headerName: "ЕИК/ДДС", flex: 0.85, minWidth: 140, valueGetter: (_, row) => row.vatNumber || row.taxNumber || "-" },
               { field: "contactPerson", headerName: "Контакт", flex: 1, minWidth: 160, valueGetter: (_, row) => row.contactPerson || (!isCompanyCustomer(row) ? row.fullName : "-") },
