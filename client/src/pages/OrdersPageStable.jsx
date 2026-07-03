@@ -786,15 +786,15 @@ export default function OrdersPageStable() {
     [canSeeOrderAuthor]
   );
 
-  function openCreateDialog() {
-    void refreshInventory();
+  async function openCreateDialog() {
+    await refreshInventory();
     setForm({ ...initialOrder, items: [createOrderItem()] });
     setScanCode("");
     setOpen(true);
   }
 
-  function openEditDialog(order) {
-    void refreshInventory();
+  async function openEditDialog(order) {
+    await refreshInventory();
     setEditingOrder({
       _id: order._id,
       orderNumber: order.orderNumber || "",
