@@ -764,7 +764,7 @@ export default function InvoicesPageStable() {
             getRowId={(row) => row._id}
             columns={[
               { field: "invoiceNumber", headerName: "Фактура", flex: 0.9, minWidth: 135 },
-              { field: "issueDate", headerName: "Дата", flex: 0.75, minWidth: 115, valueFormatter: (params) => toInputDate(params?.value ?? params) },
+              { field: "issueDate", headerName: "Дата", flex: 0.75, minWidth: 115, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "customerName", headerName: "Получател", flex: 1.35, minWidth: 180 },
               { field: "customerIdNumber", headerName: "ЕИК/ДДС", flex: 0.9, minWidth: 130, valueGetter: (_, row) => row.customerVatNumber || row.customerIdNumber || "-" },
               { field: "store", headerName: "Обект", flex: 0.9, minWidth: 130, valueGetter: (_, row) => row.store?.name || "Централа" },
