@@ -4,6 +4,7 @@ import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
@@ -11,7 +12,9 @@ import DataSection from "../components/DataSection";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
+import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import { useFetch } from "../hooks/useFetch";
+import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
 
@@ -45,6 +48,7 @@ function formatDateTime(value) {
 
 export default function InventoryMovementsPage() {
   const { data: stores } = useFetch("/stores");
+  const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -52,6 +56,10 @@ export default function InventoryMovementsPage() {
   const [movementType, setMovementType] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const isAdmin = user?.role === "admin";
 
   async function loadMovements() {
     try {
@@ -75,6 +83,32 @@ export default function InventoryMovementsPage() {
   useEffect(() => {
     void loadMovements();
   }, []);
+
+  async function handleDeleteMovement(movementId) {
+    try {
+      await api.delete(`/inventory-movements/${movementId}`);
+      toast.success("Движението е успешно изтрито.");
+      setDeletingId(null);
+      setSelectedIds(selectedIds.filter(id => id !== movementId));
+      void loadMovements();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно триене на движението.");
+    }
+  }
+
+  async function handleBulkDelete() {
+    try {
+      setLoading(true);
+      await Promise.all(selectedIds.map(id => api.delete(`/inventory-movements/${id}`)));
+      toast.success(`${selectedIds.length} движения са успешно изтрити.`);
+      setSelectedIds([]);
+      void loadMovements();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно триене на движенията.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const summary = useMemo(() => {
     const inCount = rows.filter((row) => row.movementType === "in").length;
@@ -158,6 +192,16 @@ export default function InventoryMovementsPage() {
                 }}
               >
                 Изчисти
+              </Button>
+            )}
+            {isAdmin && selectedIds.length > 0 && (
+              <Button 
+                color="error"
+                variant="outlined"
+                startIcon={<DeleteRoundedIcon />}
+                onClick={() => setDeletingId("bulk")}
+              >
+                Изтрий избраните ({selectedIds.length})
               </Button>
             )}
           </Stack>
@@ -344,6 +388,9 @@ export default function InventoryMovementsPage() {
                 valueGetter: (_, row) => row.actorName || row.actorUser?.fullName || row.actorUser?.username || "-"
               }
             ]}
+            checkboxSelection={isAdmin}
+            rowSelectionModel={selectedIds}
+            onRowSelectionModelChange={(nextSelection) => setSelectedIds(nextSelection)}
             disableRowSelectionOnClick
             sx={{ 
               "& .MuiDataGrid-cell": {
@@ -360,6 +407,24 @@ export default function InventoryMovementsPage() {
         </ResponsiveTable>
         </Stack>
       </DataSection>
+
+      <ConfirmDeleteDialog
+        open={Boolean(deletingId)}
+        title={deletingId === "bulk" ? "Изтриване на движения" : "Изтриване на движение"}
+        message={
+          deletingId === "bulk"
+            ? `Сигурен ли си, че искаш да изтриеш ${selectedIds.length} движения? Това действие не може да бъде отменено.`
+            : "Сигурен ли си, че искаш да изтриеш това движение? Това действие не може да бъде отменено."
+        }
+        onConfirm={() => {
+          if (deletingId === "bulk") {
+            void handleBulkDelete();
+          } else {
+            void handleDeleteMovement(deletingId);
+          }
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
     </Stack>
   );
 }
