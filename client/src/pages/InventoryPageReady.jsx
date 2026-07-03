@@ -503,6 +503,7 @@ export default function InventoryPageReady() {
                   return product?.barcode || product?.qrCode || product?.productNumber || "-";
                 }
               },
+              { field: "updatedAt", headerName: "Дата актуализация", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
               { field: "storeName", headerName: "Магазин / склад", flex: 1, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
               { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
               { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
