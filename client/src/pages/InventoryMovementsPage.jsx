@@ -116,6 +116,14 @@ export default function InventoryMovementsPage() {
     }
   }
 
+  function handleConfirmDelete() {
+    if (deletingId === "bulk") {
+      handleBulkDelete();
+    } else {
+      handleDeleteMovement(deletingId);
+    }
+  }
+
   const summary = useMemo(() => {
     const inCount = rows.filter((row) => row.movementType === "in").length;
     const outCount = rows.filter((row) => row.movementType === "out").length;
@@ -422,13 +430,7 @@ export default function InventoryMovementsPage() {
             ? `Сигурен ли си, че искаш да изтриеш ${selectedIds.length} движения? Това действие не може да бъде отменено.`
             : "Сигурен ли си, че искаш да изтриеш това движение? Това действие не може да бъде отменено."
         }
-        onConfirm={async () => {
-          if (deletingId === "bulk") {
-            await handleBulkDelete();
-          } else {
-            await handleDeleteMovement(deletingId);
-          }
-        }}
+        onConfirm={handleConfirmDelete}
         onClose={() => setDeletingId(null)}
       />
     </Stack>
