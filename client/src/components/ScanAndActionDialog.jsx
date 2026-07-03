@@ -55,7 +55,6 @@ export default function ScanAndActionDialog({
   inventory = [],
   customers = [],
   onAddToInventory,
-  onAddToOrder,
   onRefresh,
   onOpenProductsPage,
 }) {

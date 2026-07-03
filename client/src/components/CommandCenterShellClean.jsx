@@ -34,7 +34,7 @@ const navItems = [
   { label: "Табло", path: "/", iconKey: "dashboard", color: "#4f8cff", bg: "rgba(79,140,255,0.16)" },
   { label: "Продукти", path: "/products", iconKey: "products", color: "#12b886", bg: "rgba(18,184,134,0.16)" },
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
-  { label: "Продажби", path: "/orders", iconKey: "orders", color: "#e03131", bg: "rgba(224,49,49,0.16)" },
+  { label: "Продажби", path: "/orders", iconKey: "invoices", color: "#d9480f", bg: "rgba(217,72,15,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
   { label: "Доставчици", path: "/suppliers", iconKey: "suppliers", color: "#4263eb", bg: "rgba(66,99,235,0.16)" },
   { label: "Поръчки към доставчици", path: "/supplier-orders", iconKey: "suppliers", color: "#5f3dc4", bg: "rgba(95,61,196,0.16)" },
@@ -506,7 +506,6 @@ export default function CommandCenterShellClean({ children }) {
   const { logout } = useAuth();
   const { mode, toggleMode } = useAppThemeMode();
   const isDarkMode = mode === "dark";
-  const isOrdersRoute = location.pathname.startsWith("/orders");
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
   const scanDialogDataEnabled = scanDialogOpen || Boolean(pendingScannedCode);
@@ -520,22 +519,9 @@ export default function CommandCenterShellClean({ children }) {
   useRealtimeNotifications(true);
 
   useEffect(() => {
-    if (!isOrdersRoute) return;
-    setScanDialogOpen(false);
-    setPendingScannedCode("");
-    scanBufferRef.current = "";
-  }, [isOrdersRoute]);
-
-  useEffect(() => {
     if (!AUTO_OPEN_SCAN_DIALOG) return undefined;
-    if (isOrdersRoute) {
-      scanBufferRef.current = "";
-      return undefined;
-    }
 
     function onGlobalScanKeydown(event) {
-      if (isOrdersRoute) return;
-
       const target = event.target;
       const tagName = target?.tagName?.toLowerCase?.() || "";
       const isTypingField =
@@ -551,7 +537,7 @@ export default function CommandCenterShellClean({ children }) {
         if (value.length >= 4) {
           event.preventDefault();
           setPendingScannedCode(value);
-          if (!isOrdersRoute) setScanDialogOpen(true);
+          setScanDialogOpen(true);
         }
         scanBufferRef.current = "";
         return;
@@ -572,7 +558,7 @@ export default function CommandCenterShellClean({ children }) {
       window.removeEventListener("keydown", onGlobalScanKeydown, true);
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
-  }, [AUTO_OPEN_SCAN_DIALOG, isOrdersRoute]);
+  }, [AUTO_OPEN_SCAN_DIALOG]);
 
   const handleAddToInventory = async (payload) => {
     const response = await api.post("/inventory/summary", {
@@ -581,21 +567,6 @@ export default function CommandCenterShellClean({ children }) {
       quantity: Number(payload.quantity || 0),
       reorderLevel: 0,
       mode: "increment"
-    });
-    return response;
-  };
-
-  const handleAddToOrder = async (payload) => {
-    const response = await api.post("/orders", {
-      store: payload.store,
-      customer: payload.customer,
-      items: [{
-        product: payload.product,
-        quantity: payload.quantity,
-        unitPrice: payload.unitPrice
-      }],
-      status: "pending",
-      paymentStatus: "unpaid"
     });
     return response;
   };
@@ -668,7 +639,6 @@ export default function CommandCenterShellClean({ children }) {
               <IconButton
                 aria-label="Сканирай и действай"
                 onClick={() => {
-                  if (isOrdersRoute) return;
                   setPendingScannedCode("");
                   setScanDialogOpen(true);
                 }}
@@ -719,7 +689,7 @@ export default function CommandCenterShellClean({ children }) {
       {isMobile ? <MobileBottomNavigationBar /> : null}
 
       <ScanAndActionDialog
-        open={!isOrdersRoute && scanDialogOpen}
+        open={scanDialogOpen}
         onClose={() => {
           setScanDialogOpen(false);
           setPendingScannedCode("");
@@ -730,7 +700,6 @@ export default function CommandCenterShellClean({ children }) {
         inventory={inventory}
         customers={customers}
         onAddToInventory={handleAddToInventory}
-        onAddToOrder={handleAddToOrder}
         onOpenProductsPage={handleOpenProductsPage}
       />
     </Box>

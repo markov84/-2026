@@ -12,10 +12,10 @@ import SupplierOrdersPage from "./pages/SupplierOrdersPage";
 import InventoryPage from "./pages/InventoryPageReady";
 import InventoryAuditsPage from "./pages/InventoryAuditsPage";
 import InventoryMovementsPage from "./pages/InventoryMovementsPage";
-import OrdersPage from "./pages/OrdersPageStable";
 import FinancePage from "./pages/FinancePageStable";
 import EmployeesPage from "./pages/EmployeesPageStable";
 import TransfersPage from "./pages/TransfersPageStable";
+import OrdersPageStable from "./pages/OrdersPageStable";
 import InvoicesPage from "./pages/InvoicesPageStable";
 import VatReportsPage from "./pages/VatReportsPageClean";
 
@@ -44,8 +44,8 @@ function PrivateRoutes({ user }) {
             "manager"
           ].includes(user?.role) ? <InventoryAuditsPage /> : <Navigate to="/" replace />}
         />
-        <Route path="/orders" element={<OrdersPage />} />
         <Route path="/finance" element={user?.role === "admin" ? <FinancePage /> : <Navigate to="/" replace />} />
+        <Route path="/orders" element={<OrdersPageStable />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/vat-reports" element={<VatReportsPage />} />
         <Route
