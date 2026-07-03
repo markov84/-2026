@@ -15,9 +15,26 @@
     <div id="root"></div>
     <script>
       (function () {
+        var BUILD_ID = "2026-07-03-boot-2";
+        var BUILD_KEY = "mark-light-last-build-id";
         var KEY = "mark-light-bootstrap-reload-once";
         var BOOT_TIMEOUT_KEY = "mark-light-bootstrap-timeout-reload-once";
         var BOOT_TIMEOUT_MS = 9000;
+
+        try {
+          var params = new URLSearchParams(location.search);
+          var currentVersion = params.get("mlv") || "";
+          var storedVersion = sessionStorage.getItem(BUILD_KEY) || "";
+
+          if (storedVersion !== BUILD_ID || currentVersion !== BUILD_ID) {
+            sessionStorage.setItem(BUILD_KEY, BUILD_ID);
+            params.set("mlv", BUILD_ID);
+            location.replace(location.pathname + "?" + params.toString() + location.hash);
+            return;
+          }
+        } catch (error) {
+          void error;
+        }
 
         function shouldReload(message) {
           var text = String(message || "").toLowerCase();
