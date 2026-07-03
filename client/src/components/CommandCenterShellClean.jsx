@@ -27,7 +27,7 @@ import { useFetch } from "../hooks/useFetch";
 import api from "../lib/api";
 import AppGlyph from "./AppGlyph";
 
-const drawerWidth = 240;
+          <AppGlyph name="logout" />
 const iconRailHeight = 64;
 
 const navItems = [
