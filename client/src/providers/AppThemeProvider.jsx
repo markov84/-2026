@@ -392,6 +392,20 @@ function createAppTheme(mode) {
             fontWeight: 800
           }
         }
+      },
+      MuiSvgIcon: {
+        styleOverrides: {
+          root: {
+            display: "inline-block",
+            width: "1em",
+            height: "1em",
+            visibility: "visible",
+            opacity: 1,
+            color: "inherit",
+            fill: "currentColor",
+            flexShrink: 0
+          }
+        }
       }
     }
   });
