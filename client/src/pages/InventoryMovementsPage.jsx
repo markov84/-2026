@@ -86,13 +86,17 @@ export default function InventoryMovementsPage() {
 
   async function handleDeleteMovement(movementId) {
     try {
+      setLoading(true);
       await api.delete(`/inventory-movements/${movementId}`);
       toast.success("Движението е успешно изтрито.");
       setDeletingId(null);
       setSelectedIds(selectedIds.filter(id => id !== movementId));
-      void loadMovements();
+      await loadMovements();
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно триене на движението.");
+      setDeletingId(null);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -101,10 +105,12 @@ export default function InventoryMovementsPage() {
       setLoading(true);
       await Promise.all(selectedIds.map(id => api.delete(`/inventory-movements/${id}`)));
       toast.success(`${selectedIds.length} движения са успешно изтрити.`);
+      setDeletingId(null);
       setSelectedIds([]);
-      void loadMovements();
+      await loadMovements();
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно триене на движенията.");
+      setDeletingId(null);
     } finally {
       setLoading(false);
     }
@@ -411,19 +417,19 @@ export default function InventoryMovementsPage() {
       <ConfirmDeleteDialog
         open={Boolean(deletingId)}
         title={deletingId === "bulk" ? "Изтриване на движения" : "Изтриване на движение"}
-        message={
+        description={
           deletingId === "bulk"
             ? `Сигурен ли си, че искаш да изтриеш ${selectedIds.length} движения? Това действие не може да бъде отменено.`
             : "Сигурен ли си, че искаш да изтриеш това движение? Това действие не може да бъде отменено."
         }
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deletingId === "bulk") {
-            void handleBulkDelete();
+            await handleBulkDelete();
           } else {
-            void handleDeleteMovement(deletingId);
+            await handleDeleteMovement(deletingId);
           }
         }}
-        onCancel={() => setDeletingId(null)}
+        onClose={() => setDeletingId(null)}
       />
     </Stack>
   );
