@@ -56,10 +56,17 @@ export function AuthProvider({ children }) {
       user,
       loading,
       async login(username, password) {
-        const response = await api.post("/auth/login", { username, password });
-        setAuthToken(response.data.token);
-        setUser(response.data.user);
-        toast.success("Входът е успешен.");
+        try {
+          const response = await api.post("/auth/login", { username, password });
+          setAuthToken(response.data.token);
+          setUser(response.data.user);
+          toast.success("Входът е успешен.");
+          return response.data.user;
+        } catch (error) {
+          clearAuthToken();
+          setUser(null);
+          throw error;
+        }
       },
       logout() {
         clearAuthToken();

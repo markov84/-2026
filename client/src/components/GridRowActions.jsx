@@ -1,7 +1,5 @@
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import { IconButton, Stack, Tooltip } from "@mui/material";
+import AppGlyph from "./AppGlyph";
 
 export default function GridRowActions({
   onEdit,
@@ -16,19 +14,19 @@ export default function GridRowActions({
       {onPrint ? (
         <Tooltip title={printLabel}>
           <IconButton size="small" color="secondary" onClick={onPrint} sx={{ width: 34, height: 34 }}>
-            <PrintRoundedIcon fontSize="small" />
+            <AppGlyph name="print" size={18} />
           </IconButton>
         </Tooltip>
       ) : null}
       <Tooltip title={editLabel}>
         <IconButton size="small" color="primary" onClick={onEdit} sx={{ width: 34, height: 34 }}>
-          <EditRoundedIcon fontSize="small" />
+          <AppGlyph name="edit" size={18} />
         </IconButton>
       </Tooltip>
       {onDelete ? (
         <Tooltip title={deleteLabel}>
           <IconButton size="small" color="error" onClick={onDelete} sx={{ width: 34, height: 34 }}>
-            <DeleteRoundedIcon fontSize="small" />
+            <AppGlyph name="delete" size={18} />
           </IconButton>
         </Tooltip>
       ) : null}

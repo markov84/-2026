@@ -1,7 +1,6 @@
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import { Button, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
 import Dialog from "./DraggableDialog";
+import AppGlyph from "./AppGlyph";
 
 export default function ConfirmDeleteDialog({
   open,
@@ -21,8 +20,8 @@ export default function ConfirmDeleteDialog({
         </Typography>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button startIcon={<CloseRoundedIcon />} onClick={onClose}>{cancelLabel}</Button>
-        <Button color="error" variant="contained" startIcon={<DeleteRoundedIcon />} onClick={onConfirm}>
+        <Button startIcon={<AppGlyph name="close" size={18} />} onClick={onClose}>{cancelLabel}</Button>
+        <Button color="error" variant="contained" startIcon={<AppGlyph name="delete" size={18} />} onClick={onConfirm}>
           {confirmLabel}
         </Button>
       </DialogActions>

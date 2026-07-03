@@ -23,14 +23,13 @@ import {
   Tabs,
 } from "@mui/material";
 import toast from "react-hot-toast";
-import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
-import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
 import BarcodeScannerDialog from "./BarcodeScannerDialog";
 import { ProductIdentity } from "./ProductPresentation";
 import { findProductByScanCode } from "../lib/scanCode";
 import { formatCurrencyEUR } from "../lib/currency";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useLocation, useNavigate } from "react-router-dom";
+import AppGlyph from "./AppGlyph";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -451,8 +450,8 @@ export default function ScanAndActionDialog({
                   value={actionTab}
                   onChange={(e, newValue) => setActionTab(newValue)}
                 >
-                  <Tab icon={<WarehouseRoundedIcon />} label="Инвентар" />
-                  <Tab icon={<ShoppingCartRoundedIcon />} label="Продажба" />
+                  <Tab icon={<AppGlyph name="warehouse" size={18} />} label="Инвентар" />
+                  <Tab icon={<AppGlyph name="shopping-cart" size={18} />} label="Продажба" />
                 </Tabs>
 
                 {/* Inventory Tab */}
