@@ -1,18 +1,13 @@
 ﻿import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import { useLocation, useNavigate } from "react-router-dom";
+import AppGlyph from "./AppGlyph";
 
 const items = [
-  { label: "Табло", value: "/", icon: <DashboardRoundedIcon /> },
-  { label: "Продукти", value: "/products", icon: <Inventory2RoundedIcon /> },
-  { label: "Клиенти", value: "/customers", icon: <PeopleAltRoundedIcon /> },
-  { label: "Продажби", value: "/orders", icon: <ReceiptLongRoundedIcon /> },
-  { label: "Финанси", value: "/finance", icon: <AccountBalanceWalletRoundedIcon /> }
+  { label: "Табло", value: "/", icon: <AppGlyph name="dashboard" size={20} /> },
+  { label: "Продукти", value: "/products", icon: <AppGlyph name="products" size={20} /> },
+  { label: "Клиенти", value: "/customers", icon: <AppGlyph name="customers" size={20} /> },
+  { label: "Продажби", value: "/orders", icon: <AppGlyph name="orders" size={20} /> },
+  { label: "Финанси", value: "/finance", icon: <AppGlyph name="finance" size={20} /> }
 ];
 
 export default function MobileBottomNavigationBar() {

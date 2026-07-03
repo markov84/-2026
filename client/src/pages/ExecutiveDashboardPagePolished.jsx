@@ -1,13 +1,4 @@
 import { Alert, Card, CardActionArea, CardContent, Chip, CircularProgress, Divider, Grid2 as Grid, LinearProgress, Stack, Typography } from "@mui/material";
-import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-import ShoppingBagRoundedIcon from "@mui/icons-material/ShoppingBagRounded";
-import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
-import StoreRoundedIcon from "@mui/icons-material/StoreRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
-import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import toast from "react-hot-toast";
@@ -17,6 +8,7 @@ import StatCard from "../components/StatCard";
 import api from "../lib/api";
 import { formatCurrencyEUR } from "../lib/currency";
 import { useAuth } from "../providers/AuthProviderStable";
+import AppGlyph from "../components/AppGlyph";
 
 const pieColors = ["#28566a", "#b66a3c", "#4a7a64", "#d1a34f"];
 const severityColorMap = {
@@ -26,10 +18,10 @@ const severityColorMap = {
 };
 const statLinks = ["/products", "/stores", "/customers", "/inventory"];
 const statIcons = [
-  <Inventory2RoundedIcon key="products" />,
-  <StoreRoundedIcon key="stores" />,
-  <PeopleAltRoundedIcon key="customers" />,
-  <WarningAmberRoundedIcon key="inventory" />
+  <AppGlyph name="products" key="products" size={20} />,
+  <AppGlyph name="store" key="stores" size={20} />,
+  <AppGlyph name="customers" key="customers" size={20} />,
+  <AppGlyph name="warning" key="inventory" size={20} />
 ];
 
 function toNumber(value) {
@@ -146,7 +138,7 @@ export default function ExecutiveDashboardPagePolished() {
           eyebrow="Оперативен обзор"
           title="Продажби, наличности и финанси в едно табло"
           subtitle="Зареждаме данните от сървъра. При първо отваряне е възможно да има кратко забавяне."
-          icon={<DashboardRoundedIcon />}
+          icon={<AppGlyph name="dashboard" />}
         />
 
         <Card sx={{ borderRadius: 5 }}>
@@ -170,7 +162,7 @@ export default function ExecutiveDashboardPagePolished() {
         eyebrow="Оперативен обзор"
         title="Продажби, наличности и финанси в едно табло"
         subtitle="Ясен преглед на мрежата с по-компактен layout, по-малко шум и по-лесно четене на най-важните показатели."
-        icon={<DashboardRoundedIcon />}
+        icon={<AppGlyph name="dashboard" />}
       />
 
       {loadError ? <Alert severity="warning">{loadError}</Alert> : null}
@@ -197,7 +189,7 @@ export default function ExecutiveDashboardPagePolished() {
               title="Печалба"
               value={money(dashboard?.totals?.netProfit)}
               helper={`Приходи ${money(dashboard?.totals?.totalRevenue)}`}
-              icon={<TrendingUpRoundedIcon />}
+              icon={<AppGlyph name="trend" size={20} />}
               onClick={() => navigate("/finance")}
             />
           </Grid>
@@ -207,7 +199,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Дневен оборот"
             value={money(dashboard?.totals?.dailyTurnover)}
             helper="Оборот за днешния ден"
-            icon={<TrendingUpRoundedIcon />}
+            icon={<AppGlyph name="trend" size={20} />}
             onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
@@ -216,7 +208,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Месечен оборот"
             value={money(dashboard?.totals?.monthlyTurnover)}
             helper="Оборот за текущия месец"
-            icon={<TrendingUpRoundedIcon />}
+            icon={<AppGlyph name="trend" size={20} />}
             onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
@@ -225,7 +217,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Банкова наличност"
             value={money(dashboard?.totals?.bankBalance)}
             helper={canViewProfit ? `Разходи ${money(dashboard?.totals?.totalExpenses)}` : undefined}
-            icon={<SavingsRoundedIcon />}
+            icon={<AppGlyph name="savings" size={20} />}
             onClick={() => navigate("/finance")}
           />
         </Grid>
@@ -234,7 +226,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Продажби"
             value={String((dashboard?.recentOrders || []).length)}
             helper="Последни активни документи"
-            icon={<ShoppingBagRoundedIcon />}
+            icon={<AppGlyph name="shopping" size={20} />}
             onClick={() => navigate("/orders")}
           />
         </Grid>
@@ -243,7 +235,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Магазини"
             value={String(toNumber(dashboard?.totals?.storeCount || dashboard?.storesCount))}
             helper="Свързани обекти в мрежата"
-            icon={<StoreRoundedIcon />}
+            icon={<AppGlyph name="store" size={20} />}
             onClick={() => navigate("/stores")}
           />
         </Grid>
@@ -252,7 +244,7 @@ export default function ExecutiveDashboardPagePolished() {
             title="Точност ревизии"
             value={`${toNumber(dashboard?.totals?.avgAuditAccuracy).toFixed(1)}%`}
               helper={`Активни ${toNumber(dashboard?.totals?.activeAudits)} | Повторни броения ${toNumber(dashboard?.totals?.pendingRecount)}`}
-            icon={<FactCheckRoundedIcon />}
+            icon={<AppGlyph name="fact" size={20} />}
             onClick={() => navigate("/inventory-audits")}
           />
         </Grid>

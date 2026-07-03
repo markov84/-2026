@@ -1,14 +1,11 @@
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import { SpeedDial, SpeedDialAction } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import AppGlyph from "./AppGlyph";
 
 const actions = [
-  { icon: <Inventory2RoundedIcon />, name: "Продукти", path: "/products" },
-  { icon: <PersonAddRoundedIcon />, name: "Клиенти", path: "/customers" },
-  { icon: <ReceiptLongRoundedIcon />, name: "Нова продажба", path: "/orders" }
+  { icon: <AppGlyph name="products" size={20} />, name: "Продукти", path: "/products" },
+  { icon: <AppGlyph name="person-add" size={20} />, name: "Клиенти", path: "/customers" },
+  { icon: <AppGlyph name="receipt" size={20} />, name: "Нова продажба", path: "/orders" }
 ];
 
 export default function MobileQuickActions() {
@@ -17,7 +14,7 @@ export default function MobileQuickActions() {
   return (
     <SpeedDial
       ariaLabel="бързи действия"
-      icon={<AddRoundedIcon />}
+      icon={<AppGlyph name="add" size={22} />}
       sx={{
         position: "fixed",
         bottom: 92,

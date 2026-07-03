@@ -15,11 +15,6 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
@@ -30,6 +25,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import ScanAndActionDialog from "./ScanAndActionDialog";
 import { useFetch } from "../hooks/useFetch";
 import api from "../lib/api";
+import AppGlyph from "./AppGlyph";
 
 const drawerWidth = 240;
 const iconRailHeight = 64;
@@ -492,7 +488,7 @@ function IconRail() {
             border: "1px solid rgba(255,255,255,0.72)"
           }}
         >
-          <LogoutRoundedIcon />
+          <AppGlyph name="logout" />
         </IconButton>
       </Tooltip>
     </Stack>
@@ -655,7 +651,7 @@ export default function CommandCenterShellClean({ children }) {
         >
           <Stack direction="row" spacing={1.5} alignItems="center">
             <IconButton sx={{ display: { lg: "none" } }} onClick={() => setMobileOpen(true)}>
-              <MenuRoundedIcon />
+              <AppGlyph name="menu" />
             </IconButton>
             <Box>
               <Typography variant="caption" color="text.secondary">
@@ -685,7 +681,7 @@ export default function CommandCenterShellClean({ children }) {
                   bgcolor: "background.paper"
                 }}
               >
-                <QrCodeScannerRoundedIcon />
+                <AppGlyph name="scan" />
               </IconButton>
             </Tooltip>
             <Tooltip title={isDarkMode ? "Светла тема" : "Тъмна тема"} arrow>
@@ -701,10 +697,10 @@ export default function CommandCenterShellClean({ children }) {
                   bgcolor: "background.paper"
                 }}
               >
-                {isDarkMode ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+                {isDarkMode ? <AppGlyph name="light" /> : <AppGlyph name="dark" />}
               </IconButton>
             </Tooltip>
-            <Button variant="outlined" color="inherit" startIcon={<LogoutRoundedIcon />} onClick={logout} sx={{ whiteSpace: "nowrap" }}>
+            <Button variant="outlined" color="inherit" startIcon={<AppGlyph name="logout" size={20} />} onClick={logout} sx={{ whiteSpace: "nowrap" }}>
               Изход
             </Button>
           </Stack>

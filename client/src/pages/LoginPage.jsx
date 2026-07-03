@@ -1,8 +1,7 @@
 ﻿import { useState } from "react";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { Alert, Box, Button, Card, CardContent, IconButton, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 import { useAuth } from "../providers/AuthProviderStable";
+import AppGlyph from "../components/AppGlyph";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -76,7 +75,7 @@ export default function LoginPage() {
                       onClick={() => setShowPassword((current) => !current)}
                       onMouseDown={(event) => event.preventDefault()}
                     >
-                      {showPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
+                      {showPassword ? <AppGlyph name="eye-off" size={20} /> : <AppGlyph name="eye" size={20} />}
                     </IconButton>
                   </InputAdornment>
                 )
