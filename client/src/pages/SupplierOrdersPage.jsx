@@ -44,6 +44,7 @@ import { exportSupplierOrderPdf, printSupplierOrder } from "../lib/printDocument
 import { useAuth } from "../providers/AuthProviderStable";
 
 let supplierOrderItemKey = 0;
+const MIN_SUPPLIER_ORDER_ROWS = 2;
 
 function createItemKey() {
   supplierOrderItemKey += 1;
@@ -58,6 +59,14 @@ function createSupplierOrderItem(overrides = {}) {
     unitCost: "",
     ...overrides
   };
+}
+
+function ensureItemRows(items = [], minRows = MIN_SUPPLIER_ORDER_ROWS) {
+  const safeItems = Array.isArray(items) ? [...items] : [];
+  while (safeItems.length < minRows) {
+    safeItems.push(createSupplierOrderItem());
+  }
+  return safeItems;
 }
 
 function createInitialOrder(requestedBy = "") {
@@ -77,7 +86,7 @@ function createInitialOrder(requestedBy = "") {
     expectedDate: "",
     status: "draft",
     notes: "",
-    items: [createSupplierOrderItem()]
+    items: ensureItemRows([])
   };
 }
 
@@ -89,7 +98,7 @@ function normalizeItems(items = []) {
       unitCost: String(item.unitCost ?? item.product?.cost ?? item.product?.price ?? 0)
     })
   );
-  return normalized.length ? normalized : [createSupplierOrderItem()];
+  return ensureItemRows(normalized);
 }
 
 function getCleanItems(order) {
@@ -174,7 +183,7 @@ function SupplierOrderItemsCell({ items }) {
 }
 
 function SupplierOrderItemsEditor({ value, products, onChange }) {
-  const items = value?.length ? value : [createSupplierOrderItem()];
+  const items = ensureItemRows(value);
 
   function updateItem(key, patch) {
     onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -182,7 +191,7 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
 
   function removeItem(key) {
     const nextItems = items.filter((item) => item.key !== key);
-    onChange(nextItems.length ? nextItems : [createSupplierOrderItem()]);
+    onChange(ensureItemRows(nextItems));
   }
 
   function addRow() {
