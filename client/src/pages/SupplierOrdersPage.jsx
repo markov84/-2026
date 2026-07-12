@@ -182,7 +182,7 @@ function SupplierOrderItemsCell({ items }) {
   );
 }
 
-function SupplierOrderItemsEditor({ value, products, onChange }) {
+function SupplierOrderItemsEditor({ value, products, onChange, canViewUnitCost }) {
   const items = ensureItemRows(value);
   const [focusProductKey, setFocusProductKey] = useState("");
 
@@ -253,8 +253,8 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
               <TableCell sx={{ width: 32 }}>№</TableCell>
               <TableCell sx={{ width: 290 }}>Продукт</TableCell>
               <TableCell align="right" sx={{ width: 90 }}>Бройки</TableCell>
-              <TableCell align="right" sx={{ width: 120 }}>Дост. цена</TableCell>
-              <TableCell align="right" sx={{ width: 120 }}>Сума</TableCell>
+              {canViewUnitCost ? <TableCell align="right" sx={{ width: 120 }}>Дост. цена</TableCell> : null}
+              {canViewUnitCost ? <TableCell align="right" sx={{ width: 120 }}>Сума</TableCell> : null}
               <TableCell align="center" sx={{ width: 40 }} />
             </TableRow>
           </TableHead>
@@ -305,20 +305,24 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
                       sx={{ width: 72 }}
                     />
                   </TableCell>
-                  <TableCell align="right">
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={item.unitCost}
-                      onChange={(event) => updateItem(item.key, { unitCost: event.target.value })}
-                      onKeyDown={(event) => handleAdvanceFromLastRow(event, index)}
-                      inputProps={{ min: 0 }}
-                      sx={{ width: 98 }}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight={900}>{selectedProduct ? formatCurrencyEUR(quantity * unitCost) : "-"}</Typography>
-                  </TableCell>
+                  {canViewUnitCost ? (
+                    <TableCell align="right">
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={item.unitCost}
+                        onChange={(event) => updateItem(item.key, { unitCost: event.target.value })}
+                        onKeyDown={(event) => handleAdvanceFromLastRow(event, index)}
+                        inputProps={{ min: 0 }}
+                        sx={{ width: 98 }}
+                      />
+                    </TableCell>
+                  ) : null}
+                  {canViewUnitCost ? (
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={900}>{selectedProduct ? formatCurrencyEUR(quantity * unitCost) : "-"}</Typography>
+                    </TableCell>
+                  ) : null}
                   <TableCell align="center">
                     <Tooltip title="Премахни ред">
                       <span>
@@ -340,6 +344,7 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
 
 export default function SupplierOrdersPage() {
   const { user } = useAuth();
+  const canViewUnitCost = user?.role === "admin";
   const { data: orders = [], loading, setData } = useFetch("/supplier-orders");
   const { data: suppliers = [] } = useFetch("/suppliers");
   const { data: stores = [] } = useFetch("/stores");
@@ -738,14 +743,14 @@ export default function SupplierOrdersPage() {
             </FormGridFull>
 
             <FormGridFull>
-              <SupplierOrderItemsEditor value={form.items} products={products} onChange={(items) => updateField("items", items)} />
+              <SupplierOrderItemsEditor value={form.items} products={products} onChange={(items) => updateField("items", items)} canViewUnitCost={canViewUnitCost} />
             </FormGridFull>
 
             <FormGridFull>
               <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(39,86,107,0.10)", bgcolor: "rgba(39,86,107,0.05)" }}>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                   <Typography variant="body2">Общо бройки: <strong>{getTotals(form).quantity}</strong></Typography>
-                  <Typography variant="body2">Обща стойност: <strong>{formatCurrencyEUR(getTotals(form).total)}</strong></Typography>
+                  {canViewUnitCost ? <Typography variant="body2">Обща стойност: <strong>{formatCurrencyEUR(getTotals(form).total)}</strong></Typography> : null}
                 </Stack>
               </Box>
             </FormGridFull>
