@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AddBusinessRoundedIcon from "@mui/icons-material/AddBusinessRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
@@ -44,7 +44,7 @@ import { exportSupplierOrderPdf, printSupplierOrder } from "../lib/printDocument
 import { useAuth } from "../providers/AuthProviderStable";
 
 let supplierOrderItemKey = 0;
-const MIN_SUPPLIER_ORDER_ROWS = 2;
+const MIN_SUPPLIER_ORDER_ROWS = 5;
 
 function createItemKey() {
   supplierOrderItemKey += 1;
@@ -184,6 +184,30 @@ function SupplierOrderItemsCell({ items }) {
 
 function SupplierOrderItemsEditor({ value, products, onChange }) {
   const items = ensureItemRows(value);
+  const [focusProductKey, setFocusProductKey] = useState("");
+
+  useEffect(() => {
+    if (!focusProductKey) return;
+
+    const focusInput = () => {
+      const input = globalThis.document?.querySelector(`[data-supplier-product-input="${focusProductKey}"]`);
+      if (!input) return false;
+      input.focus();
+      if (typeof input.select === "function") input.select();
+      return true;
+    };
+
+    if (focusInput()) {
+      setFocusProductKey("");
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (focusInput()) setFocusProductKey("");
+    }, 30);
+
+    return () => clearTimeout(timer);
+  }, [focusProductKey, items]);
 
   function updateItem(key, patch) {
     onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -196,6 +220,23 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
 
   function addRow() {
     onChange([...items, createSupplierOrderItem()]);
+  }
+
+  function addRowAndFocusProduct() {
+    const nextItem = createSupplierOrderItem();
+    onChange([...items, nextItem]);
+    setFocusProductKey(nextItem.key);
+  }
+
+  function handleAdvanceFromLastRow(event, index) {
+    if (index !== items.length - 1) return;
+    if (event.nativeEvent?.isComposing) return;
+    if (!["Enter", "Tab"].includes(event.key)) return;
+    if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.currentTarget?.getAttribute?.("aria-expanded") === "true") return;
+
+    event.preventDefault();
+    addRowAndFocusProduct();
   }
 
   return (
@@ -239,14 +280,41 @@ function SupplierOrderItemsEditor({ value, products, onChange }) {
                         })
                       }
                       isOptionEqualToValue={(option, selectedValue) => option?._id === selectedValue?._id}
-                      renderInput={(params) => <TextField {...params} size="small" placeholder={`Продукт ${index + 1}`} />}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          size="small"
+                          placeholder={`Продукт ${index + 1}`}
+                          onKeyDown={(event) => handleAdvanceFromLastRow(event, index)}
+                          inputProps={{
+                            ...params.inputProps,
+                            "data-supplier-product-input": item.key
+                          }}
+                        />
+                      )}
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <TextField size="small" type="number" value={item.quantity} onChange={(event) => updateItem(item.key, { quantity: event.target.value })} inputProps={{ min: 1 }} sx={{ width: 72 }} />
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
+                      onKeyDown={(event) => handleAdvanceFromLastRow(event, index)}
+                      inputProps={{ min: 1 }}
+                      sx={{ width: 72 }}
+                    />
                   </TableCell>
                   <TableCell align="right">
-                    <TextField size="small" type="number" value={item.unitCost} onChange={(event) => updateItem(item.key, { unitCost: event.target.value })} inputProps={{ min: 0 }} sx={{ width: 98 }} />
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={item.unitCost}
+                      onChange={(event) => updateItem(item.key, { unitCost: event.target.value })}
+                      onKeyDown={(event) => handleAdvanceFromLastRow(event, index)}
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 98 }}
+                    />
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight={900}>{selectedProduct ? formatCurrencyEUR(quantity * unitCost) : "-"}</Typography>
