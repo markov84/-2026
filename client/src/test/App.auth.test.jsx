@@ -22,7 +22,7 @@ describe("App auth guard", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("img", { name: "MARKLIGHT Lighting Trade" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "MARK LIGHT Lighting Trade" })).toBeInTheDocument();
   });
 
   it("shows a loader while auth state is loading", () => {

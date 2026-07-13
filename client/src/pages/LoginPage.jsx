@@ -41,8 +41,8 @@ export default function LoginPage() {
           <Stack spacing={2} component="form" onSubmit={handleSubmit}>
             <Box
               component="img"
-              src="/MARKLIGHT.png"
-              alt="MARKLIGHT Lighting Trade"
+              src="/MARK%20LIGHT.png"
+              alt="MARK LIGHT Lighting Trade"
               sx={{
                 width: "100%",
                 maxWidth: 300,
@@ -52,7 +52,7 @@ export default function LoginPage() {
               }}
             />
             <Typography variant="caption" sx={{ alignSelf: "center", fontWeight: 700, letterSpacing: 0.3, color: "text.secondary" }}>
-              MARKLIGHT{"\u00AE"}
+              MARK LIGHT{"\u00AE"}
             </Typography>
             <div>
               <Typography color="text.secondary">

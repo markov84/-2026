@@ -75,8 +75,8 @@ function Navigation({ onNavigate }) {
           <Stack spacing={0.85} alignItems="flex-start">
             <Box
               component="img"
-              src="/MARKLIGHT.png"
-              alt="MARKLIGHT Lighting Trade"
+              src="/MARK%20LIGHT.png"
+              alt="MARK LIGHT Lighting Trade"
               sx={{
                 width: 142,
                 maxWidth: "100%",
@@ -94,7 +94,7 @@ function Navigation({ onNavigate }) {
                 Търговска мрежа
               </Typography>
               <Typography variant="caption" color="rgba(236,242,244,0.8)" sx={{ fontWeight: 700, letterSpacing: 0.3, display: "block" }}>
-                MARKLIGHT{"\u00AE"}
+                MARK LIGHT{"\u00AE"}
               </Typography>
             </Box>
           </Stack>

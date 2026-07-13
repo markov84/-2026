@@ -263,8 +263,8 @@ function Navigation({ onNavigate }) {
           <Stack spacing={0.75} alignItems="flex-start">
             <Box
               component="img"
-              src="/MARKLIGHT.png"
-              alt="MARKLIGHT Lighting Trade"
+              src="/MARK%20LIGHT.png"
+              alt="MARK LIGHT Lighting Trade"
               sx={{
                 width: 136,
                 maxWidth: "100%",
@@ -279,7 +279,7 @@ function Navigation({ onNavigate }) {
               Управление на търговска мрежа на MARK LIGHT LTD
             </Typography>
             <Typography variant="caption" color="rgba(255,255,255,0.78)" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-              MARKLIGHT{"\u00AE"}
+              MARK LIGHT{"\u00AE"}
             </Typography>
           </Stack>
         </Stack>
@@ -415,8 +415,8 @@ function IconRail() {
     >
       <Box
         component="img"
-        src="/MARKLIGHT.png"
-        alt="MARKLIGHT"
+        src="/MARK%20LIGHT.png"
+        alt="MARK LIGHT"
         sx={{
           width: 48,
           height: 48,

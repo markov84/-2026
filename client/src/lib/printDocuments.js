@@ -63,7 +63,7 @@ function printHtml(title, bodyHtml) {
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
-  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+  const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
   printWindow.document.write(`
     <!doctype html>
@@ -207,9 +207,9 @@ function printHtml(title, bodyHtml) {
       <body>
         <main class="document">
           <section class="company-bar">
-            <img class="company-logo" src="${escapeHtml(companyLogoUrl)}" alt="MARKLIGHT logo" />
+            <img class="company-logo" src="${escapeHtml(companyLogoUrl)}" alt="MARK LIGHT logo" />
             <div>
-              <div class="company-name">MARKLIGHT</div>
+              <div class="company-name">MARK LIGHT</div>
               <div class="company-tagline">LIGHTING TRADE</div>
             </div>
           </section>
@@ -470,7 +470,7 @@ export async function exportTransferPdf(transfer) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 14;
-  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+  const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
   const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
 
   let y = margin;
@@ -480,7 +480,7 @@ export async function exportTransferPdf(transfer) {
   }
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
-  pdf.text("MARKLIGHT", margin + 24, y + 7);
+  pdf.text("MARK LIGHT", margin + 24, y + 7);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.text("LIGHTING TRADE", margin + 24, y + 13);
@@ -811,7 +811,7 @@ export async function exportSupplierOrderPdf(order) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 14;
-  const companyLogoUrl = new URL("/MARKLIGHT.png", window.location.origin).toString();
+  const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
   const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
 
   let y = margin;
@@ -820,7 +820,7 @@ export async function exportSupplierOrderPdf(order) {
   }
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
-  pdf.text("MARKLIGHT", margin + 24, y + 7);
+  pdf.text("MARK LIGHT", margin + 24, y + 7);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.text("LIGHTING TRADE", margin + 24, y + 13);

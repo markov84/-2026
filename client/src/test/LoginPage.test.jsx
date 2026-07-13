@@ -19,7 +19,7 @@ describe("LoginPage", () => {
   it("renders the login form", () => {
     render(<LoginPage />);
 
-    expect(screen.getByRole("img", { name: "MARKLIGHT Lighting Trade" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "MARK LIGHT Lighting Trade" })).toBeInTheDocument();
     expect(screen.getByLabelText("Потребител")).toHaveValue("admin");
     expect(screen.getByLabelText("Парола")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Вход" })).toBeInTheDocument();
