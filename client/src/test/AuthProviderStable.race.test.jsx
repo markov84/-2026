@@ -89,7 +89,35 @@ describe("AuthProviderStable", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("admin"));
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("admin"), { timeout: 5000 });
+    expect(sessionStorage.getItem("mark-light-token")).toBe("fresh-token");
+  });
+
+  it("retries login when the backend is temporarily unavailable", async () => {
+    mockState.get.mockResolvedValueOnce({ data: { user: null } });
+    mockState.post
+      .mockRejectedValueOnce({ code: "ECONNABORTED" })
+      .mockRejectedValueOnce({ code: "ERR_NETWORK" })
+      .mockResolvedValueOnce({
+        data: {
+          token: "fresh-token",
+          user: { username: "admin" }
+        }
+      });
+
+    const user = userEvent.setup();
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("anon"));
+    await user.click(screen.getByRole("button", { name: "login" }));
+
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("admin"), { timeout: 5000 });
+    expect(mockState.post).toHaveBeenCalledTimes(3);
     expect(sessionStorage.getItem("mark-light-token")).toBe("fresh-token");
   });
 });
