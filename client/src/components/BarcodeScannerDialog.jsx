@@ -104,19 +104,19 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
         console.log("📷 Намерени камери:", devices.length, devices.map((d) => d.label));
 
-        if (!devices || devices.length === 0) {
-          throw new Error("Не е намерена камера");
-        }
-
         setInitProgress(45);
 
-        // Избираме задна камера
+        // Подготвяме приоритетен fallback към задна камера по име/id.
         const backCamera =
           devices.find((device) => /back|rear|environment|задна/i.test(device?.label || "")) ||
+          devices.find((device) => /back|rear|environment|задна/i.test(device?.deviceId || "")) ||
           devices[devices.length - 1] ||
-          devices[0];
+          devices[0] ||
+          null;
 
-        console.log("📱 Избрана камера:", backCamera.label, backCamera.deviceId);
+        if (backCamera) {
+          console.log("📱 Fallback камера:", backCamera.label || "(без име)", backCamera.deviceId);
+        }
         setInitProgress(65);
 
         // Callback за сканиране
@@ -148,7 +148,34 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         };
 
         console.log("🚀 Стартирам сканер...");
-        const controls = await codeReader.decodeFromVideoDevice(backCamera.deviceId, videoElement, onResult);
+
+        let controls = null;
+        try {
+          // На мобилни устройства това е най-надеждният начин за задна камера.
+          controls = await codeReader.decodeFromConstraints(
+            {
+              video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              audio: false,
+            },
+            videoElement,
+            onResult
+          );
+          console.log("✅ Стартирано с facingMode=environment");
+        } catch (facingModeError) {
+          console.warn("⚠️ facingMode fallback:", facingModeError?.message || facingModeError);
+
+          if (backCamera?.deviceId) {
+            controls = await codeReader.decodeFromVideoDevice(backCamera.deviceId, videoElement, onResult);
+            console.log("✅ Стартирано с deviceId fallback");
+          } else {
+            controls = await codeReader.decodeFromVideoDevice(undefined, videoElement, onResult);
+            console.log("✅ Стартирано с default camera fallback");
+          }
+        }
         controlsRef.current = controls;
 
         if (active) {
