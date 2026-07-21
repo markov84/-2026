@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, CircularProgress, Box, TextField, LinearProgress } from "@mui/material";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
@@ -38,6 +39,93 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
   const codeReaderRef = useRef(null);
   const controlsRef = useRef(null);
   const statusRef = useRef("initializing");
+  const detectedRef = useRef(false);
+  const nativeDetectIntervalRef = useRef(null);
+
+  function stopNativeDetectorFallback() {
+    if (nativeDetectIntervalRef.current) {
+      window.clearInterval(nativeDetectIntervalRef.current);
+      nativeDetectIntervalRef.current = null;
+    }
+  }
+
+  function resolveDetectedCode(rawCode, onDetected) {
+    const code = String(rawCode || "").trim();
+    if (!code || detectedRef.current) return false;
+
+    detectedRef.current = true;
+    console.log("✅ КОД ДЕТЕКТИРАН:", code);
+    updateStatus("detected", `✓ Сканирано: ${code}`);
+    try {
+      controlsRef.current?.stop?.();
+    } catch (e) {
+      // ignore
+    }
+    stopNativeDetectorFallback();
+    onDetected?.(code);
+    return true;
+  }
+
+  async function startNativeDetectorFallback(videoElement, onDetected) {
+    const BarcodeDetectorCtor = globalThis?.BarcodeDetector;
+    if (!BarcodeDetectorCtor || !videoElement) return;
+
+    try {
+      const wantedFormats = [
+        "qr_code",
+        "ean_13",
+        "ean_8",
+        "code_128",
+        "code_39",
+        "upc_a",
+        "upc_e",
+        "itf",
+        "codabar",
+        "data_matrix",
+        "pdf417",
+        "aztec",
+      ];
+
+      let supported = [];
+      if (typeof BarcodeDetectorCtor.getSupportedFormats === "function") {
+        supported = await BarcodeDetectorCtor.getSupportedFormats();
+      }
+
+      const formats = supported.length ? wantedFormats.filter((format) => supported.includes(format)) : wantedFormats;
+      if (!formats.length) return;
+
+      const detector = new BarcodeDetectorCtor({ formats });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return;
+
+      let busy = false;
+      nativeDetectIntervalRef.current = window.setInterval(async () => {
+        if (busy || detectedRef.current) return;
+        const width = videoElement.videoWidth;
+        const height = videoElement.videoHeight;
+        if (!width || !height) return;
+
+        busy = true;
+        try {
+          canvas.width = width;
+          canvas.height = height;
+          context.drawImage(videoElement, 0, 0, width, height);
+          const results = await detector.detect(canvas);
+          if (results?.length) {
+            const value = results.find((item) => item?.rawValue)?.rawValue;
+            resolveDetectedCode(value, onDetected);
+          }
+        } catch (error) {
+          // Ignore intermittent frame decode errors.
+        } finally {
+          busy = false;
+        }
+      }, 250);
+    } catch (error) {
+      console.debug("ℹ️ Native BarcodeDetector fallback unavailable:", error?.message || error);
+    }
+  }
 
   function updateStatus(nextStatus, nextMessage) {
     statusRef.current = nextStatus;
@@ -58,6 +146,8 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
     } catch (e) {
       // ignore
     }
+
+    stopNativeDetectorFallback();
   }
 
   useEffect(() => {
@@ -68,7 +158,26 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
     async function initializeScanner() {
       try {
-        codeReader = new BrowserMultiFormatReader();
+        detectedRef.current = false;
+
+        const hints = new Map();
+        hints.set(DecodeHintType.TRY_HARDER, true);
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.ITF,
+          BarcodeFormat.CODABAR,
+          BarcodeFormat.DATA_MATRIX,
+          BarcodeFormat.PDF_417,
+          BarcodeFormat.AZTEC,
+        ]);
+
+        codeReader = new BrowserMultiFormatReader(hints, 200);
         codeReaderRef.current = codeReader;
 
         updateStatus("initializing", "Подготвям камерата...");
@@ -125,11 +234,9 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
           if (result) {
             const code = result.getText();
-            console.log("✅ КОД ДЕТЕКТИРАН:", code);
-            updateStatus("detected", `✓ Сканирано: ${code}`);
-            active = false;
-            controlsRef.current?.stop?.();
-            onDetected?.(code);
+            if (resolveDetectedCode(code, onDetected)) {
+              active = false;
+            }
             return;
           }
 
@@ -178,6 +285,9 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         }
         controlsRef.current = controls;
 
+        // Допълнителен детектор за браузъри, където ZXing е нестабилен.
+        startNativeDetectorFallback(videoElement, onDetected);
+
         if (active) {
           setInitProgress(100);
           updateStatus("scanning", "Камерата е активна. Насочи я към баркод.");
@@ -196,6 +306,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
     return () => {
       active = false;
+      stopScanner();
       controlsRef.current?.stop?.();
       if (videoRef.current?.srcObject) {
         videoRef.current.srcObject.getTracks().forEach((track) => {
