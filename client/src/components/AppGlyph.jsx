@@ -112,9 +112,43 @@ const glyphMap = {
   circle: CircleRoundedIcon
 };
 
-export default function AppGlyph({ name, size = 22, ...props }) {
+const glyphColorMap = {
+  dashboard: "#355f7d",
+  products: "#b66a3c",
+  customers: "#3d7a62",
+  orders: "#8a5a44",
+  finance: "#3f6782",
+  trend: "#2f7d57",
+  warning: "#c1672f",
+  savings: "#48608f",
+  store: "#5f7588",
+  fact: "#915e38",
+  shopping: "#a85f36",
+  scan: "#2f5f7a",
+  scanner: "#2f5f7a",
+  "qr-code-scanner": "#2f5f7a",
+  "local-shipping": "#5f7590"
+};
+
+export default function AppGlyph({ name, size = 22, tone = "auto", ...props }) {
   const IconComponent = glyphMap[name] || HelpOutlineRoundedIcon;
   const { sx, ...restProps } = props;
 
-  return <IconComponent aria-hidden="true" sx={{ fontSize: size, display: "block", ...sx }} {...restProps} />;
+  const autoColor = glyphColorMap[name];
+  const baseColor = tone === "inherit" ? "inherit" : autoColor || "inherit";
+
+  return (
+    <IconComponent
+      aria-hidden="true"
+      sx={{
+        fontSize: size,
+        display: "block",
+        color: baseColor,
+        filter: baseColor === "inherit" ? "none" : "drop-shadow(0 1px 1px rgba(20,35,45,0.16))",
+        transition: "transform 160ms ease, color 160ms ease",
+        ...sx
+      }}
+      {...restProps}
+    />
+  );
 }
