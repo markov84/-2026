@@ -34,7 +34,7 @@ const navItems = [
   { label: "Табло", path: "/", iconKey: "dashboard", color: "#4f8cff", bg: "rgba(79,140,255,0.16)" },
   { label: "Продукти", path: "/products", iconKey: "products", color: "#12b886", bg: "rgba(18,184,134,0.16)" },
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
-  { label: "Продажби", path: "/orders", iconKey: "invoices", color: "#d9480f", bg: "rgba(217,72,15,0.16)" },
+  { label: "Продажби", path: "/orders", iconKey: "orders", color: "#d9480f", bg: "rgba(217,72,15,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
   { label: "Доставчици", path: "/suppliers", iconKey: "suppliers", color: "#4263eb", bg: "rgba(66,99,235,0.16)" },
   { label: "Поръчки към доставчици", path: "/supplier-orders", iconKey: "suppliers", color: "#5f3dc4", bg: "rgba(95,61,196,0.16)" },
@@ -49,6 +49,24 @@ const navItems = [
   { label: "Заявки", path: "/transfers", iconKey: "transfers", color: "#f08c00", bg: "rgba(240,140,0,0.16)" }
 ];
 
+const iconKeyToGlyph = {
+  dashboard: "dashboard",
+  products: "products",
+  customers: "customers",
+  stores: "store",
+  suppliers: "business",
+  inventory: "inventory2",
+  movements: "compare-arrows",
+  audits: "fact-check",
+  orders: "orders",
+  finance: "finance",
+  invoices: "receipt",
+  vat: "assessment",
+  employees: "badge",
+  transfers: "local-shipping",
+  scan: "qr-code-scanner"
+};
+
 function getVisibleNavItems(user) {
   return navItems.filter((item) => {
     if (item.path === "/finance") return user?.role === "admin";
@@ -61,133 +79,8 @@ function getVisibleNavItems(user) {
 }
 
 function ModernModuleIcon({ type, size }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2.2,
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  };
-
-  return (
-    <Box component="svg" viewBox="0 0 32 32" sx={{ width: size, height: size, display: "block" }}>
-      {type === "dashboard" ? (
-        <>
-          <rect x="6" y="7" width="8" height="8" rx="2.2" fill="currentColor" opacity="0.22" />
-          <rect x="18" y="7" width="8" height="5" rx="2" fill="currentColor" opacity="0.34" />
-          <rect x="6" y="19" width="8" height="6" rx="2" fill="currentColor" opacity="0.34" />
-          <path {...common} d="M19 24c1.8-5.2 3.8-7.8 7-10" />
-        </>
-      ) : null}
-      {type === "products" ? (
-        <>
-          <path {...common} d="M8 12l8-4 8 4-8 4-8-4z" />
-          <path {...common} d="M8 17l8 4 8-4" />
-          <path {...common} d="M8 22l8 4 8-4" />
-        </>
-      ) : null}
-      {type === "customers" ? (
-        <>
-          <circle cx="16" cy="12" r="4" fill="currentColor" opacity="0.28" />
-          <path {...common} d="M8 25c1.2-4 4-6 8-6s6.8 2 8 6" />
-          <path {...common} d="M7 16c-1.8.5-3.1 2-3.8 4" opacity="0.72" />
-          <path {...common} d="M25 16c1.8.5 3.1 2 3.8 4" opacity="0.72" />
-        </>
-      ) : null}
-      {type === "stores" ? (
-        <>
-          <path {...common} d="M7 13h18l-2-6H9l-2 6z" />
-          <path {...common} d="M8 13v12h16V13" />
-          <path {...common} d="M12 25v-7h8v7" />
-          <path {...common} d="M7 13c1.2 2.4 3.7 2.4 5 0 1.2 2.4 3.8 2.4 5 0 1.2 2.4 3.8 2.4 5 0 1.2 2.4 3.8 2.4 5 0" />
-        </>
-      ) : null}
-      {type === "suppliers" ? (
-        <>
-          <path {...common} d="M7 25V11l9-4 9 4v14" />
-          <path {...common} d="M12 25v-6h8v6" />
-          <path {...common} d="M11 13h10M11 16h10" />
-          <path {...common} d="M16 7v4" opacity="0.8" />
-        </>
-      ) : null}
-      {type === "inventory" ? (
-        <>
-          <rect x="7" y="8" width="8" height="8" rx="2" fill="currentColor" opacity="0.24" />
-          <rect x="17" y="8" width="8" height="8" rx="2" fill="currentColor" opacity="0.36" />
-          <rect x="12" y="18" width="8" height="8" rx="2" fill="currentColor" opacity="0.30" />
-          <path {...common} d="M11 12h.1M21 12h.1M16 22h.1" />
-        </>
-      ) : null}
-      {type === "movements" ? (
-        <>
-          <path {...common} d="M7 10h14l-3-3M21 10l-3 3" />
-          <path {...common} d="M25 22H11l3-3M11 22l3 3" />
-          <circle cx="9" cy="10" r="1.3" fill="currentColor" opacity="0.55" />
-          <circle cx="23" cy="22" r="1.3" fill="currentColor" opacity="0.55" />
-        </>
-      ) : null}
-      {type === "audits" ? (
-        <>
-          <rect x="7" y="7" width="18" height="18" rx="4" fill="currentColor" opacity="0.16" />
-          <path {...common} d="M11 12h7M11 16h10M11 20h6" />
-          <path {...common} d="M20 20l2 2 4-5" />
-        </>
-      ) : null}
-      {type === "orders" ? (
-        <>
-          <path {...common} d="M7 8h3l2.2 11.5h10.5l2.3-8H12" />
-          <circle cx="14" cy="24" r="1.8" fill="currentColor" />
-          <circle cx="22" cy="24" r="1.8" fill="currentColor" />
-          <path {...common} d="M17 15h5" />
-        </>
-      ) : null}
-      {type === "finance" ? (
-        <>
-          <rect x="6" y="10" width="20" height="14" rx="3" fill="currentColor" opacity="0.18" />
-          <path {...common} d="M7 14h18M11 20h5" />
-          <path {...common} d="M21 19c1.8 0 3 1 3 2.5S22.8 24 21 24s-3-1-3-2.5S19.2 19 21 19z" />
-        </>
-      ) : null}
-      {type === "invoices" ? (
-        <>
-          <path {...common} d="M10 6h10l4 4v16H10V6z" />
-          <path {...common} d="M20 6v5h4M13 15h8M13 19h8M13 23h5" />
-        </>
-      ) : null}
-      {type === "vat" ? (
-        <>
-          <rect x="7" y="7" width="18" height="18" rx="4" fill="currentColor" opacity="0.18" />
-          <path {...common} d="M11 21L21 11" />
-          <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.55" />
-          <circle cx="20" cy="20" r="2" fill="currentColor" opacity="0.55" />
-        </>
-      ) : null}
-      {type === "employees" ? (
-        <>
-          <rect x="9" y="6" width="14" height="20" rx="4" fill="currentColor" opacity="0.18" />
-          <circle cx="16" cy="13" r="3" fill="currentColor" opacity="0.42" />
-          <path {...common} d="M11 23c.9-3.2 2.6-4.8 5-4.8s4.1 1.6 5 4.8" />
-        </>
-      ) : null}
-      {type === "transfers" ? (
-        <>
-          <path {...common} d="M8 11h14l3 4v7H8V11z" />
-          <path {...common} d="M22 15h3M11 24a2 2 0 104 0M21 24a2 2 0 104 0" />
-          <path {...common} d="M7 8h9M7 8l3-3M7 8l3 3" opacity="0.75" />
-        </>
-      ) : null}
-      {type === "scan" ? (
-        <>
-          <path {...common} d="M9 8H7v4" />
-          <path {...common} d="M23 8h2v4" />
-          <path {...common} d="M9 24H7v-4" />
-          <path {...common} d="M23 24h2v-4" />
-          <rect x="10" y="11" width="12" height="10" rx="2" fill="currentColor" opacity="0.16" />
-          <path {...common} d="M12 14h8M12 17h8M12 20h8" />
-        </>
-      ) : null}
-    </Box>
-  );
+  const glyphName = iconKeyToGlyph[type] || "circle";
+  return <AppGlyph name={glyphName} size={size} tone="inherit" />;
 }
 
 function ColorIcon({ item, compact = false }) {
