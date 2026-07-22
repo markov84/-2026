@@ -26,16 +26,25 @@ export default function StatCard({ label, value, trend, accent = "primary", onCl
   return (
     <Card
       sx={{
+        position: "relative",
         height: "100%",
         borderRadius: 5,
         overflow: "hidden",
         border: `1px solid ${isDark ? `${accentColor}44` : `${accentColor}26`}`,
         background: isDark
-          ? `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)), radial-gradient(circle at top right, ${accentColor}3a, transparent 40%), ${surface}`
-          : `linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,250,0.96)), radial-gradient(circle at top right, ${accentColor}33, transparent 40%), ${surface}`,
+          ? `linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)), radial-gradient(circle at top right, ${accentColor}66, transparent 44%), ${surface}`
+          : `linear-gradient(180deg, rgba(255,255,255,0.99), rgba(244,247,250,0.96)), radial-gradient(circle at top right, ${accentColor}52, transparent 44%), ${surface}`,
         boxShadow: isDark ? `0 18px 34px ${accentColor}1f` : `0 18px 34px ${accentColor}1a`
       }}
     >
+      <Stack
+        sx={{
+          position: "absolute",
+          inset: "0 0 auto 0",
+          height: 5,
+          background: `linear-gradient(90deg, ${accentColor}, ${accentColor}cc)`
+        }}
+      />
       <CardActionArea
         onClick={onClick}
         disabled={!onClick}
@@ -53,7 +62,7 @@ export default function StatCard({ label, value, trend, accent = "primary", onCl
             : undefined
         }}
       >
-        <CardContent sx={{ p: { xs: 2, md: 2.25 }, width: "100%" }}>
+        <CardContent sx={{ p: { xs: 2, md: 2.25 }, pt: { xs: 2.5, md: 2.75 }, width: "100%" }}>
           <Stack direction="row" justifyContent="space-between" spacing={2} mb={1.5} alignItems="flex-start">
             <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
               {icon ? (
