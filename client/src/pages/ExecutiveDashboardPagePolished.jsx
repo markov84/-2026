@@ -16,6 +16,14 @@ const severityColorMap = {
   warning: "warning",
   info: "default"
 };
+const metricAccentMap = {
+  profit: "#2f7d57",
+  turnover: "#3f6782",
+  bank: "#48608f",
+  sales: "#b66a3c",
+  stores: "#6d8094",
+  audits: "#955f36"
+};
 const statLinks = ["/products", "/stores", "/customers", "/inventory"];
 const statIcons = [
   <AppGlyph name="products" key="products" size={20} />,
@@ -54,9 +62,17 @@ function money(value) {
   return formatCurrencyEUR(toNumber(value));
 }
 
-function MetricPanel({ title, value, helper, icon, onClick }) {
+function MetricPanel({ title, value, helper, icon, onClick, accent = metricAccentMap.turnover }) {
   return (
-    <Card sx={{ height: "100%", borderRadius: 5 }}>
+    <Card
+      sx={{
+        height: "100%",
+        borderRadius: 5,
+        border: `1px solid ${accent}2a`,
+        background: `linear-gradient(160deg, ${accent}1f, rgba(255,255,255,0.00) 52%), linear-gradient(180deg, rgba(255,255,255,0.97), rgba(246,248,250,0.95))`,
+        boxShadow: `0 14px 28px ${accent}1c`
+      }}
+    >
       <CardActionArea
         onClick={onClick}
         disabled={!onClick}
@@ -68,7 +84,7 @@ function MetricPanel({ title, value, helper, icon, onClick }) {
           "&:hover": onClick
             ? {
                 transform: "translateY(-2px)",
-                boxShadow: "0 16px 34px rgba(39,86,107,0.14)"
+                boxShadow: `0 18px 34px ${accent}2c`
               }
             : undefined
         }}
@@ -95,8 +111,8 @@ function MetricPanel({ title, value, helper, icon, onClick }) {
                 width: 42,
                 height: 42,
                 borderRadius: 3,
-                bgcolor: "rgba(39,86,107,0.08)",
-                color: "primary.main"
+                bgcolor: `${accent}1f`,
+                color: accent
               }}
             >
               {icon}
@@ -190,6 +206,7 @@ export default function ExecutiveDashboardPagePolished() {
               value={money(dashboard?.totals?.netProfit)}
               helper={`Приходи ${money(dashboard?.totals?.totalRevenue)}`}
               icon={<AppGlyph name="trend" size={20} />}
+              accent={metricAccentMap.profit}
               onClick={() => navigate("/finance")}
             />
           </Grid>
@@ -200,6 +217,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={money(dashboard?.totals?.dailyTurnover)}
             helper="Оборот за днешния ден"
             icon={<AppGlyph name="trend" size={20} />}
+            accent={metricAccentMap.turnover}
             onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
@@ -209,6 +227,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={money(dashboard?.totals?.monthlyTurnover)}
             helper="Оборот за текущия месец"
             icon={<AppGlyph name="trend" size={20} />}
+            accent={metricAccentMap.turnover}
             onClick={() => navigate(canViewProfit ? "/finance" : "/orders")}
           />
         </Grid>
@@ -218,6 +237,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={money(dashboard?.totals?.bankBalance)}
             helper={canViewProfit ? `Разходи ${money(dashboard?.totals?.totalExpenses)}` : undefined}
             icon={<AppGlyph name="savings" size={20} />}
+            accent={metricAccentMap.bank}
             onClick={() => navigate("/finance")}
           />
         </Grid>
@@ -227,6 +247,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={String((dashboard?.recentOrders || []).length)}
             helper="Последни активни документи"
             icon={<AppGlyph name="shopping" size={20} />}
+            accent={metricAccentMap.sales}
             onClick={() => navigate("/orders")}
           />
         </Grid>
@@ -236,6 +257,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={String(toNumber(dashboard?.totals?.storeCount || dashboard?.storesCount))}
             helper="Свързани обекти в мрежата"
             icon={<AppGlyph name="store" size={20} />}
+            accent={metricAccentMap.stores}
             onClick={() => navigate("/stores")}
           />
         </Grid>
@@ -245,6 +267,7 @@ export default function ExecutiveDashboardPagePolished() {
             value={`${toNumber(dashboard?.totals?.avgAuditAccuracy).toFixed(1)}%`}
               helper={`Активни ${toNumber(dashboard?.totals?.activeAudits)} | Повторни броения ${toNumber(dashboard?.totals?.pendingRecount)}`}
             icon={<AppGlyph name="fact" size={20} />}
+            accent={metricAccentMap.audits}
             onClick={() => navigate("/inventory-audits")}
           />
         </Grid>
@@ -252,7 +275,7 @@ export default function ExecutiveDashboardPagePolished() {
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, xl: 7 }}>
-          <Card sx={{ borderRadius: 5, height: "100%" }}>
+          <Card sx={{ borderRadius: 5, height: "100%", background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,249,252,0.96))" }}>
             <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
               <Stack
                 direction={{ xs: "column", md: "row" }}
@@ -285,7 +308,7 @@ export default function ExecutiveDashboardPagePolished() {
         </Grid>
 
         <Grid size={{ xs: 12, xl: 5 }}>
-          <Card sx={{ borderRadius: 5, height: "100%" }}>
+          <Card sx={{ borderRadius: 5, height: "100%", background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,249,245,0.96))" }}>
             <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
               <Typography variant="h6">Продуктов микс</Typography>
               <Typography variant="body2" color="text.secondary" mb={2}>

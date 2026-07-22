@@ -46,6 +46,7 @@ body {
   min-height: 100vh;
   color: var(--app-ink);
   background: transparent;
+  background-attachment: fixed;
 }
 
 #root {
@@ -59,4 +60,31 @@ body {
 ::selection {
   color: #fff;
   background: rgba(60, 98, 123, 0.76);
+}
+
+.MuiCard-root {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.MuiCard-root:hover {
+  transform: translateY(-1px);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(88, 117, 137, 0.08);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(60, 98, 123, 0.62), rgba(111, 133, 149, 0.64));
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(45, 76, 97, 0.82), rgba(89, 111, 127, 0.82));
 }
