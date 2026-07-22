@@ -1,4 +1,4 @@
-import { formatCurrencyEUR } from "./currency";
+import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -10,10 +10,7 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("bg-BG");
+  return formatUiDate(value);
 }
 
 async function loadImageAsDataUrl(imageUrl) {

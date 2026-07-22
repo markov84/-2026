@@ -8,7 +8,10 @@ export function formatDate(dateValue) {
   try {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("bg-BG", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear());
+    return `${day},${month} , ${year}`;
   } catch {
     return "-";
   }
@@ -19,7 +22,10 @@ export function formatDateTime(dateValue) {
   try {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleString("bg-BG", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const datePart = formatDate(date);
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${datePart} ${hours}:${minutes}`;
   } catch {
     return "-";
   }

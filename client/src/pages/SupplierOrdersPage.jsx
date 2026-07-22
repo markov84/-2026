@@ -662,7 +662,7 @@ export default function SupplierOrdersPage() {
               { field: "supplierName", headerName: "Доставчик", flex: 0.95, minWidth: 170 },
               { field: "store", headerName: "Получаване", flex: 0.85, minWidth: 150, valueGetter: (_, row) => row.store?.name || "-" },
               { field: "items", headerName: "Продукти", flex: 2, minWidth: 360, sortable: false, renderCell: (params) => <SupplierOrderItemsCell items={params.row?.items || []} /> },
-              { field: "expectedDate", headerName: "Очаквана дата", flex: 0.75, minWidth: 120, valueGetter: (_, row) => (row.expectedDate ? new Date(row.expectedDate).toLocaleDateString("bg-BG") : "-") },
+              { field: "expectedDate", headerName: "Очаквана дата", flex: 0.75, minWidth: 120, valueGetter: (_, row) => formatDate(row.expectedDate) },
               { field: "totalAmount", headerName: "Стойност", flex: 0.7, minWidth: 120, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 110, renderCell: (params) => <Chip size="small" label={statusLabel(params.value)} color={statusColor(params.value)} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },

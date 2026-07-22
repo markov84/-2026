@@ -225,7 +225,7 @@ export default function SuppliersPage() {
               <Chip label={`Поръчки: ${supplierHistory.totalOrders}`} size="small" />
               <Chip label={`Получени: ${supplierHistory.receivedOrders}`} size="small" color={supplierHistory.receivedOrders ? "success" : "default"} />
               <Chip label={`Обща стойност: ${new Intl.NumberFormat("bg-BG", { style: "currency", currency: "EUR" }).format(supplierHistory.totalValue || 0)}`} size="small" color="info" variant="outlined" />
-              <Chip label={`Последна доставка: ${supplierHistory.lastDelivery ? new Date(supplierHistory.lastDelivery.receivedAt || supplierHistory.lastDelivery.updatedAt || supplierHistory.lastDelivery.createdAt).toLocaleDateString("bg-BG") : "-"}`} size="small" variant="outlined" />
+              <Chip label={`Последна доставка: ${formatDate(supplierHistory.lastDelivery?.receivedAt || supplierHistory.lastDelivery?.updatedAt || supplierHistory.lastDelivery?.createdAt)}`} size="small" variant="outlined" />
             </Stack>
             {supplierHistory.topProducts.length ? (
               <Box>
@@ -243,7 +243,7 @@ export default function SuppliersPage() {
                 <Stack spacing={0.5}>
                   {supplierHistory.recentOrders.map((order) => (
                     <Typography key={order._id} variant="body2" color="text.secondary">
-                      {order.orderNumber} | {new Date(order.createdAt).toLocaleDateString("bg-BG")} | {order.status}
+                      {order.orderNumber} | {formatDate(order.createdAt)} | {order.status}
                     </Typography>
                   ))}
                 </Stack>

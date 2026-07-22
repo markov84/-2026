@@ -37,13 +37,10 @@ const sourceLabels = {
 function formatDateTime(value) {
   const date = new Date(value || 0);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("bg-BG", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
+  const datePart = formatDate(date);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${datePart} ${hours}:${minutes}`;
 }
 
 export default function InventoryMovementsPage() {
