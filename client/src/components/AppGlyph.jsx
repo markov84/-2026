@@ -21,6 +21,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import Groups2RoundedIcon from "@mui/icons-material/Groups2Rounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
@@ -29,9 +30,11 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
+import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import PlaylistAddCheckRoundedIcon from "@mui/icons-material/PlaylistAddCheckRounded";
+import PointOfSaleRoundedIcon from "@mui/icons-material/PointOfSaleRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
@@ -43,7 +46,10 @@ import ShoppingBagRoundedIcon from "@mui/icons-material/ShoppingBagRounded";
 import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
 import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
 import SpaceDashboardRoundedIcon from "@mui/icons-material/SpaceDashboardRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import Diversity3RoundedIcon from "@mui/icons-material/Diversity3Rounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import StoreMallDirectoryRoundedIcon from "@mui/icons-material/StoreMallDirectoryRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
@@ -58,18 +64,18 @@ const glyphMap = {
   dark: DarkModeRoundedIcon,
   light: LightModeRoundedIcon,
   scan: QrCodeScannerRoundedIcon,
-  dashboard: SpaceDashboardRoundedIcon,
-  products: Inventory2RoundedIcon,
-  customers: Groups2RoundedIcon,
-  orders: ReceiptLongRoundedIcon,
-  finance: AccountBalanceWalletRoundedIcon,
+  dashboard: InsightsRoundedIcon,
+  products: CategoryRoundedIcon,
+  customers: Diversity3RoundedIcon,
+  orders: PointOfSaleRoundedIcon,
+  finance: PaidRoundedIcon,
   add: AddRoundedIcon,
   "person-add": PersonAddAlt1RoundedIcon,
   receipt: ReceiptRoundedIcon,
   trend: TrendingUpRoundedIcon,
   warning: WarningAmberRoundedIcon,
   savings: SavingsRoundedIcon,
-  store: StorefrontRoundedIcon,
+  store: StoreMallDirectoryRoundedIcon,
   fact: FactCheckRoundedIcon,
   shopping: ShoppingBagRoundedIcon,
   eye: VisibilityRoundedIcon,
