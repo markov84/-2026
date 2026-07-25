@@ -15,13 +15,13 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --app-bg: #101821;
-  --app-bg-soft: #121d28;
-  --app-paper: rgba(24, 35, 48, 0.88);
-  --app-paper-strong: #182330;
+  --app-bg: #05070a;
+  --app-bg-soft: #080c11;
+  --app-paper: rgba(11, 15, 20, 0.96);
+  --app-paper-strong: #05070a;
   --app-ink: #eef4f8;
-  --app-muted: #a8b7c4;
-  --app-stroke: rgba(197, 215, 226, 0.14);
+  --app-muted: #d6e1eb;
+  --app-stroke: rgba(255, 255, 255, 0.08);
 }
 
 html {
@@ -36,9 +36,9 @@ html {
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    radial-gradient(circle at top left, rgba(59, 102, 146, 0.10), transparent 24%),
-    radial-gradient(circle at 88% 10%, rgba(79, 140, 255, 0.05), transparent 22%),
-    linear-gradient(180deg, #0b1118 0%, #0d1520 52%, #090d13 100%);
+    radial-gradient(circle at top left, rgba(59, 102, 146, 0.06), transparent 24%),
+    radial-gradient(circle at 88% 10%, rgba(79, 140, 255, 0.03), transparent 22%),
+    linear-gradient(180deg, #05070a 0%, #080c11 52%, #030407 100%);
 }
 
 body {
@@ -79,7 +79,7 @@ body {
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(88, 117, 137, 0.08);
+  background: rgba(88, 117, 137, 0.10);
   border-radius: 999px;
 }
 
