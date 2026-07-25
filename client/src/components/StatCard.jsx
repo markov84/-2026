@@ -30,11 +30,11 @@ export default function StatCard({ label, value, trend, accent = "primary", onCl
         height: "100%",
         borderRadius: 5,
         overflow: "hidden",
-        border: `1px solid ${isDark ? `${accentColor}44` : `${accentColor}26`}`,
+        border: `1px solid ${isDark ? `${accentColor}55` : `${accentColor}26`}`,
         background: isDark
-          ? `linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)), radial-gradient(circle at top right, ${accentColor}66, transparent 44%), ${surface}`
+          ? `linear-gradient(180deg, rgba(10,14,18,0.99), rgba(5,7,10,0.98)), radial-gradient(circle at top right, ${accentColor}44, transparent 44%), ${surface}`
           : `linear-gradient(180deg, rgba(255,255,255,0.99), rgba(244,247,250,0.96)), radial-gradient(circle at top right, ${accentColor}52, transparent 44%), ${surface}`,
-        boxShadow: isDark ? `0 18px 34px ${accentColor}1f` : `0 18px 34px ${accentColor}1a`
+        boxShadow: isDark ? `0 20px 40px rgba(0,0,0,0.58)` : `0 18px 34px ${accentColor}1a`
       }}
     >
       <Stack
@@ -73,8 +73,8 @@ export default function StatCard({ label, value, trend, accent = "primary", onCl
                     width: 34,
                     height: 34,
                     borderRadius: 2,
-                    bgcolor: `${accentColor}1f`,
-                    color: accentColor,
+                    bgcolor: isDark ? `${accentColor}22` : `${accentColor}1f`,
+                    color: isDark ? "#ffffff" : accentColor,
                     flexShrink: 0,
                     "& .MuiSvgIcon-root": { fontSize: 21 }
                   }}
@@ -82,13 +82,13 @@ export default function StatCard({ label, value, trend, accent = "primary", onCl
                   {icon}
                 </Stack>
               ) : null}
-              <Typography color="text.secondary" variant="body2">
+              <Typography color={isDark ? "#ffffff" : "text.secondary"} variant="body2">
                 {label}
               </Typography>
             </Stack>
-            {trend ? <Chip label={trend} size="small" sx={{ bgcolor: `${accentColor}1f`, color: accentColor, fontWeight: 700 }} /> : null}
+            {trend ? <Chip label={trend} size="small" sx={{ bgcolor: isDark ? `${accentColor}22` : `${accentColor}1f`, color: isDark ? "#ffffff" : accentColor, fontWeight: 700 }} /> : null}
           </Stack>
-          <Typography variant="h5" fontWeight={800}>
+          <Typography variant="h5" fontWeight={800} color={isDark ? "#ffffff" : "text.primary"}>
             {value}
           </Typography>
         </CardContent>

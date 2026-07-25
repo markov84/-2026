@@ -223,6 +223,76 @@ function createAppTheme(mode) {
           }
         }
       },
+      MuiTableContainer: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#05070a",
+                  backgroundImage: "linear-gradient(180deg, rgba(11,15,20,0.99), rgba(5,7,10,0.97))",
+                  borderColor: "rgba(255,255,255,0.08)"
+                }
+              : {})
+          }
+        }
+      },
+      MuiTable: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#05070a",
+                  color: "#ffffff"
+                }
+              : {})
+          }
+        }
+      },
+      MuiTableHead: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#0a0f14"
+                }
+              : {})
+          }
+        }
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#05070a",
+                  color: "#ffffff"
+                }
+              : {})
+          }
+        }
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#05070a",
+                  color: "#ffffff",
+                  borderBottom: "1px solid rgba(255,255,255,0.08)"
+                }
+              : {})
+          },
+          head: {
+            ...(isDark
+              ? {
+                  backgroundColor: "#0a0f14",
+                  color: "#ffffff",
+                  fontWeight: 800
+                }
+              : {})
+          }
+        }
+      },
       MuiPaper: {
         styleOverrides: {
           root: {

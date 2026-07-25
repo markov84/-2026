@@ -1,4 +1,5 @@
 import { Alert, Card, CardActionArea, CardContent, Chip, CircularProgress, Divider, Grid2 as Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import toast from "react-hot-toast";
@@ -63,14 +64,19 @@ function money(value) {
 }
 
 function MetricPanel({ title, value, helper, icon, onClick, accent = metricAccentMap.turnover }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Card
       sx={{
         height: "100%",
         borderRadius: 5,
-        border: `1px solid ${accent}2a`,
-        background: `linear-gradient(160deg, ${accent}1f, rgba(255,255,255,0.00) 52%), linear-gradient(180deg, rgba(255,255,255,0.97), rgba(246,248,250,0.95))`,
-        boxShadow: `0 14px 28px ${accent}1c`
+        border: `1px solid ${isDark ? `${accent}44` : `${accent}2a`}`,
+        background: isDark
+          ? `linear-gradient(180deg, rgba(10,14,18,0.99), rgba(5,7,10,0.98)), radial-gradient(circle at top right, ${accent}22, transparent 52%)`
+          : `linear-gradient(160deg, ${accent}1f, rgba(255,255,255,0.00) 52%), linear-gradient(180deg, rgba(255,255,255,0.97), rgba(246,248,250,0.95))`,
+        boxShadow: isDark ? "0 20px 40px rgba(0,0,0,0.58)" : `0 14px 28px ${accent}1c`
       }}
     >
       <CardActionArea
@@ -92,14 +98,14 @@ function MetricPanel({ title, value, helper, icon, onClick, accent = metricAccen
         <CardContent>
           <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="flex-start">
             <Stack spacing={0.75}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={isDark ? "#ffffff" : "text.secondary"}>
                 {title}
               </Typography>
-              <Typography variant="h5" fontWeight={800}>
+              <Typography variant="h5" fontWeight={800} color={isDark ? "#ffffff" : "text.primary"}>
                 {value}
               </Typography>
               {helper ? (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color={isDark ? "#ffffff" : "text.secondary"}>
                         {helper}
                 </Typography>
               ) : null}
@@ -111,8 +117,8 @@ function MetricPanel({ title, value, helper, icon, onClick, accent = metricAccen
                 width: 42,
                 height: 42,
                 borderRadius: 3,
-                bgcolor: `${accent}1f`,
-                color: accent
+                bgcolor: isDark ? `${accent}22` : `${accent}1f`,
+                color: isDark ? "#ffffff" : accent
               }}
             >
               {icon}

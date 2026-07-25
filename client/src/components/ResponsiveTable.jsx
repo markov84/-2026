@@ -1,7 +1,10 @@
 import { Box } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import { Children, cloneElement, isValidElement } from "react";
 
 export default function ResponsiveTable({ children }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const tableChildren = Children.map(children, (child) => {
     if (!isValidElement(child)) return child;
     if (!("rows" in child.props) || !("columns" in child.props)) return child;
@@ -31,41 +34,50 @@ export default function ResponsiveTable({ children }) {
         width: "100%",
         overflowX: "auto",
         borderRadius: 4,
+        bgcolor: isDark ? "#05070a" : "transparent",
         "& .MuiDataGrid-main": {
           minWidth: 0
         },
         "& .MuiDataGrid-root": {
           minWidth: { xs: 720, md: 0 },
           border: "none",
-          backgroundColor: "rgba(255,255,255,0.68)"
+          backgroundColor: isDark ? "#05070a" : "rgba(255,255,255,0.68)",
+          color: isDark ? "#ffffff" : "inherit"
         },
         "& .MuiDataGrid-columnHeaders": {
-          backgroundColor: "rgba(36,66,74,0.06)",
-          borderBottom: "1px solid rgba(40,53,64,0.08)"
+          backgroundColor: isDark ? "#0a0f14" : "rgba(36,66,74,0.06)",
+          borderBottom: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(40,53,64,0.08)",
+          color: "#ffffff"
         },
         "& .MuiDataGrid-columnHeaderTitle": {
-          fontWeight: 800
+          fontWeight: 800,
+          color: isDark ? "#ffffff" : "inherit"
         },
         "& .MuiDataGrid-cell": {
-          borderColor: "rgba(40,53,64,0.07)"
+          borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(40,53,64,0.07)",
+          color: isDark ? "#ffffff" : "inherit"
         },
         "& .MuiDataGrid-row": {
-          backgroundColor: "rgba(255,255,255,0.24)"
+          backgroundColor: isDark ? "#05070a" : "rgba(255,255,255,0.24)",
+          color: isDark ? "#ffffff" : "inherit"
         },
         "& .MuiDataGrid-row:hover": {
-          backgroundColor: "rgba(200,139,58,0.08)"
+          backgroundColor: isDark ? alpha("#ffffff", 0.04) : "rgba(200,139,58,0.08)"
         },
         "& .MuiDataGrid-footerContainer": {
-          borderTop: "1px solid rgba(40,53,64,0.08)"
+          borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(40,53,64,0.08)",
+          backgroundColor: isDark ? "#05070a" : "transparent"
         },
         "& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader": {
           py: { xs: 0.7, md: 0.85 }
         },
         "& .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-cellContent": {
-          fontSize: { xs: "0.82rem", md: "0.95rem" }
+          fontSize: { xs: "0.82rem", md: "0.95rem" },
+          color: isDark ? "#ffffff" : "inherit"
         },
         "& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel": {
-          fontSize: { xs: "0.75rem", md: "0.875rem" }
+          fontSize: { xs: "0.75rem", md: "0.875rem" },
+          color: isDark ? "#ffffff" : "inherit"
         }
       }}
     >
