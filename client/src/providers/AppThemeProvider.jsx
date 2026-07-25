@@ -167,8 +167,8 @@ function createAppTheme(mode) {
         main: "#5c89b8"
       },
       background: {
-        default: isDark ? "#101821" : "#edf1f4",
-        paper: isDark ? "#182330" : "#fbfcfd"
+        default: isDark ? "#0b1118" : "#edf1f4",
+        paper: isDark ? "#141c25" : "#fbfcfd"
       },
       text: {
         primary: isDark ? "#eef4f8" : ink,
@@ -194,12 +194,12 @@ function createAppTheme(mode) {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: isDark ? "#101821" : "transparent",
+            backgroundColor: isDark ? "#0b1118" : "transparent",
             backgroundImage: isDark
               ? [
-                  "radial-gradient(circle at 0% 0%, rgba(92,137,184,0.14), transparent 24%)",
-                  "radial-gradient(circle at 100% 10%, rgba(79,140,255,0.10), transparent 22%)",
-                  "linear-gradient(180deg, #101821 0%, #121d28 52%, #0d141d 100%)"
+                  "radial-gradient(circle at 0% 0%, rgba(59,102,146,0.12), transparent 24%)",
+                  "radial-gradient(circle at 100% 10%, rgba(79,140,255,0.06), transparent 22%)",
+                  "linear-gradient(180deg, #0b1118 0%, #0d1520 52%, #090d13 100%)"
                 ].join(", ")
               : [
                   "radial-gradient(circle at 0% 0%, rgba(142,171,188,0.18), transparent 22%)",
@@ -214,12 +214,24 @@ function createAppTheme(mode) {
         styleOverrides: {
           root: {
             borderRadius: 8,
-            border: isDark ? "1px solid rgba(197,215,226,0.12)" : "1px solid rgba(255,255,255,0.78)",
+            border: isDark ? "1px solid rgba(207,224,236,0.10)" : "1px solid rgba(255,255,255,0.78)",
             background: isDark
-              ? "linear-gradient(180deg, rgba(28,41,54,0.96), rgba(20,31,43,0.94))"
+              ? "linear-gradient(180deg, rgba(20,28,38,0.98), rgba(13,19,28,0.96))"
               : "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,249,251,0.92))",
-            boxShadow: isDark ? "0 18px 48px rgba(0, 0, 0, 0.24)" : "0 18px 48px rgba(24, 36, 47, 0.07)",
+            boxShadow: isDark ? "0 18px 48px rgba(0, 0, 0, 0.40)" : "0 18px 48px rgba(24, 36, 47, 0.07)",
             backdropFilter: "blur(18px)"
+          }
+        }
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            ...(isDark
+              ? {
+                  backgroundImage: "linear-gradient(180deg, rgba(20,28,38,0.98), rgba(13,19,28,0.96))",
+                  borderColor: "rgba(207,224,236,0.10)"
+                }
+              : {})
           }
         }
       },
@@ -300,12 +312,12 @@ function createAppTheme(mode) {
           root: {
             borderRadius: 2,
             background: isDark
-              ? "linear-gradient(180deg, rgba(28,41,54,0.98), rgba(20,31,43,0.94))"
+              ? "linear-gradient(180deg, rgba(20,28,38,0.98), rgba(13,19,28,0.96))"
               : "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,250,0.94))",
-            boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.85)",
+            boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.04)" : "inset 0 1px 0 rgba(255,255,255,0.85)",
             transition: "box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease",
             "& fieldset": {
-              borderColor: isDark ? "rgba(197,215,226,0.18)" : "rgba(104, 128, 146, 0.22)"
+              borderColor: isDark ? "rgba(207,224,236,0.14)" : "rgba(104, 128, 146, 0.22)"
             },
             "&:hover fieldset": {
               borderColor: alpha(primary, 0.4)
@@ -348,11 +360,11 @@ function createAppTheme(mode) {
         styleOverrides: {
           paper: {
             borderRadius: 8,
-            border: isDark ? "1px solid rgba(197,215,226,0.12)" : "1px solid rgba(255,255,255,0.78)",
+            border: isDark ? "1px solid rgba(207,224,236,0.10)" : "1px solid rgba(255,255,255,0.78)",
             background: isDark
-              ? "linear-gradient(180deg, rgba(28,41,54,0.98), rgba(18,29,40,0.96))"
+              ? "linear-gradient(180deg, rgba(20,28,38,0.99), rgba(13,19,28,0.97))"
               : "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,249,0.96))",
-            boxShadow: isDark ? "0 28px 72px rgba(0, 0, 0, 0.38)" : "0 28px 72px rgba(24, 36, 47, 0.12)"
+            boxShadow: isDark ? "0 28px 72px rgba(0, 0, 0, 0.52)" : "0 28px 72px rgba(24, 36, 47, 0.12)"
           }
         }
       },
@@ -396,11 +408,11 @@ function createAppTheme(mode) {
       MuiBottomNavigation: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? "rgba(18,29,40,0.92)" : "rgba(251,254,254,0.90)",
-            border: isDark ? "1px solid rgba(197,215,226,0.12)" : "1px solid rgba(255,255,255,0.75)",
+            backgroundColor: isDark ? "rgba(13,19,28,0.94)" : "rgba(251,254,254,0.90)",
+            border: isDark ? "1px solid rgba(207,224,236,0.10)" : "1px solid rgba(255,255,255,0.75)",
             borderRadius: 8,
             backdropFilter: "blur(20px)",
-            boxShadow: isDark ? "0 18px 40px rgba(0, 0, 0, 0.30)" : "0 18px 40px rgba(20, 33, 43, 0.10)"
+            boxShadow: isDark ? "0 18px 40px rgba(0, 0, 0, 0.44)" : "0 18px 40px rgba(20, 33, 43, 0.10)"
           }
         }
       },

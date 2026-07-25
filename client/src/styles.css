@@ -36,9 +36,9 @@ html {
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    radial-gradient(circle at top left, rgba(92, 137, 184, 0.14), transparent 24%),
-    radial-gradient(circle at 88% 10%, rgba(79, 140, 255, 0.10), transparent 22%),
-    linear-gradient(180deg, #101821 0%, var(--app-bg-soft) 52%, #0d141d 100%);
+    radial-gradient(circle at top left, rgba(59, 102, 146, 0.10), transparent 24%),
+    radial-gradient(circle at 88% 10%, rgba(79, 140, 255, 0.05), transparent 22%),
+    linear-gradient(180deg, #0b1118 0%, #0d1520 52%, #090d13 100%);
 }
 
 body {
