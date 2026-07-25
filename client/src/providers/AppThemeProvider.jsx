@@ -172,9 +172,9 @@ function createAppTheme(mode) {
       },
       text: {
         primary: isDark ? "#eef4f8" : ink,
-        secondary: isDark ? "#d6e4f1" : mist
+        secondary: isDark ? "#f2f7fc" : mist
       },
-      divider: isDark ? "rgba(197, 215, 226, 0.14)" : "rgba(90, 118, 138, 0.16)"
+      divider: isDark ? "rgba(226, 236, 244, 0.18)" : "rgba(90, 118, 138, 0.16)"
     },
     shape: {
       borderRadius: 6
