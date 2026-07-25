@@ -271,6 +271,30 @@ function createAppTheme(mode) {
           }
         }
       },
+      MuiTypography: {
+        styleOverrides: {
+          root: ({ ownerState }) => {
+            if (!isDark) return {};
+
+            const isSecondaryTone =
+              ownerState?.color === "textSecondary" ||
+              ownerState?.color === "text.secondary" ||
+              ownerState?.variant === "body2" ||
+              ownerState?.variant === "caption" ||
+              ownerState?.variant === "overline";
+
+            return isSecondaryTone
+              ? {
+                  color: "rgba(242,247,252,0.94)",
+                  fontWeight: ownerState?.variant === "caption" ? 700 : undefined,
+                  "&.MuiTypography-colorTextSecondary": {
+                    color: "rgba(242,247,252,0.94)"
+                  }
+                }
+              : {};
+          }
+        }
+      },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
