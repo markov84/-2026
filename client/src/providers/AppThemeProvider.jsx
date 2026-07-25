@@ -1,4 +1,4 @@
-import { CssBaseline, ThemeProvider, alpha, createTheme } from "@mui/material";
+import { Box, CssBaseline, ThemeProvider, Typography, alpha, createTheme } from "@mui/material";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const ink = "#18242f";
@@ -12,7 +12,9 @@ const secondaryLight = "#b7c4cd";
 
 const ThemeModeContext = createContext({
   mode: "light",
-  toggleMode: () => {}
+  toggleMode: () => {},
+  watermarkVisible: true,
+  toggleWatermark: () => {}
 });
 
 function getMenuItems(menuList) {
@@ -420,20 +422,31 @@ export function AppThemeProvider({ children }) {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("appThemeMode") === "dark" ? "dark" : "light";
   });
+  const [watermarkVisible, setWatermarkVisible] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("appWatermarkVisible") !== "0";
+  });
 
   const theme = useMemo(() => createAppTheme(mode), [mode]);
   const value = useMemo(
     () => ({
       mode,
-      toggleMode: () => setMode((current) => (current === "dark" ? "light" : "dark"))
+      toggleMode: () => setMode((current) => (current === "dark" ? "light" : "dark")),
+      watermarkVisible,
+      toggleWatermark: () => setWatermarkVisible((current) => !current)
     }),
-    [mode]
+    [mode, watermarkVisible]
   );
 
   useEffect(() => {
     window.localStorage.setItem("appThemeMode", mode);
     document.documentElement.dataset.theme = mode;
   }, [mode]);
+
+  useEffect(() => {
+    window.localStorage.setItem("appWatermarkVisible", watermarkVisible ? "1" : "0");
+    document.documentElement.dataset.watermark = watermarkVisible ? "on" : "off";
+  }, [watermarkVisible]);
 
   useEffect(() => {
     document.addEventListener("keydown", handleGlobalOptionKeyboard, true);
@@ -446,9 +459,62 @@ export function AppThemeProvider({ children }) {
     <ThemeModeContext.Provider value={value}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        {watermarkVisible ? <WatermarkOverlay isDark={mode === "dark"} /> : null}
         {children}
       </ThemeProvider>
     </ThemeModeContext.Provider>
+  );
+}
+
+function WatermarkOverlay({ isDark }) {
+  return (
+    <Box
+      aria-hidden="true"
+      sx={{
+        position: "fixed",
+        inset: 0,
+        display: "grid",
+        placeItems: "center",
+        pointerEvents: "none",
+        zIndex: 2,
+        overflow: "hidden"
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: { xs: "3rem", sm: "5rem", md: "7rem", lg: "8rem" },
+          fontWeight: 900,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          whiteSpace: "nowrap",
+          color: isDark ? "rgba(226,236,244,0.13)" : "rgba(60, 98, 123, 0.11)",
+          textShadow: isDark
+            ? "0 0 1px rgba(255,255,255,0.12), 0 12px 32px rgba(0,0,0,0.18)"
+            : "0 0 1px rgba(255,255,255,0.28), 0 12px 32px rgba(24,36,47,0.10)",
+          transform: "rotate(-18deg) translateY(-2vh)",
+          userSelect: "none"
+        }}
+      >
+        MARK LIGHT LTD
+      </Typography>
+      <Typography
+        sx={{
+          position: "absolute",
+          right: { xs: -20, md: 20 },
+          bottom: { xs: 18, md: 28 },
+          fontSize: { xs: "1.2rem", md: "1.8rem" },
+          fontWeight: 900,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          whiteSpace: "nowrap",
+          color: isDark ? "rgba(226,236,244,0.08)" : "rgba(60, 98, 123, 0.08)",
+          transform: "rotate(-12deg)",
+          userSelect: "none"
+        }}
+      >
+        MARK LIGHT LTD
+      </Typography>
+    </Box>
   );
 }
 

@@ -50,28 +50,6 @@ body {
   background-attachment: fixed;
 }
 
-body::before {
-  content: "MARK LIGHT LTD";
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  z-index: 0;
-  pointer-events: none;
-  user-select: none;
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  font-size: clamp(2.5rem, 7vw, 7rem);
-  color: rgba(60, 98, 123, 0.08);
-  transform: rotate(-18deg) translateY(-2vh);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-:root[data-theme="dark"] body::before {
-  color: rgba(142, 171, 188, 0.08);
-}
-
 #root {
   min-height: 100vh;
   position: relative;

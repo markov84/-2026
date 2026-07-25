@@ -397,7 +397,7 @@ export default function CommandCenterShellClean({ children }) {
   const location = useLocation();
   const isMobile = useMobileDetection();
   const { logout } = useAuth();
-  const { mode, toggleMode } = useAppThemeMode();
+  const { mode, toggleMode, watermarkVisible, toggleWatermark } = useAppThemeMode();
   const isDarkMode = mode === "dark";
   const scanBufferRef = useRef("");
   const scanTimeoutRef = useRef(null);
@@ -561,6 +561,22 @@ export default function CommandCenterShellClean({ children }) {
                 }}
               >
                 {isDarkMode ? <AppGlyph name="light" /> : <AppGlyph name="dark" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={watermarkVisible ? "Скрий водния знак" : "Покажи водния знак"} arrow>
+              <IconButton
+                aria-label={watermarkVisible ? "Скрий водния знак" : "Покажи водния знак"}
+                onClick={toggleWatermark}
+                sx={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper"
+                }}
+              >
+                {watermarkVisible ? <AppGlyph name="eye-off" /> : <AppGlyph name="eye" />}
               </IconButton>
             </Tooltip>
             <Button variant="outlined" color="inherit" startIcon={<AppGlyph name="logout" size={20} />} onClick={logout} sx={{ whiteSpace: "nowrap" }}>
