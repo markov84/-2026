@@ -149,7 +149,7 @@ function Navigation({ onNavigate }) {
         width: drawerWidth,
         color: "#fff",
         background:
-          "radial-gradient(circle at top left, rgba(124,154,173,0.22), transparent 28%), radial-gradient(circle at bottom right, rgba(58,84,103,0.22), transparent 24%), linear-gradient(180deg, #243340 0%, #1d2933 55%, #17212a 100%)"
+          "radial-gradient(circle at top left, rgba(84,112,136,0.12), transparent 28%), radial-gradient(circle at bottom right, rgba(39,54,68,0.14), transparent 24%), linear-gradient(180deg, #05070a 0%, #080c11 55%, #030407 100%)"
       }}
     >
       <Box sx={{ px: 1.5, pt: 2, pb: 1.25, flexShrink: 0 }}>
@@ -230,7 +230,7 @@ function Navigation({ onNavigate }) {
       </List>
 
       <Box sx={{ display: "none" }}>
-        <Stack spacing={1.5} sx={{ p: 2, borderRadius: 4, bgcolor: "rgba(255,255,255,0.08)" }}>
+        <Stack spacing={1.5} sx={{ p: 2, borderRadius: 4, bgcolor: "rgba(255,255,255,0.04)" }}>
           <Typography variant="subtitle2" noWrap>
             {user?.fullName || "Потребител"}
           </Typography>
@@ -311,17 +311,17 @@ function IconRail() {
         component="img"
         src="/MARK%20LIGHT.png"
         alt="MARK LIGHT"
-        sx={{
+        sx={(theme) => ({
           width: 48,
           height: 48,
           objectFit: "contain",
           borderRadius: 2,
-          bgcolor: "#fff",
+          bgcolor: theme.palette.mode === "dark" ? "#05070a" : "#fff",
           p: 0.5,
           mr: 0.5,
           flex: "0 0 auto",
-          boxShadow: "0 8px 22px rgba(35,52,59,0.10)"
-        }}
+          boxShadow: theme.palette.mode === "dark" ? "0 8px 22px rgba(0,0,0,0.45)" : "0 8px 22px rgba(35,52,59,0.10)"
+        })}
       />
 
       <Stack direction="row" spacing={0.8} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -379,7 +379,7 @@ function IconRail() {
             flex: "0 0 auto",
             color: "#d9480f",
             bgcolor: "rgba(217,72,15,0.14)",
-            border: "1px solid rgba(255,255,255,0.72)"
+            border: "1px solid rgba(255,255,255,0.14)"
           }}
         >
           <AppGlyph name="logout" />
@@ -477,7 +477,7 @@ export default function CommandCenterShellClean({ children }) {
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
-        sx={{ display: { xs: "block", lg: "none" }, "& .MuiDrawer-paper": { width: drawerWidth, border: "none", bgcolor: "transparent", height: "100%" } }}
+        sx={{ display: { xs: "block", lg: "none" }, "& .MuiDrawer-paper": { width: drawerWidth, border: "none", bgcolor: "#05070a", height: "100%" } }}
       >
         <Navigation onNavigate={() => setMobileOpen(false)} />
       </Drawer>
@@ -505,11 +505,11 @@ export default function CommandCenterShellClean({ children }) {
             justifyContent: "space-between",
             borderBottom:
               theme.palette.mode === "dark"
-                ? "1px solid rgba(197,215,226,0.12)"
+                ? "1px solid rgba(255,255,255,0.08)"
                 : "1px solid rgba(35,52,59,0.08)",
             background:
               theme.palette.mode === "dark"
-                ? "linear-gradient(180deg, rgba(24,35,48,0.96), rgba(16,24,33,0.92))"
+                ? "linear-gradient(180deg, rgba(11,15,20,0.99), rgba(5,7,10,0.96))"
                 : "linear-gradient(180deg, rgba(250,251,252,0.96), rgba(241,245,248,0.92))",
             backdropFilter: "blur(12px)"
           })}

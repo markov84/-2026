@@ -1,5 +1,7 @@
 ﻿import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "@mui/material/styles";
 import AppGlyph from "./AppGlyph";
 
 const items = [
@@ -13,6 +15,8 @@ const items = [
 export default function MobileBottomNavigationBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   const current = items.find((item) => location.pathname === item.value)?.value || "/";
 
@@ -28,8 +32,8 @@ export default function MobileBottomNavigationBar() {
         borderRadius: 4,
         display: { xs: "block", xl: "none" },
         overflow: "hidden",
-        border: "1px solid rgba(40,53,64,0.08)",
-        backgroundColor: "rgba(255,252,246,0.92)",
+        border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(40,53,64,0.08)",
+        backgroundColor: isDark ? alpha("#05070a", 0.96) : "rgba(255,252,246,0.92)",
         backdropFilter: "blur(14px)"
       }}
     >
