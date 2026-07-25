@@ -15,6 +15,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
 import { useAppThemeMode } from "../providers/AppThemeProvider";
@@ -540,8 +541,16 @@ export default function CommandCenterShellClean({ children }) {
                   height: 46,
                   borderRadius: 2,
                   border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "background.paper"
+                  borderColor: "rgba(15,118,110,0.28)",
+                  bgcolor: alpha("#0f766e", 0.10),
+                  color: "#0f766e",
+                  boxShadow: "0 10px 22px rgba(15,118,110,0.12)",
+                  transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                  "&:hover": {
+                    bgcolor: alpha("#0f766e", 0.18),
+                    boxShadow: "0 14px 28px rgba(15,118,110,0.18)",
+                    transform: "translateY(-1px)"
+                  }
                 }}
               >
                 <AppGlyph name="scan" />
@@ -556,8 +565,16 @@ export default function CommandCenterShellClean({ children }) {
                   height: 46,
                   borderRadius: 2,
                   border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "background.paper"
+                  borderColor: isDarkMode ? "rgba(245,158,11,0.30)" : "rgba(120,53,15,0.20)",
+                  bgcolor: isDarkMode ? alpha("#f59e0b", 0.14) : alpha("#fbbf24", 0.18),
+                  color: isDarkMode ? "#fbbf24" : "#b45309",
+                  boxShadow: isDarkMode ? "0 10px 22px rgba(245,158,11,0.14)" : "0 10px 22px rgba(251,191,36,0.14)",
+                  transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                  "&:hover": {
+                    bgcolor: isDarkMode ? alpha("#f59e0b", 0.22) : alpha("#fbbf24", 0.26),
+                    boxShadow: isDarkMode ? "0 14px 28px rgba(245,158,11,0.20)" : "0 14px 28px rgba(251,191,36,0.20)",
+                    transform: "translateY(-1px)"
+                  }
                 }}
               >
                 {isDarkMode ? <AppGlyph name="light" /> : <AppGlyph name="dark" />}
@@ -572,8 +589,16 @@ export default function CommandCenterShellClean({ children }) {
                   height: 46,
                   borderRadius: 2,
                   border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "background.paper"
+                  borderColor: watermarkVisible ? "rgba(168,85,247,0.28)" : "rgba(99,102,241,0.24)",
+                  bgcolor: watermarkVisible ? alpha("#a855f7", 0.12) : alpha("#6366f1", 0.12),
+                  color: watermarkVisible ? "#9333ea" : "#4f46e5",
+                  boxShadow: watermarkVisible ? "0 10px 22px rgba(168,85,247,0.12)" : "0 10px 22px rgba(99,102,241,0.12)",
+                  transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                  "&:hover": {
+                    bgcolor: watermarkVisible ? alpha("#a855f7", 0.20) : alpha("#6366f1", 0.20),
+                    boxShadow: watermarkVisible ? "0 14px 28px rgba(168,85,247,0.18)" : "0 14px 28px rgba(99,102,241,0.18)",
+                    transform: "translateY(-1px)"
+                  }
                 }}
               >
                 {watermarkVisible ? <AppGlyph name="eye-off" /> : <AppGlyph name="eye" />}
