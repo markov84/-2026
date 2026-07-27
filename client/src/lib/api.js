@@ -6,7 +6,7 @@ const RETRYABLE_ERROR_CODES = new Set(["ECONNABORTED", "ERR_NETWORK"]);
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 8000
+  timeout: 30000
 });
 
 api.interceptors.request.use((config) => {
