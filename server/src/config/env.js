@@ -29,6 +29,7 @@ function normalizeSmtpPassword(value) {
 
 const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
+const smtpService = process.env.SMTP_SERVICE || (envValue("SMTP_HOST", "MAIL_HOST") === "smtp.gmail.com" ? "gmail" : "");
 const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
 const smtpPort = Number(smtpPortRaw || 587);
 
@@ -47,6 +48,7 @@ export const env = {
     apiSecret: process.env.CLOUDINARY_API_SECRET || ""
   },
   smtp: {
+    service: smtpService,
     host: envValue("SMTP_HOST", "MAIL_HOST"),
     port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 587,
     secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",

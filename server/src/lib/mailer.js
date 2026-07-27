@@ -41,10 +41,7 @@ function maskEmail(email) {
 }
 
 function createTransporter() {
-  return nodemailer.createTransport({
-    host: env.smtp.host,
-    port: env.smtp.port,
-    secure: env.smtp.secure,
+  const transportOptions = {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
@@ -52,7 +49,17 @@ function createTransporter() {
       user: env.smtp.user,
       pass: env.smtp.pass
     }
-  });
+  };
+
+  if (env.smtp.service) {
+    transportOptions.service = env.smtp.service;
+  } else {
+    transportOptions.host = env.smtp.host;
+    transportOptions.port = env.smtp.port;
+    transportOptions.secure = env.smtp.secure;
+  }
+
+  return nodemailer.createTransport(transportOptions);
 }
 
 export function ensureMailerReady() {
