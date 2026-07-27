@@ -1,5 +1,7 @@
 import api from "./api";
 
+const EMAIL_REQUEST_TIMEOUT_MS = 30000;
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -38,6 +40,8 @@ export async function sendDocumentByEmail({ to, subject, html, documentLabel, me
     html: enrichedHtml,
     documentLabel,
     ...(replyTo ? { replyTo } : {})
+  }, {
+    timeout: EMAIL_REQUEST_TIMEOUT_MS
   });
 
   return response.data;
