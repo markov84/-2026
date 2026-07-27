@@ -7,7 +7,7 @@ export async function requireAuth(req, res, next) {
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ message: "Missing authentication token." });
+    return res.status(401).json({ message: "Липсва токен за удостоверяване." });
   }
 
   try {
