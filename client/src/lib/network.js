@@ -4,10 +4,19 @@ const SPARSE_API_HOST = "2026-s9jh.onrender.com";
 const LOCAL_API_URL = "http://localhost:5000/api";
 const LOCAL_SOCKET_URL = "http://localhost:5000";
 
+function isPrivateIpv4(hostname) {
+  if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return false;
+  const [first, second] = hostname.split(".").map(Number);
+  if (first === 10) return true;
+  if (first === 192 && second === 168) return true;
+  if (first === 172 && second >= 16 && second <= 31) return true;
+  return false;
+}
+
 function isLocalHost() {
   if (typeof window === "undefined") return false;
   const host = window.location.hostname;
-  return host === "localhost" || host === "127.0.0.1";
+  return host === "localhost" || host === "127.0.0.1" || host.endsWith(".local") || isPrivateIpv4(host);
 }
 
 function normalizeApiBaseUrl(url) {
