@@ -44,6 +44,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
+import { getErrorMessage } from "../lib/errorMessage";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { sendDocumentByEmail } from "../lib/documentEmail";
 import { exportTransferPdf, getTransferDocumentEmailData, printTransfer } from "../lib/printDocuments";
@@ -828,7 +829,7 @@ export default function TransfersPageStable() {
       toast.success("Имейлът с трансфера е изпратен.");
       setEmailDraft(null);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+      toast.error(getErrorMessage(error, "Неуспешно изпращане на имейл."));
     } finally {
       setSendingEmail(false);
     }

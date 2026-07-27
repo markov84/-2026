@@ -39,6 +39,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
+import { getErrorMessage } from "../lib/errorMessage";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { sendDocumentByEmail } from "../lib/documentEmail";
 import { getInvoiceDocumentEmailData, printInvoice } from "../lib/printDocuments";
@@ -655,7 +656,7 @@ export default function InvoicesPageStable() {
       toast.success("Имейлът с фактурата е изпратен.");
       setEmailDraft(null);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+      toast.error(getErrorMessage(error, "Неуспешно изпращане на имейл."));
     } finally {
       setSendingEmail(false);
     }
