@@ -80,6 +80,13 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "mark-light-api"
+  });
+});
+
 // Rate limiting: 1000 requests per 15 minutes per IP
 app.use(
   rateLimit({
