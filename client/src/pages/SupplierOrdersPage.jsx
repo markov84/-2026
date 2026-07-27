@@ -55,7 +55,7 @@ function createItemKey() {
 }
 
 function createSupplierOrderItem(overrides = {}) {
-      toast.error(getErrorMessage(error, "Неуспешно изпращане на имейл."));
+  return {
     key: createItemKey(),
     product: "",
     quantity: "",
