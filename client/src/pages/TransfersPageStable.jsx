@@ -30,6 +30,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
+import DocumentEmailDialog from "../components/DocumentEmailDialog";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
@@ -44,7 +45,8 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
-import { exportTransferPdf, printTransfer } from "../lib/printDocuments";
+import { sendDocumentByEmail } from "../lib/documentEmail";
+import { exportTransferPdf, getTransferDocumentEmailData, printTransfer } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 let transferItemKey = 0;
@@ -575,6 +577,8 @@ export default function TransfersPageStable() {
   const [form, setForm] = useState(() => createInitialTransfer());
   const [editingTransfer, setEditingTransfer] = useState(null);
   const [deletingTransfer, setDeletingTransfer] = useState(null);
+  const [emailDraft, setEmailDraft] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [scanCode, setScanCode] = useState("");
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [selectedTransferId, setSelectedTransferId] = useState("");
@@ -810,6 +814,26 @@ export default function TransfersPageStable() {
     }
   }
 
+  async function handleSendTransferEmail({ to, subject, message }) {
+    if (!emailDraft) return;
+
+    setSendingEmail(true);
+    try {
+      await sendDocumentByEmail({
+        ...emailDraft,
+        to,
+        subject,
+        message
+      });
+      toast.success("Имейлът с трансфера е изпратен.");
+      setEmailDraft(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader eyebrow="Заявки" title="Заявки и трансфери между обекти" subtitle="Тук магазините и складът заявяват стока един към друг и подготвят документ за движение." icon={<CompareArrowsRoundedIcon />} />
@@ -829,6 +853,9 @@ export default function TransfersPageStable() {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button variant="outlined" color="info" onClick={() => setEmailDraft(getTransferDocumentEmailData(selectedTransfer))}>
+                  Изпрати по имейл
+                </Button>
                 <Button variant="outlined" color="secondary" onClick={() => printTransfer(selectedTransfer)}>
                   Документ
                 </Button>
@@ -868,7 +895,7 @@ export default function TransfersPageStable() {
               { field: "totalAmount", headerName: "Общо с ДДС", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 105, renderCell: (params) => <Chip label={params?.value || "-"} size="small" color={params?.value === "completed" ? "success" : "warning"} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getTransferDocumentEmailData(params.row))} onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -977,6 +1004,17 @@ export default function TransfersPageStable() {
         onDetected={handleTransferBarcodeDetected}
         onError={() => setScanCameraOpen(false)}
         title="Сканирай продукт за трансфера"
+      />
+
+      <DocumentEmailDialog
+        open={Boolean(emailDraft)}
+        onClose={() => (sendingEmail ? null : setEmailDraft(null))}
+        onSend={handleSendTransferEmail}
+        defaultTo={emailDraft?.to || ""}
+        defaultSubject={emailDraft?.subject || ""}
+        documentLabel={emailDraft?.documentLabel || "трансфер"}
+        sending={sendingEmail}
+        fullScreen={isMobile}
       />
     </Stack>
   );

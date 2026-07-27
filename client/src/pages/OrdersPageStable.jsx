@@ -13,6 +13,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
+import DocumentEmailDialog from "../components/DocumentEmailDialog";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
@@ -25,7 +26,8 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
-import { printOrder } from "../lib/printDocuments";
+import { sendDocumentByEmail } from "../lib/documentEmail";
+import { getOrderDocumentEmailData, printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -612,6 +614,8 @@ export default function OrdersPageStable() {
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [emailDraft, setEmailDraft] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [orderScanOpen, setOrderScanOpen] = useState(false);
@@ -774,10 +778,11 @@ export default function OrdersPageStable() {
         headerName: "",
         sortable: false,
         filterable: false,
-        width: 150,
+        width: 186,
         align: "center",
         renderCell: (params) => (
           <GridRowActions
+            onEmail={() => setEmailDraft(getOrderDocumentEmailData(params.row))}
             onPrint={() => printOrder(params.row)}
             onEdit={() => openEditDialog(params.row)}
             onDelete={canSeeOrderAuthor ? () => setDeletingOrder(params.row) : undefined}
@@ -876,6 +881,26 @@ export default function OrdersPageStable() {
       toast.success("Продажбата е изтрита.");
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно изтриване на продажба.");
+    }
+  }
+
+  async function handleSendOrderEmail({ to, subject, message }) {
+    if (!emailDraft) return;
+
+    setSendingEmail(true);
+    try {
+      await sendDocumentByEmail({
+        ...emailDraft,
+        to,
+        subject,
+        message
+      });
+      toast.success("Имейлът с продажбата е изпратен.");
+      setEmailDraft(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+    } finally {
+      setSendingEmail(false);
     }
   }
 
@@ -1411,6 +1436,17 @@ export default function OrdersPageStable() {
         description={`Сигурен ли си, че искаш да изтриеш ${selectedOrderIds.length} избрани продажби?`}
         onClose={() => setBulkDeleteOpen(false)}
         onConfirm={handleBulkDelete}
+      />
+
+      <DocumentEmailDialog
+        open={Boolean(emailDraft)}
+        onClose={() => (sendingEmail ? null : setEmailDraft(null))}
+        onSend={handleSendOrderEmail}
+        defaultTo={emailDraft?.to || ""}
+        defaultSubject={emailDraft?.subject || ""}
+        documentLabel={emailDraft?.documentLabel || "продажба"}
+        sending={sendingEmail}
+        fullScreen={isMobile}
       />
     </Stack>
   );

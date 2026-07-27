@@ -16,6 +16,7 @@ import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import EuroRoundedIcon from "@mui/icons-material/EuroRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
@@ -84,6 +85,7 @@ const glyphMap = {
   delete: DeleteOutlineRoundedIcon,
   save: SaveRoundedIcon,
   print: PrintRoundedIcon,
+  email: EmailRoundedIcon,
   edit: EditRoundedIcon,
   search: SearchRoundedIcon,
   "manage-search": ManageSearchRoundedIcon,

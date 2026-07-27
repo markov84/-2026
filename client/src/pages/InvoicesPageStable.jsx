@@ -28,6 +28,7 @@ import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
+import DocumentEmailDialog from "../components/DocumentEmailDialog";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
@@ -39,7 +40,8 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
-import { printInvoice } from "../lib/printDocuments";
+import { sendDocumentByEmail } from "../lib/documentEmail";
+import { getInvoiceDocumentEmailData, printInvoice } from "../lib/printDocuments";
 import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
 
 const statusOptions = [
@@ -549,6 +551,8 @@ export default function InvoicesPageStable() {
   const [form, setForm] = useState(() => blankInvoice());
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [deletingInvoice, setDeletingInvoice] = useState(null);
+  const [emailDraft, setEmailDraft] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [scanCode, setScanCode] = useState("");
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const audioContextRef = useRef(null);
@@ -630,6 +634,30 @@ export default function InvoicesPageStable() {
       toast.success("Фактурата е изтрита.");
     } catch (error) {
       toast.error(error.response?.data?.message || "Неуспешно изтриване на фактура.");
+    }
+  }
+
+  function openEmailDialog(invoice) {
+    setEmailDraft(getInvoiceDocumentEmailData(invoice));
+  }
+
+  async function handleSendInvoiceEmail({ to, subject, message }) {
+    if (!emailDraft) return;
+
+    setSendingEmail(true);
+    try {
+      await sendDocumentByEmail({
+        ...emailDraft,
+        to,
+        subject,
+        message
+      });
+      toast.success("Имейлът с фактурата е изпратен.");
+      setEmailDraft(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+    } finally {
+      setSendingEmail(false);
     }
   }
 
@@ -771,7 +799,7 @@ export default function InvoicesPageStable() {
               { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <StatusChip value={params?.value} /> },
               { field: "vatAmount", headerName: "ДДС", flex: 0.75, minWidth: 105, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "totalAmount", headerName: "Общо", flex: 0.85, minWidth: 115, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printInvoice(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => openEmailDialog(params.row)} onPrint={() => printInvoice(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -808,6 +836,17 @@ export default function InvoicesPageStable() {
         onDetected={handleInvoiceScannerDetected}
         onError={() => setScanCameraOpen(false)}
         title="Сканирай продукт за фактурата"
+      />
+
+      <DocumentEmailDialog
+        open={Boolean(emailDraft)}
+        onClose={() => (sendingEmail ? null : setEmailDraft(null))}
+        onSend={handleSendInvoiceEmail}
+        defaultTo={emailDraft?.to || ""}
+        defaultSubject={emailDraft?.subject || ""}
+        documentLabel={emailDraft?.documentLabel || "фактура"}
+        sending={sendingEmail}
+        fullScreen={isMobile}
       />
     </Stack>
   );

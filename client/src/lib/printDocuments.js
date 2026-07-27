@@ -56,13 +56,10 @@ function getItemRows(items = [], { priceIncludesVat = false } = {}) {
     .join("");
 }
 
-function printHtml(title, bodyHtml) {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
+export function buildDocumentHtml(title, bodyHtml) {
   const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
-  printWindow.document.write(`
+  return `
     <!doctype html>
     <html>
       <head>
@@ -212,26 +209,35 @@ function printHtml(title, bodyHtml) {
           </section>
           ${bodyHtml}
         </main>
-        <script>
-          window.addEventListener("load", () => {
-            window.print();
-          });
-        </script>
       </body>
     </html>
+  `;
+}
+
+function printHtml(title, bodyHtml) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  printWindow.document.write(buildDocumentHtml(title, bodyHtml));
+  printWindow.document.write(`
+    <script>
+      window.addEventListener("load", () => {
+        window.print();
+      });
+    </script>
   `);
   printWindow.document.close();
 }
 
-export function printInvoice(invoice) {
+function composeInvoiceDocument(invoice) {
   const supplier = invoice.supplier || {};
   const subtotal = Number(invoice.subtotal || 0);
   const vatAmount = Number(invoice.vatAmount || 0);
   const totalAmount = Number(invoice.totalAmount || 0);
 
-  printHtml(
-    `Фактура ${invoice.invoiceNumber || ""}`,
-    `
+  return {
+    title: `Фактура ${invoice.invoiceNumber || ""}`,
+    bodyHtml: `
       <section class="header">
         <div>
           <div class="brand">${escapeHtml(supplier.name || "MARK LIGHT LTD")}</div>
@@ -294,10 +300,25 @@ export function printInvoice(invoice) {
         <div class="signature">Получил</div>
       </section>
     `
-  );
+  };
 }
 
-export function printOrder(order) {
+export function getInvoiceDocumentEmailData(invoice) {
+  const { title, bodyHtml } = composeInvoiceDocument(invoice);
+  return {
+    to: invoice?.customerEmail || "",
+    subject: title,
+    documentLabel: "фактура",
+    html: buildDocumentHtml(title, bodyHtml)
+  };
+}
+
+export function printInvoice(invoice) {
+  const { title, bodyHtml } = composeInvoiceDocument(invoice);
+  printHtml(title, bodyHtml);
+}
+
+function composeOrderDocument(order) {
   const items = order.items?.length ? order.items : [];
   const subtotal = items.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
@@ -318,9 +339,9 @@ export function printOrder(order) {
   }, 0);
   const totalAmount = Number(order.totalAmount ?? subtotal + vatAmount);
 
-  printHtml(
-    `Продажба ${order.orderNumber || ""}`,
-    `
+  return {
+    title: `Продажба ${order.orderNumber || ""}`,
+    bodyHtml: `
       <section class="header">
         <div>
           <div class="brand">MARK LIGHT LTD</div>
@@ -360,10 +381,25 @@ export function printOrder(order) {
         <div class="signature">Клиент</div>
       </section>
     `
-  );
+  };
 }
 
-export function printTransfer(transfer) {
+export function getOrderDocumentEmailData(order) {
+  const { title, bodyHtml } = composeOrderDocument(order);
+  return {
+    to: order?.customer?.email || "",
+    subject: title,
+    documentLabel: "продажба",
+    html: buildDocumentHtml(title, bodyHtml)
+  };
+}
+
+export function printOrder(order) {
+  const { title, bodyHtml } = composeOrderDocument(order);
+  printHtml(title, bodyHtml);
+}
+
+function composeTransferDocument(transfer) {
   const items = transfer.items || [];
   const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const subtotal = items.reduce((sum, item) => {
@@ -410,9 +446,9 @@ export function printTransfer(transfer) {
     })
     .join("");
 
-  printHtml(
-    `Трансфер ${transfer.transferNumber || ""}`,
-    `
+  return {
+    title: `Трансфер ${transfer.transferNumber || ""}`,
+    bodyHtml: `
       <section class="header">
         <div>
           <div class="brand">MARK LIGHT LTD</div>
@@ -458,7 +494,21 @@ export function printTransfer(transfer) {
         <div class="signature">Приел</div>
       </section>
     `
-  );
+  };
+}
+
+export function getTransferDocumentEmailData(transfer) {
+  const { title, bodyHtml } = composeTransferDocument(transfer);
+  return {
+    subject: title,
+    documentLabel: "трансфер",
+    html: buildDocumentHtml(title, bodyHtml)
+  };
+}
+
+export function printTransfer(transfer) {
+  const { title, bodyHtml } = composeTransferDocument(transfer);
+  printHtml(title, bodyHtml);
 }
 
 export async function exportTransferPdf(transfer) {
@@ -724,7 +774,7 @@ export function printInventoryAudit(audit) {
   );
 }
 
-export function printSupplierOrder(order) {
+function composeSupplierOrderDocument(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
   const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const totalAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitCost || 0), 0);
@@ -745,9 +795,9 @@ export function printSupplierOrder(order) {
     )
     .join("");
 
-  printHtml(
-    `Поръчка към доставчик ${order?.orderNumber || ""}`,
-    `
+  return {
+    title: `Поръчка към доставчик ${order?.orderNumber || ""}`,
+    bodyHtml: `
       <section class="header">
         <div>
           <div class="brand">MARK LIGHT LTD</div>
@@ -799,7 +849,22 @@ export function printSupplierOrder(order) {
         <div class="signature">Доставчик</div>
       </section>
     `
-  );
+  };
+}
+
+export function getSupplierOrderDocumentEmailData(order) {
+  const { title, bodyHtml } = composeSupplierOrderDocument(order);
+  return {
+    to: order?.supplier?.email || "",
+    subject: title,
+    documentLabel: "поръчка към доставчик",
+    html: buildDocumentHtml(title, bodyHtml)
+  };
+}
+
+export function printSupplierOrder(order) {
+  const { title, bodyHtml } = composeSupplierOrderDocument(order);
+  printHtml(title, bodyHtml);
 }
 
 export async function exportSupplierOrderPdf(order) {

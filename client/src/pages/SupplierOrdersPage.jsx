@@ -28,6 +28,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
+import DocumentEmailDialog from "../components/DocumentEmailDialog";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
 import { FormGrid, FormGridFull } from "../components/FormGrid";
@@ -40,7 +41,8 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
-import { exportSupplierOrderPdf, printSupplierOrder } from "../lib/printDocuments";
+import { sendDocumentByEmail } from "../lib/documentEmail";
+import { exportSupplierOrderPdf, getSupplierOrderDocumentEmailData, printSupplierOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
 
 let supplierOrderItemKey = 0;
@@ -356,6 +358,8 @@ export default function SupplierOrdersPage() {
   const [open, setOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [emailDraft, setEmailDraft] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [form, setForm] = useState(() => createInitialOrder(user?.fullName || user?.username || ""));
 
@@ -541,6 +545,26 @@ export default function SupplierOrdersPage() {
     }
   }
 
+  async function handleSendSupplierOrderEmail({ to, subject, message }) {
+    if (!emailDraft) return;
+
+    setSendingEmail(true);
+    try {
+      await sendDocumentByEmail({
+        ...emailDraft,
+        to,
+        subject,
+        message
+      });
+      toast.success("Имейлът с поръчката е изпратен.");
+      setEmailDraft(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно изпращане на имейл.");
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
   async function handleReceive(order = selectedOrder) {
     if (!order?._id) return;
     try {
@@ -637,6 +661,7 @@ export default function SupplierOrdersPage() {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button variant="outlined" color="info" onClick={() => setEmailDraft(getSupplierOrderDocumentEmailData(selectedOrder))}>Изпрати по имейл</Button>
                 <Button variant="outlined" color="secondary" onClick={() => printSupplierOrder(selectedOrder)}>Документ</Button>
                 <Button variant="outlined" onClick={() => void exportSupplierOrderPdf(selectedOrder)}>PDF</Button>
                 <Button variant="outlined" onClick={() => openEditDialog(selectedOrder)} disabled={selectedOrder.status === "received"}>Редактирай</Button>
@@ -666,7 +691,7 @@ export default function SupplierOrdersPage() {
               { field: "totalAmount", headerName: "Стойност", flex: 0.7, minWidth: 120, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 110, renderCell: (params) => <Chip size="small" label={statusLabel(params.value)} color={statusColor(params.value)} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 150, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printSupplierOrder(params.row)} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getSupplierOrderDocumentEmailData(params.row))} onPrint={() => printSupplierOrder(params.row)} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -769,6 +794,17 @@ export default function SupplierOrdersPage() {
         description={`Сигурен ли си, че искаш да изтриеш ${deletingOrder?.orderNumber || "тази поръчка"}?`}
         onClose={() => setDeletingOrder(null)}
         onConfirm={handleDelete}
+      />
+
+      <DocumentEmailDialog
+        open={Boolean(emailDraft)}
+        onClose={() => (sendingEmail ? null : setEmailDraft(null))}
+        onSend={handleSendSupplierOrderEmail}
+        defaultTo={emailDraft?.to || ""}
+        defaultSubject={emailDraft?.subject || ""}
+        documentLabel={emailDraft?.documentLabel || "поръчка към доставчик"}
+        sending={sendingEmail}
+        fullScreen={isMobile}
       />
     </Stack>
   );
