@@ -3,8 +3,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: true });
-dotenv.config();
+
+const isProductionRuntime = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+
+if (!isProductionRuntime) {
+  dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: true });
+  dotenv.config();
+}
 
 function envValue(...keys) {
   for (const key of keys) {
