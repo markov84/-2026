@@ -6,8 +6,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: true });
 dotenv.config();
 
-const smtpFromAddress = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
+function envValue(...keys) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
+const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
+const smtpPort = Number(smtpPortRaw || 587);
 
 export const env = {
   host: process.env.HOST || "0.0.0.0",
@@ -24,11 +36,11 @@ export const env = {
     apiSecret: process.env.CLOUDINARY_API_SECRET || ""
   },
   smtp: {
-    host: process.env.SMTP_HOST || "",
-    port: Number(process.env.SMTP_PORT || 587),
+    host: envValue("SMTP_HOST", "MAIL_HOST"),
+    port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 587,
     secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
+    user: envValue("SMTP_USER", "MAIL_USER"),
+    pass: envValue("SMTP_PASS", "MAIL_PASS", "SMTP_PASSWORD"),
     from: smtpFromAddress,
     fromName: smtpFromName
   }
