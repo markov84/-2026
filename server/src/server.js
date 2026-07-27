@@ -82,8 +82,8 @@ app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
   res.status(200).json({
-    status: "ok",
-    service: "mark-light-api"
+    "статус": "ок",
+    "услуга": "mark-light-api"
   });
 });
 
