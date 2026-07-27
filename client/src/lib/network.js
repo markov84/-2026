@@ -1,5 +1,5 @@
-const PRODUCTION_API_URL = "https://mark-light-api.onrender.com/api";
-const PRODUCTION_SOCKET_URL = "https://mark-light-api.onrender.com";
+const PRODUCTION_API_URL = "https://mark-light-api-1mly.onrender.com/api";
+const PRODUCTION_SOCKET_URL = "https://mark-light-api-1mly.onrender.com";
 const SPARSE_API_HOST = "2026-s9jh.onrender.com";
 const LOCAL_API_URL = "http://localhost:5000/api";
 const LOCAL_SOCKET_URL = "http://localhost:5000";
