@@ -21,7 +21,7 @@ function createTransporter() {
 
 export function ensureMailerReady() {
   if (!hasSmtpConfig()) {
-    const error = new Error("SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and MAIL_FROM.");
+    const error = new Error("SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and MAIL_FROM (or SMTP_FROM).");
     error.status = 500;
     throw error;
   }
@@ -35,9 +35,11 @@ export function ensureMailerReady() {
 
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
   const readyTransporter = ensureMailerReady();
+  const fromAddress = env.smtp.from;
+  const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
 
   return readyTransporter.sendMail({
-    from: env.smtp.from,
+    from,
     to,
     subject,
     html,

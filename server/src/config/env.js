@@ -1,6 +1,14 @@
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+const smtpFromAddress = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
+const smtpFromName = process.env.SMTP_FROM_NAME || "";
 
 export const env = {
   host: process.env.HOST || "0.0.0.0",
@@ -22,6 +30,7 @@ export const env = {
     secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
     user: process.env.SMTP_USER || "",
     pass: process.env.SMTP_PASS || "",
-    from: process.env.MAIL_FROM || process.env.SMTP_USER || ""
+    from: smtpFromAddress,
+    fromName: smtpFromName
   }
 };
