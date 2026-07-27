@@ -3,6 +3,21 @@ import { env } from "../config/env.js";
 
 let transporter = null;
 
+function isSmtpTimeoutError(error) {
+  return ["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(error?.code) || /connection timeout/i.test(String(error?.message || ""));
+}
+
+function createSmtpTimeoutError(error) {
+  const timeoutError = new Error("SMTP connection timeout. Провери SMTP_HOST, SMTP_PORT, SMTP_SECURE и дали Render има изходяща връзка към Gmail.");
+  timeoutError.status = 503;
+  timeoutError.code = error?.code || "ETIMEDOUT";
+  timeoutError.details = {
+    originalMessage: String(error?.message || ""),
+    originalCode: error?.code || ""
+  };
+  return timeoutError;
+}
+
 function hasSmtpConfig() {
   return Boolean(env.smtp.host && env.smtp.port && env.smtp.user && env.smtp.pass && env.smtp.from);
 }
@@ -71,7 +86,15 @@ export function getSmtpDiagnostics() {
 
 export async function verifyMailerConnection() {
   const readyTransporter = ensureMailerReady();
-  await readyTransporter.verify();
+  try {
+    await readyTransporter.verify();
+  } catch (error) {
+    if (isSmtpTimeoutError(error)) {
+      throw createSmtpTimeoutError(error);
+    }
+
+    throw error;
+  }
 }
 
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
@@ -79,11 +102,19 @@ export async function sendDocumentEmail({ to, subject, html, replyTo }) {
   const fromAddress = env.smtp.from;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
 
-  return readyTransporter.sendMail({
-    from,
-    to,
-    subject,
-    html,
-    ...(replyTo ? { replyTo } : {})
-  });
+  try {
+    return await readyTransporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      ...(replyTo ? { replyTo } : {})
+    });
+  } catch (error) {
+    if (isSmtpTimeoutError(error)) {
+      throw createSmtpTimeoutError(error);
+    }
+
+    throw error;
+  }
 }
