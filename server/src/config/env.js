@@ -16,6 +16,12 @@ function envValue(...keys) {
   return "";
 }
 
+function normalizeSmtpPassword(value) {
+  if (!value) return "";
+  // Gmail app passwords are often pasted with spaces between groups.
+  return value.replace(/\s+/g, "").trim();
+}
+
 const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
 const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
@@ -40,7 +46,7 @@ export const env = {
     port: Number.isFinite(smtpPort) && smtpPort > 0 ? smtpPort : 587,
     secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
     user: envValue("SMTP_USER", "MAIL_USER"),
-    pass: envValue("SMTP_PASS", "MAIL_PASS", "SMTP_PASSWORD"),
+    pass: normalizeSmtpPassword(envValue("SMTP_PASS", "MAIL_PASS", "SMTP_PASSWORD")),
     from: smtpFromAddress,
     fromName: smtpFromName
   }

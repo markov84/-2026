@@ -17,6 +17,14 @@ function getMissingSmtpKeys() {
   return missing;
 }
 
+function maskEmail(email) {
+  const value = String(email || "");
+  const [localPart, domain = ""] = value.split("@");
+  if (!localPart || !domain) return "";
+  const maskedLocal = localPart.length <= 2 ? `${localPart[0] || ""}*` : `${localPart.slice(0, 2)}***`;
+  return `${maskedLocal}@${domain}`;
+}
+
 function createTransporter() {
   return nodemailer.createTransport({
     host: env.smtp.host,
@@ -43,6 +51,24 @@ export function ensureMailerReady() {
   }
 
   return transporter;
+}
+
+export function getSmtpDiagnostics() {
+  const missingKeys = getMissingSmtpKeys();
+  return {
+    configured: missingKeys.length === 0,
+    missingKeys,
+    host: env.smtp.host || "",
+    port: env.smtp.port || null,
+    secure: env.smtp.secure,
+    from: env.smtp.from || "",
+    userMasked: maskEmail(env.smtp.user)
+  };
+}
+
+export async function verifyMailerConnection() {
+  const readyTransporter = ensureMailerReady();
+  await readyTransporter.verify();
 }
 
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
