@@ -30,6 +30,7 @@ function normalizeSmtpPassword(value) {
 const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
 const smtpService = process.env.SMTP_SERVICE || "";
+const mailProvider = String(process.env.MAIL_PROVIDER || "smtp").toLowerCase();
 const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
 const smtpPort = Number(smtpPortRaw || 587);
 
@@ -46,6 +47,11 @@ export const env = {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
     apiKey: process.env.CLOUDINARY_API_KEY || "",
     apiSecret: process.env.CLOUDINARY_API_SECRET || ""
+  },
+  mail: {
+    provider: mailProvider,
+    resendApiKey: envValue("RESEND_API_KEY"),
+    resendFrom: envValue("RESEND_FROM", "SMTP_FROM", "MAIL_FROM", "SMTP_USER", "MAIL_USER")
   },
   smtp: {
     service: smtpService,

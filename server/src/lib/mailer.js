@@ -3,6 +3,10 @@ import { env } from "../config/env.js";
 
 let transporter = null;
 
+function isResendMode() {
+  return env.mail?.provider === "resend";
+}
+
 function isSmtpTimeoutError(error) {
   return ["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(error?.code) || /connection timeout/i.test(String(error?.message || ""));
 }
@@ -22,7 +26,18 @@ function hasSmtpConfig() {
   return Boolean(env.smtp.host && env.smtp.port && env.smtp.user && env.smtp.pass && env.smtp.from);
 }
 
+function hasResendConfig() {
+  return Boolean(env.mail?.resendApiKey && env.mail?.resendFrom);
+}
+
 function getMissingSmtpKeys() {
+  if (isResendMode()) {
+    const missing = [];
+    if (!env.mail?.resendApiKey) missing.push("RESEND_API_KEY");
+    if (!env.mail?.resendFrom) missing.push("RESEND_FROM|SMTP_FROM");
+    return missing;
+  }
+
   const missing = [];
   if (!env.smtp.host) missing.push("SMTP_HOST");
   if (!env.smtp.port) missing.push("SMTP_PORT");
@@ -63,6 +78,18 @@ function createTransporter() {
 }
 
 export function ensureMailerReady() {
+  if (isResendMode()) {
+    if (!hasResendConfig()) {
+      const missingKeys = getMissingSmtpKeys();
+      const error = new Error(`Resend not configured. Missing: ${missingKeys.join(", ") || "unknown"}.`);
+      error.status = 500;
+      error.details = { missingKeys };
+      throw error;
+    }
+
+    return null;
+  }
+
   if (!hasSmtpConfig()) {
     const missingKeys = getMissingSmtpKeys();
     const error = new Error(`SMTP not configured. Missing: ${missingKeys.join(", ") || "unknown"}.`);
@@ -80,7 +107,19 @@ export function ensureMailerReady() {
 
 export function getSmtpDiagnostics() {
   const missingKeys = getMissingSmtpKeys();
+
+  if (isResendMode()) {
+    return {
+      provider: "resend",
+      configured: missingKeys.length === 0,
+      missingKeys,
+      from: env.mail?.resendFrom || "",
+      userMasked: ""
+    };
+  }
+
   return {
+    provider: "smtp",
     configured: missingKeys.length === 0,
     missingKeys,
     host: env.smtp.host || "",
@@ -92,6 +131,11 @@ export function getSmtpDiagnostics() {
 }
 
 export async function verifyMailerConnection() {
+  if (isResendMode()) {
+    ensureMailerReady();
+    return;
+  }
+
   const readyTransporter = ensureMailerReady();
   try {
     await readyTransporter.verify();
@@ -104,7 +148,41 @@ export async function verifyMailerConnection() {
   }
 }
 
+async function sendWithResend({ to, subject, html, replyTo }) {
+  const fromAddress = env.mail.resendFrom;
+  const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.mail.resendApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      ...(replyTo ? { reply_to: replyTo } : {})
+    })
+  });
+
+  if (!response.ok) {
+    const bodyText = await response.text();
+    const error = new Error(`Resend API error (${response.status}): ${bodyText || response.statusText}`);
+    error.status = 502;
+    throw error;
+  }
+
+  return response.json();
+}
+
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
+  if (isResendMode()) {
+    ensureMailerReady();
+    return sendWithResend({ to, subject, html, replyTo });
+  }
+
   const readyTransporter = ensureMailerReady();
   const fromAddress = env.smtp.from;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
