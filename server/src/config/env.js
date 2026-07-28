@@ -27,6 +27,11 @@ function normalizeSmtpPassword(value) {
   return value.replace(/\s+/g, "").trim();
 }
 
+function stripWrappingQuotes(value) {
+  if (!value) return "";
+  return String(value).trim().replace(/^['\"](.*)['\"]$/, "$1");
+}
+
 const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
 const smtpService = process.env.SMTP_SERVICE || "";
@@ -50,8 +55,8 @@ export const env = {
   },
   mail: {
     provider: mailProvider,
-    resendApiKey: envValue("RESEND_API_KEY"),
-    resendFrom: envValue("RESEND_FROM", "SMTP_FROM", "MAIL_FROM", "SMTP_USER", "MAIL_USER")
+    resendApiKey: stripWrappingQuotes(envValue("RESEND_API_KEY")),
+    resendFrom: stripWrappingQuotes(envValue("RESEND_FROM", "SMTP_FROM", "MAIL_FROM", "SMTP_USER", "MAIL_USER"))
   },
   smtp: {
     service: smtpService,
