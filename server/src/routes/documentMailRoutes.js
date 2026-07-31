@@ -8,6 +8,20 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin"));
 
+function ensureAdminAccess(req, res) {
+  if (!req.user) {
+    res.status(401).json({ message: "Липсва токен за удостоверяване." });
+    return false;
+  }
+
+  if (req.user.role !== "admin") {
+    res.status(403).json({ message: "Нямате права за изпращане на имейли." });
+    return false;
+  }
+
+  return true;
+}
+
 router.get("/health", async (req, res, next) => {
   try {
     const diagnostics = getSmtpDiagnostics();
@@ -39,6 +53,10 @@ router.post(
   ],
   async (req, res, next) => {
     try {
+      if (!ensureAdminAccess(req, res)) {
+        return;
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ message: "Invalid test email payload.", errors: errors.array() });
@@ -76,6 +94,10 @@ router.post(
   ],
   async (req, res, next) => {
     try {
+      if (!ensureAdminAccess(req, res)) {
+        return;
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ message: "Invalid email payload.", errors: errors.array() });
