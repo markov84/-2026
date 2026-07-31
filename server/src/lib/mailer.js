@@ -59,7 +59,7 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
-function createTransporter() {
+function createTransporter(transportOverrides = {}) {
   const transportOptions = {
     connectionTimeout: 20000,
     greetingTimeout: 20000,
@@ -70,18 +70,54 @@ function createTransporter() {
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    ...transportOverrides
   };
 
-  if (env.smtp.service) {
-    transportOptions.service = env.smtp.service;
-  } else {
-    transportOptions.host = env.smtp.host;
-    transportOptions.port = env.smtp.port;
-    transportOptions.secure = env.smtp.secure;
+  if (!transportOptions.service && !transportOptions.host) {
+    if (env.smtp.service) {
+      transportOptions.service = env.smtp.service;
+    } else {
+      transportOptions.host = env.smtp.host;
+      transportOptions.port = env.smtp.port;
+      transportOptions.secure = env.smtp.secure;
+    }
   }
 
   return nodemailer.createTransport(transportOptions);
+}
+
+function getSmtpTransportStrategies() {
+  const baseAuth = {
+    auth: {
+      user: env.smtp.user,
+      pass: env.smtp.pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000
+  };
+
+  const useGmailHost = /gmail\.com/i.test(env.smtp.host || "") || env.smtp.service === "gmail";
+  if (useGmailHost) {
+    return [
+      { ...baseAuth, host: "smtp.gmail.com", port: 465, secure: true },
+      { ...baseAuth, host: "smtp.gmail.com", port: 587, secure: false }
+    ];
+  }
+
+  const strategies = [{ ...baseAuth, host: env.smtp.host, port: env.smtp.port || 587, secure: env.smtp.secure }];
+  if ((env.smtp.port || 587) !== 465) {
+    strategies.push({ ...baseAuth, host: env.smtp.host, port: 465, secure: true });
+  }
+  if ((env.smtp.port || 587) !== 587) {
+    strategies.push({ ...baseAuth, host: env.smtp.host, port: 587, secure: false });
+  }
+
+  return strategies;
 }
 
 export function ensureMailerReady(forceSmtpFallback = false) {
@@ -135,16 +171,24 @@ export async function verifyMailerConnection() {
     return;
   }
 
-  const readyTransporter = ensureMailerReady();
-  try {
-    await readyTransporter.verify();
-  } catch (error) {
-    if (isSmtpTimeoutError(error)) {
-      throw createSmtpTimeoutError(error);
-    }
+  const strategies = getSmtpTransportStrategies();
+  let lastError = null;
 
-    throw error;
+  for (const strategy of strategies) {
+    try {
+      const transport = createTransporter(strategy);
+      await transport.verify();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
   }
+
+  if (isSmtpTimeoutError(lastError)) {
+    throw createSmtpTimeoutError(lastError);
+  }
+
+  throw lastError;
 }
 
 function isResendFallbackError(error) {
@@ -183,29 +227,34 @@ async function sendWithResend({ to, subject, html, replyTo }) {
 }
 
 async function sendWithSmtp({ to, subject, html, replyTo }) {
-  const readyTransporter = ensureMailerReady(true);
-  if (!readyTransporter) {
-    throw new Error("SMTP transport is not available. Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM.");
-  }
-
+  const strategies = getSmtpTransportStrategies();
   const fromAddress = env.smtp.from;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
+  let lastError = null;
 
-  try {
-    return await readyTransporter.sendMail({
-      from,
-      to,
-      subject,
-      html,
-      ...(replyTo ? { replyTo } : {})
-    });
-  } catch (error) {
-    if (isSmtpTimeoutError(error)) {
-      throw createSmtpTimeoutError(error);
+  for (const strategy of strategies) {
+    const transport = createTransporter(strategy);
+    try {
+      return await transport.sendMail({
+        from,
+        to,
+        subject,
+        html,
+        ...(replyTo ? { replyTo } : {})
+      });
+    } catch (error) {
+      lastError = error;
+      if (!isSmtpTimeoutError(error)) {
+        throw error;
+      }
     }
-
-    throw error;
   }
+
+  if (isSmtpTimeoutError(lastError)) {
+    throw createSmtpTimeoutError(lastError);
+  }
+
+  throw lastError;
 }
 
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
