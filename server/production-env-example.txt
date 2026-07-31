@@ -1,0 +1,14 @@
+# Copy these values into Vercel/Render environment variables
+
+MAIL_PROVIDER=resend
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM=MARKLIGHT <your_verified_email@yourdomain.com>
+
+# Optional SMTP fallback only for local/dev testing
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your@gmail.com
+SMTP_PASS=your_app_password
+SMTP_FROM=your@gmail.com
+SMTP_FROM_NAME=MARKLIGHT

@@ -226,8 +226,10 @@ async function sendWithResend({ to, subject, html, replyTo }) {
 
   if (!response.ok) {
     const bodyText = await response.text();
-    const error = new Error(`Resend API error (${response.status}): ${bodyText || response.statusText}`);
+    const message = bodyText || response.statusText;
+    const error = new Error(`Resend API error (${response.status}): ${message}`);
     error.status = 502;
+    error.details = { responseBody: message };
     throw error;
   }
 
