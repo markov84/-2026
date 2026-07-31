@@ -23,7 +23,7 @@ router.get("/health", async (req, res, next) => {
 
     return res.status(diagnostics.configured ? 200 : 503).json(response);
   } catch (error) {
-    const status = error?.status || 500;
+    const status = Number(error?.status || 500);
     return res.status(status).json({
       message: error?.message || "Неуспешно изпращане на имейл.",
       details: error?.details || null
@@ -56,7 +56,7 @@ router.post(
         to
       });
     } catch (error) {
-      const status = error?.status || 500;
+      const status = Number(error?.status || 500);
       return res.status(status).json({
         message: error?.message || "Неуспешно изпращане на имейл.",
         details: error?.details || null
@@ -95,7 +95,7 @@ router.post(
         to
       });
     } catch (error) {
-      const status = error?.status || 500;
+      const status = Number(error?.status || 500);
       return res.status(status).json({
         message: error?.message || "Неуспешно изпращане на имейл.",
         details: error?.details || null
