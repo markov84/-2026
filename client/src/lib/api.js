@@ -28,13 +28,18 @@ api.interceptors.response.use(
       !config.__retryOnce &&
       (RETRYABLE_ERROR_CODES.has(error.code) || !error.response);
 
-    if (!shouldRetry) {
-      return Promise.reject(error);
+    if (shouldRetry) {
+      config.__retryOnce = true;
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      return api(config);
     }
 
-    config.__retryOnce = true;
-    await new Promise((resolve) => window.setTimeout(resolve, 1200));
-    return api(config);
+    const status = error?.response?.status || error?.status || 0;
+    const message = error?.response?.data?.message || error?.message || "Request failed";
+    const url = config?.url || "unknown";
+    console.error("API request failed", { status, url, message, data: error?.response?.data });
+
+    return Promise.reject(error);
   }
 );
 
