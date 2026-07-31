@@ -3,8 +3,12 @@ import { env } from "../config/env.js";
 
 let transporter = null;
 
+function isResendRequested() {
+  return String(env.mail?.provider || "").toLowerCase() === "resend";
+}
+
 function isResendMode() {
-  return env.mail?.provider === "resend";
+  return isResendRequested() && hasResendConfig();
 }
 
 function isSmtpTimeoutError(error) {
@@ -57,12 +61,15 @@ function maskEmail(email) {
 
 function createTransporter() {
   const transportOptions = {
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
     auth: {
       user: env.smtp.user,
       pass: env.smtp.pass
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   };
 
@@ -79,14 +86,6 @@ function createTransporter() {
 
 export function ensureMailerReady() {
   if (isResendMode()) {
-    if (!hasResendConfig()) {
-      const missingKeys = getMissingSmtpKeys();
-      const error = new Error(`Resend not configured. Missing: ${missingKeys.join(", ") || "unknown"}.`);
-      error.status = 500;
-      error.details = { missingKeys };
-      throw error;
-    }
-
     return null;
   }
 
@@ -148,6 +147,12 @@ export async function verifyMailerConnection() {
   }
 }
 
+function isResendFallbackError(error) {
+  const status = Number(error?.status || error?.response?.status || error?.code || 0);
+  const message = String(error?.message || "");
+  return status === 401 || status === 403 || status === 400 || /invalid|unauthorized|forbidden|authentication/i.test(message);
+}
+
 async function sendWithResend({ to, subject, html, replyTo }) {
   const fromAddress = env.mail.resendFrom;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
@@ -177,12 +182,7 @@ async function sendWithResend({ to, subject, html, replyTo }) {
   return response.json();
 }
 
-export async function sendDocumentEmail({ to, subject, html, replyTo }) {
-  if (isResendMode()) {
-    ensureMailerReady();
-    return sendWithResend({ to, subject, html, replyTo });
-  }
-
+async function sendWithSmtp({ to, subject, html, replyTo }) {
   const readyTransporter = ensureMailerReady();
   const fromAddress = env.smtp.from;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
@@ -202,4 +202,21 @@ export async function sendDocumentEmail({ to, subject, html, replyTo }) {
 
     throw error;
   }
+}
+
+export async function sendDocumentEmail({ to, subject, html, replyTo }) {
+  if (isResendMode()) {
+    try {
+      ensureMailerReady();
+      return await sendWithResend({ to, subject, html, replyTo });
+    } catch (error) {
+      if (hasSmtpConfig() && isResendFallbackError(error)) {
+        return sendWithSmtp({ to, subject, html, replyTo });
+      }
+
+      throw error;
+    }
+  }
+
+  return sendWithSmtp({ to, subject, html, replyTo });
 }
