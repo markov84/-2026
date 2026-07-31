@@ -84,8 +84,8 @@ function createTransporter() {
   return nodemailer.createTransport(transportOptions);
 }
 
-export function ensureMailerReady() {
-  if (isResendMode()) {
+export function ensureMailerReady(forceSmtpFallback = false) {
+  if (isResendMode() && !forceSmtpFallback) {
     return null;
   }
 
@@ -183,7 +183,11 @@ async function sendWithResend({ to, subject, html, replyTo }) {
 }
 
 async function sendWithSmtp({ to, subject, html, replyTo }) {
-  const readyTransporter = ensureMailerReady();
+  const readyTransporter = ensureMailerReady(true);
+  if (!readyTransporter) {
+    throw new Error("SMTP transport is not available. Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM.");
+  }
+
   const fromAddress = env.smtp.from;
   const from = env.smtp.fromName ? `${env.smtp.fromName} <${fromAddress}>` : fromAddress;
 
