@@ -35,7 +35,9 @@ function stripWrappingQuotes(value) {
 const smtpFromAddress = envValue("MAIL_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
 const smtpFromName = process.env.SMTP_FROM_NAME || "";
 const smtpService = process.env.SMTP_SERVICE || "";
-const mailProvider = String(process.env.MAIL_PROVIDER || "smtp").toLowerCase();
+const resendApiKey = stripWrappingQuotes(envValue("RESEND_API_KEY"));
+const explicitMailProvider = String(process.env.MAIL_PROVIDER || "").toLowerCase();
+const mailProvider = explicitMailProvider || (resendApiKey ? "resend" : "smtp");
 const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
 const smtpPort = Number(smtpPortRaw || 587);
 
@@ -55,7 +57,7 @@ export const env = {
   },
   mail: {
     provider: mailProvider,
-    resendApiKey: stripWrappingQuotes(envValue("RESEND_API_KEY")),
+    resendApiKey,
     resendFrom: stripWrappingQuotes(envValue("RESEND_FROM", "SMTP_FROM", "MAIL_FROM", "SMTP_USER", "MAIL_USER"))
   },
   smtp: {
