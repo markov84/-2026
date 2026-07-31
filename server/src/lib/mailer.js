@@ -11,6 +11,10 @@ function isResendMode() {
   return isResendRequested() && hasResendConfig();
 }
 
+function shouldUseResend() {
+  return isResendRequested() && hasValidResendConfig();
+}
+
 function isSmtpTimeoutError(error) {
   return ["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(error?.code) || /connection timeout/i.test(String(error?.message || ""));
 }
@@ -32,6 +36,10 @@ function hasSmtpConfig() {
 
 function hasResendConfig() {
   return Boolean(env.mail?.resendApiKey && env.mail?.resendFrom);
+}
+
+function hasValidResendConfig() {
+  return Boolean(env.mail?.resendApiKey && env.mail?.resendApiKey.startsWith("re_") && env.mail?.resendFrom);
 }
 
 function getMissingSmtpKeys() {
@@ -258,9 +266,8 @@ async function sendWithSmtp({ to, subject, html, replyTo }) {
 }
 
 export async function sendDocumentEmail({ to, subject, html, replyTo }) {
-  if (isResendMode()) {
+  if (shouldUseResend()) {
     try {
-      ensureMailerReady();
       return await sendWithResend({ to, subject, html, replyTo });
     } catch (error) {
       if (hasSmtpConfig() && isResendFallbackError(error)) {
@@ -269,6 +276,16 @@ export async function sendDocumentEmail({ to, subject, html, replyTo }) {
 
       throw error;
     }
+  }
+
+  if (isResendRequested() && !hasValidResendConfig()) {
+    if (hasSmtpConfig()) {
+      return sendWithSmtp({ to, subject, html, replyTo });
+    }
+
+    const error = new Error("Resend is selected but the API key is missing or invalid and SMTP is not configured. Set RESEND_API_KEY and RESEND_FROM or configure SMTP for fallback.");
+    error.status = 500;
+    throw error;
   }
 
   return sendWithSmtp({ to, subject, html, replyTo });
