@@ -248,16 +248,18 @@ async function createQrPng(data, size = 180) {
   return QRCode.toDataURL(data, {
     width: size,
     margin: 1,
+    errorCorrectionLevel: "H",
     color: { dark: "#111827", light: "#ffffff" }
   });
 }
 
 export async function printProductLabel(product) {
+  const storeUrl = "https://marklight.bg/";
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
   const barcodeDataUrl = await createBarcodePng(fallbackCode);
-  const qrDataUrl = await createQrPng(fallbackCode);
+  const qrDataUrl = await createQrPng(storeUrl);
   const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
   const bodyHtml = `
@@ -279,7 +281,7 @@ export async function printProductLabel(product) {
           </div>
           <div>
             <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width: 140px; height: 140px; max-width: 100%;" />
-            <div style="font-size: 11px; margin-top: 6px; color: #6b7280;">${escapeHtml(fallbackCode)}</div>
+            <div style="font-size: 11px; margin-top: 6px; color: #6b7280;">${escapeHtml(storeUrl)}</div>
           </div>
         </div>
       </div>
