@@ -161,12 +161,23 @@ function getCodeCandidates(rawValue) {
 
 export function findProductByScanCode(products, rawCode) {
   const scanCandidates = getCodeCandidates(rawCode);
-  if (!scanCandidates.size) return null;
+  const normalizedInput = normalizeScanCode(rawCode).toLowerCase();
+  const terms = normalizedInput
+    .split(/[^a-z0-9]+/)
+    .map((term) => term.trim())
+    .filter(Boolean);
+
+  if (!scanCandidates.size && !terms.length) return null;
 
   const items = Array.isArray(products) ? products : [];
   for (const product of items) {
-    const fields = [product?.productNumber, product?.barcode, product?.sku, product?.qrCode].filter(Boolean);
+    const fields = [product?.name, product?.productNumber, product?.barcode, product?.sku, product?.qrCode].filter(Boolean);
     for (const field of fields) {
+      const fieldValue = normalizeScanCode(field).toLowerCase();
+      if (fieldValue && terms.some((term) => fieldValue.includes(term))) {
+        return product;
+      }
+
       const productCandidates = getCodeCandidates(field);
       for (const candidate of productCandidates) {
         if (scanCandidates.has(candidate)) {

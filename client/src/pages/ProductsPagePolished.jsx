@@ -389,11 +389,24 @@ export default function ProductsPagePolished() {
     const normalizedCode = parseScannedInput(rawCode);
     if (!normalizedCode) return null;
 
-    return data.find((product) =>
-      [product.barcode, product.sku, product.productNumber]
-        .filter(Boolean)
-        .some((value) => normalizeScanCode(value).toLowerCase() === normalizedCode.toLowerCase())
-    ) || null;
+    const searchTerms = normalizedCode
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .map((term) => term.trim())
+      .filter(Boolean);
+
+    return (
+      data.find((product) => {
+        const searchableFields = [product.name, product.productNumber, product.barcode, product.sku, product.qrCode]
+          .filter(Boolean)
+          .map((value) => normalizeScanCode(value).toLowerCase());
+
+        return searchableFields.some((value) => {
+          if (value === normalizedCode.toLowerCase()) return true;
+          return searchTerms.some((term) => value.includes(term));
+        });
+      }) || null
+    );
   }
 
   function focusProductInTable(product) {
@@ -556,8 +569,8 @@ export default function ProductsPagePolished() {
                 headerName: "Действия",
                 sortable: false,
                 filterable: false,
-                width: 132,
-                minWidth: 132,
+                width: 180,
+                minWidth: 180,
                 align: "center",
                 headerAlign: "center",
                 renderCell: (params) => (

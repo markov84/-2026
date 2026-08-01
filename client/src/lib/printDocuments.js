@@ -260,17 +260,20 @@ export async function printProductLabel(product) {
   const qrDataUrl = await createQrPng(fallbackCode);
 
   const bodyHtml = `
-    <section style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px;">
-      <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid;">
-        <div style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">${escapeHtml(product?.name || "Продукт")}</div>
-        <div style="font-size: 12px; color: #6b7280; margin-bottom: 10px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
-        <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width: 100%; height: auto;" />
-        <div style="font-size: 13px; margin-top: 8px; font-weight: 700; letter-spacing: 0.08em;">${escapeHtml(fallbackCode)}</div>
-      </div>
-      <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid;">
-        <div style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">QR код</div>
-        <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="max-width: 100%; height: auto;" />
-        <div style="font-size: 12px; margin-top: 8px; color: #6b7280;">${escapeHtml(fallbackCode)}</div>
+    <section style="display:flex; justify-content:center;">
+      <div style="border: 1px solid #d1d5db; border-radius: 14px; padding: 16px; text-align: center; page-break-inside: avoid; width: 100%; max-width: 420px;">
+        <div style="font-size: 16px; font-weight: 800; margin-bottom: 6px;">${escapeHtml(product?.name || "Продукт")}</div>
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap: 12px;">
+          <div>
+            <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width: 100%; height: auto;" />
+            <div style="font-size: 12px; margin-top: 6px; font-weight: 700; letter-spacing: 0.08em;">${escapeHtml(fallbackCode)}</div>
+          </div>
+          <div>
+            <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width: 140px; height: 140px; max-width: 100%;" />
+            <div style="font-size: 11px; margin-top: 6px; color: #6b7280;">${escapeHtml(fallbackCode)}</div>
+          </div>
+        </div>
       </div>
     </section>
   `;

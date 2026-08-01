@@ -1,4 +1,4 @@
-import { IconButton, Stack, Tooltip } from "@mui/material";
+import { Button, IconButton, Stack, Tooltip } from "@mui/material";
 import AppGlyph from "./AppGlyph";
 
 export default function GridRowActions({
@@ -22,9 +22,16 @@ export default function GridRowActions({
       ) : null}
       {onPrint ? (
         <Tooltip title={printLabel}>
-          <IconButton size="small" color="secondary" onClick={onPrint} sx={{ width: 34, height: 34 }}>
-            <AppGlyph name="print" size={18} />
-          </IconButton>
+          <Button
+            size="small"
+            color="secondary"
+            variant="outlined"
+            onClick={onPrint}
+            startIcon={<AppGlyph name="print" size={16} />}
+            sx={{ minWidth: "auto", px: 1, py: 0.35, fontSize: "0.75rem", textTransform: "none", whiteSpace: "nowrap" }}
+          >
+            {printLabel}
+          </Button>
         </Tooltip>
       ) : null}
       <Tooltip title={editLabel}>
