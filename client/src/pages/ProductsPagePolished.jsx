@@ -49,6 +49,7 @@ import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
+import { printProductLabel } from "../lib/printDocuments";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
@@ -438,6 +439,14 @@ export default function ProductsPagePolished() {
     }
   }
 
+  async function handlePrintLabel(product) {
+    try {
+      await printProductLabel(product);
+    } catch (error) {
+      toast.error(error?.message || "Неуспешно генериране на етикет.");
+    }
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader
@@ -551,7 +560,13 @@ export default function ProductsPagePolished() {
                 minWidth: 132,
                 align: "center",
                 headerAlign: "center",
-                renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => openDeleteDialog(params.row)} />
+                renderCell: (params) => (
+                  <GridRowActions
+                    onEdit={() => openEditDialog(params.row)}
+                    onDelete={() => openDeleteDialog(params.row)}
+                    onPrint={() => void handlePrintLabel(params.row)}
+                  />
+                )
               },
             ]}
             disableRowSelectionOnClick

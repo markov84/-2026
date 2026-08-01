@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 function escapeHtml(value) {
@@ -227,6 +229,53 @@ function printHtml(title, bodyHtml) {
     </script>
   `);
   printWindow.document.close();
+}
+
+async function createBarcodePng(data, width = 240, height = 70) {
+  const canvas = document.createElement("canvas");
+  JsBarcode(canvas, data, {
+    format: "CODE128",
+    width: 2,
+    height,
+    displayValue: false,
+    margin: 0
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
+async function createQrPng(data, size = 180) {
+  return QRCode.toDataURL(data, {
+    width: size,
+    margin: 1,
+    color: { dark: "#111827", light: "#ffffff" }
+  });
+}
+
+export async function printProductLabel(product) {
+  const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
+  const title = `Етикет ${product?.name || "продукт"}`;
+  const fallbackCode = code || String(product?._id || "").slice(-8);
+  const barcodeDataUrl = await createBarcodePng(fallbackCode);
+  const qrDataUrl = await createQrPng(fallbackCode);
+
+  const bodyHtml = `
+    <section style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px;">
+      <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid;">
+        <div style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">${escapeHtml(product?.name || "Продукт")}</div>
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 10px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
+        <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width: 100%; height: auto;" />
+        <div style="font-size: 13px; margin-top: 8px; font-weight: 700; letter-spacing: 0.08em;">${escapeHtml(fallbackCode)}</div>
+      </div>
+      <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid;">
+        <div style="font-size: 16px; font-weight: 800; margin-bottom: 8px;">QR код</div>
+        <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="max-width: 100%; height: auto;" />
+        <div style="font-size: 12px; margin-top: 8px; color: #6b7280;">${escapeHtml(fallbackCode)}</div>
+      </div>
+    </section>
+  `;
+
+  printHtml(title, bodyHtml);
 }
 
 function composeInvoiceDocument(invoice) {
