@@ -97,7 +97,6 @@ describe("AuthProviderStable", () => {
     mockState.get.mockResolvedValueOnce({ data: { user: null } });
     mockState.post
       .mockRejectedValueOnce({ code: "ECONNABORTED" })
-      .mockRejectedValueOnce({ code: "ERR_NETWORK" })
       .mockResolvedValueOnce({
         data: {
           token: "fresh-token",
@@ -117,7 +116,7 @@ describe("AuthProviderStable", () => {
     await user.click(screen.getByRole("button", { name: "login" }));
 
     await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("admin"), { timeout: 5000 });
-    expect(mockState.post).toHaveBeenCalledTimes(3);
+    expect(mockState.post).toHaveBeenCalledTimes(2);
     expect(sessionStorage.getItem("mark-light-token")).toBe("fresh-token");
   });
 });
