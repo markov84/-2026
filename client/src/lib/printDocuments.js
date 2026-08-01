@@ -258,13 +258,21 @@ export async function printProductLabel(product) {
   const fallbackCode = code || String(product?._id || "").slice(-8);
   const barcodeDataUrl = await createBarcodePng(fallbackCode);
   const qrDataUrl = await createQrPng(fallbackCode);
+  const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
   const bodyHtml = `
     <section style="display:flex; justify-content:center;">
       <div style="border: 1px solid #d1d5db; border-radius: 14px; padding: 16px; text-align: center; page-break-inside: avoid; width: 100%; max-width: 420px;">
-        <div style="font-size: 16px; font-weight: 800; margin-bottom: 6px;">${escapeHtml(product?.name || "Продукт")}</div>
+        <div style="display:flex; align-items:center; justify-content:center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">
+          <img src="${escapeHtml(companyLogoUrl)}" alt="MARK LIGHT logo" style="width: 46px; height: 46px; object-fit: contain;" />
+          <div style="text-align: left;">
+            <div style="font-size: 14px; font-weight: 800; letter-spacing: 0.08em; color: #111827;">MARK LIGHT</div>
+            <div style="font-size: 11px; color: #6b7280; letter-spacing: 0.08em; text-transform: uppercase;">Lighting Trade</div>
+          </div>
+        </div>
+        <div style="font-size: 16px; font-weight: 800; margin-bottom: 6px; line-height: 1.2;">${escapeHtml(product?.name || "Продукт")}</div>
         <div style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap: 12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap: 14px;">
           <div>
             <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width: 100%; height: auto;" />
             <div style="font-size: 12px; margin-top: 6px; font-weight: 700; letter-spacing: 0.08em;">${escapeHtml(fallbackCode)}</div>
