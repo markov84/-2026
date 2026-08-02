@@ -33,78 +33,6 @@ function validateInventoryPayload(payload) {
   return null;
 }
 
-function MobileInventoryList({ items, onEdit, onDelete, getResolvedProduct, getStoreDisplayLabel }) {
-  return (
-    <Stack spacing={1.25}>
-      {items.map((item) => {
-        const product = getResolvedProduct(item);
-        return (
-          <Box
-            key={item._id}
-            sx={{
-              p: 1.25,
-              borderRadius: 3,
-              border: "1px solid rgba(39,86,107,0.14)",
-              bgcolor: "rgba(255,255,255,0.72)"
-            }}
-          >
-            <Stack spacing={1.1}>
-              <ProductIdentity product={product} compact />
-              <Typography variant="body2" color="text.secondary">
-                {getStoreDisplayLabel(item.store)}
-              </Typography>
-              <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-                <Chip size="small" label={`Кол.: ${item.quantity ?? 0}`} />
-                <Chip size="small" label={`Рез.: ${item.reserved ?? 0}`} variant="outlined" />
-                <Chip size="small" label={`Мин.: ${item.reorderLevel ?? 0}`} variant="outlined" />
-                <Chip size="small" label={item.isLowStock ? "Ниска наличност" : "Нормално"} color={item.isLowStock ? "error" : "success"} />
-              </Stack>
-              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Код</Typography>
-                  <Typography variant="body2" fontWeight={700}>{product?.barcode || product?.qrCode || product?.productNumber || "-"}</Typography>
-                </Box>
-                <Box sx={{ textAlign: "right" }}>
-                  <Typography variant="caption" color="text.secondary">Актуализация</Typography>
-                  <Typography variant="body2" fontWeight={700}>{formatDate(item.updatedAt)}</Typography>
-                </Box>
-              </Stack>
-              <GridRowActions onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} />
-            </Stack>
-          </Box>
-        );
-      })}
-    </Stack>
-  );
-}
-
-function MobileScannedInventoryList({ items, getStoreDisplayLabel }) {
-  return (
-    <Stack spacing={1}>
-      {items.map((item) => (
-        <Box
-          key={item._id}
-          sx={{
-            p: 1.1,
-            borderRadius: 2.5,
-            border: "1px solid rgba(39,86,107,0.12)",
-            bgcolor: "rgba(255,255,255,0.72)"
-          }}
-        >
-          <Stack spacing={0.8}>
-            <Typography variant="body2" fontWeight={700}>{getStoreDisplayLabel(item.store)}</Typography>
-            <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-              <Chip size="small" label={`Бройки: ${item.quantity ?? 0}`} />
-              <Chip size="small" label={`Мин.: ${item.reorderLevel ?? 0}`} variant="outlined" />
-              <Chip size="small" label={item.isLowStock ? "Ниска" : "Нормално"} color={item.isLowStock ? "error" : "success"} />
-            </Stack>
-          </Stack>
-        </Box>
-      ))}
-    </Stack>
-  );
-}
-
 export default function InventoryPageReady() {
   const { data, loading, setData } = useFetch("/inventory/summary");
   const { data: products, refresh: refreshProducts } = useFetch("/products");
@@ -535,71 +463,67 @@ export default function InventoryPageReady() {
                 </Stack>
               ) : null}
 
-              {isMobile ? (
-                <MobileScannedInventoryList items={scannedProductInventoryRows} getStoreDisplayLabel={getStoreDisplayLabel} />
-              ) : (
-                <ResponsiveTable>
-                  <DataGrid
-                    autoHeight
-                    rows={scannedProductInventoryRows}
-                    getRowId={(row) => row._id}
-                    rowHeight={52}
-                    columnHeaderHeight={42}
-                    columns={[
-                      { field: "store", headerName: "Магазин / склад", flex: 1.4, minWidth: 220, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
-                      { field: "quantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
-                      { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 90 },
-                      { field: "status", headerName: "Статус", flex: 0.7, minWidth: 110, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
-                    ]}
-                    disableRowSelectionOnClick
-                  />
-                </ResponsiveTable>
-              )}
+              <ResponsiveTable>
+                <DataGrid
+                  autoHeight
+                  rows={scannedProductInventoryRows}
+                  getRowId={(row) => row._id}
+                  rowHeight={isMobile ? 48 : 52}
+                  columnHeaderHeight={isMobile ? 40 : 42}
+                  columns={isMobile ? [
+                    { field: "store", headerName: "Магазин", flex: 1.2, minWidth: 180, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
+                    { field: "quantity", headerName: "Бр.", flex: 0.45, minWidth: 70 },
+                    { field: "status", headerName: "Статус", flex: 0.7, minWidth: 100, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "OK"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
+                  ] : [
+                    { field: "store", headerName: "Магазин / склад", flex: 1.4, minWidth: 220, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
+                    { field: "quantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
+                    { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 90 },
+                    { field: "status", headerName: "Статус", flex: 0.7, minWidth: 110, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
+                  ]}
+                  disableRowSelectionOnClick
+                />
+              </ResponsiveTable>
             </Stack>
           </Box>
         ) : null}
 
-        {isMobile ? (
-          <MobileInventoryList
-            items={filteredInventory}
-            onEdit={openEditDialog}
-            onDelete={setDeletingItem}
-            getResolvedProduct={getResolvedProduct}
-            getStoreDisplayLabel={getStoreDisplayLabel}
+        <ResponsiveTable>
+          <DataGrid
+            autoHeight
+            loading={loading}
+            rowHeight={isMobile ? 52 : 56}
+            columnHeaderHeight={isMobile ? 42 : 44}
+            rows={filteredInventory}
+            getRowId={(row) => row._id}
+            columns={isMobile ? [
+              { field: "product", headerName: "Продукт", flex: 1.4, minWidth: 220, renderCell: (params) => <ProductIdentity product={params?.row?.product} compact /> },
+              { field: "storeName", headerName: "Магазин", flex: 1, minWidth: 160, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
+              { field: "quantity", headerName: "Кол.", flex: 0.4, minWidth: 70 },
+              { field: "status", headerName: "Статус", flex: 0.65, minWidth: 95, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "OK"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
+            ] : [
+              { field: "product", headerName: "Продукт", flex: 2, minWidth: 280, renderCell: (params) => <ProductIdentity product={params?.row?.product} /> },
+              {
+                field: "productCode",
+                headerName: "Баркод / QR",
+                flex: 1,
+                minWidth: 180,
+                valueGetter: (_, row) => {
+                  const product = getResolvedProduct(row);
+                  return product?.barcode || product?.qrCode || product?.productNumber || "-";
+                }
+              },
+              { field: "updatedAt", headerName: "Дата актуализация", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
+              { field: "storeName", headerName: "Магазин / склад", flex: 1, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
+              { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
+              { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
+              { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 80 },
+              { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
+            ]}
+            disableRowSelectionOnClick
           />
-        ) : (
-          <ResponsiveTable>
-            <DataGrid
-              autoHeight
-              loading={loading}
-              rowHeight={56}
-              columnHeaderHeight={44}
-              rows={filteredInventory}
-              getRowId={(row) => row._id}
-              columns={[
-                { field: "product", headerName: "Продукт", flex: 2, minWidth: 280, renderCell: (params) => <ProductIdentity product={params?.row?.product} /> },
-                {
-                  field: "productCode",
-                  headerName: "Баркод / QR",
-                  flex: 1,
-                  minWidth: 180,
-                  valueGetter: (_, row) => {
-                    const product = getResolvedProduct(row);
-                    return product?.barcode || product?.qrCode || product?.productNumber || "-";
-                  }
-                },
-                { field: "updatedAt", headerName: "Дата актуализация", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
-                { field: "storeName", headerName: "Магазин / склад", flex: 1, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
-                { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
-                { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
-                { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 80 },
-                { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
-                { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
-              ]}
-              disableRowSelectionOnClick
-            />
-          </ResponsiveTable>
-        )}
+        </ResponsiveTable>
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>

@@ -123,95 +123,6 @@ function saveStoredList(key, values) {
   window.localStorage.setItem(key, JSON.stringify(values));
 }
 
-function MobileProductsList({
-  products,
-  canViewCost,
-  highlightedProductId,
-  onEdit,
-  onDelete,
-  onPrint,
-  onFocus,
-  paginationModel,
-  onPageChange
-}) {
-  const pageSize = paginationModel.pageSize || 10;
-  const currentPage = paginationModel.page || 0;
-  const pageCount = Math.max(1, Math.ceil(products.length / pageSize));
-  const safePage = Math.min(currentPage, pageCount - 1);
-  const visibleProducts = products.slice(safePage * pageSize, safePage * pageSize + pageSize);
-
-  return (
-    <Stack spacing={1.25}>
-      {visibleProducts.map((product) => {
-        const isHighlighted = String(product._id) === String(highlightedProductId);
-        return (
-          <Box
-            key={product._id}
-            onClick={() => onFocus(product)}
-            sx={{
-              p: 1.25,
-              borderRadius: 3,
-              border: "1px solid rgba(39,86,107,0.14)",
-              bgcolor: isHighlighted ? "rgba(255,193,7,0.12)" : "rgba(255,255,255,0.72)",
-              boxShadow: isHighlighted ? "inset 3px 0 0 rgba(255,143,0,0.85)" : "none"
-            }}
-          >
-            <Stack spacing={1.1}>
-              <ProductIdentity product={product} />
-              <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-                <Chip size="small" label={product.category || "Без категория"} variant="outlined" />
-                {product.brand ? <Chip size="small" label={product.brand} variant="outlined" /> : null}
-                <Chip size="small" label={product.isActive ? "Активен" : "Скрит"} color={product.isActive ? "success" : "default"} />
-              </Stack>
-              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Баркод</Typography>
-                  <Typography variant="body2" fontWeight={700}>{product.barcode || "-"}</Typography>
-                </Box>
-                <Box sx={{ textAlign: "right", minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Създаден</Typography>
-                  <Typography variant="body2" fontWeight={700}>{formatDate(product.createdAt)}</Typography>
-                </Box>
-              </Stack>
-              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Продажна цена</Typography>
-                  <Typography variant="body2" fontWeight={800}>{formatCurrencyEUR(product.price || 0)}</Typography>
-                </Box>
-                {canViewCost ? (
-                  <Box sx={{ textAlign: "right" }}>
-                    <Typography variant="caption" color="text.secondary">Себестойност</Typography>
-                    <Typography variant="body2" fontWeight={700}>{formatCurrencyEUR(product.cost || 0)}</Typography>
-                  </Box>
-                ) : null}
-                <Box sx={{ textAlign: "right" }}>
-                  <Typography variant="caption" color="text.secondary">Мин. наличност</Typography>
-                  <Typography variant="body2" fontWeight={700}>{product.lowStockThreshold ?? 0}</Typography>
-                </Box>
-              </Stack>
-              <GridRowActions onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} onPrint={() => void onPrint(product)} />
-            </Stack>
-          </Box>
-        );
-      })}
-
-      {products.length > pageSize ? (
-        <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" sx={{ pt: 0.5 }}>
-          <Button size="small" variant="outlined" disabled={safePage <= 0} onClick={() => onPageChange(safePage - 1)}>
-            Назад
-          </Button>
-          <Typography variant="caption" color="text.secondary">
-            Страница {safePage + 1} от {pageCount}
-          </Typography>
-          <Button size="small" variant="outlined" disabled={safePage >= pageCount - 1} onClick={() => onPageChange(safePage + 1)}>
-            Напред
-          </Button>
-        </Stack>
-      ) : null}
-    </Stack>
-  );
-}
-
 export default function ProductsPagePolished() {
   const { user } = useAuth();
   const { data, loading, setData } = useFetch("/products");
@@ -589,53 +500,74 @@ export default function ProductsPagePolished() {
         }
         actions={<Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreateDialog}>Нов продукт</Button>}
       >
-        {isMobile ? (
-          <MobileProductsList
-            products={filteredProducts}
-            canViewCost={canViewCost}
-            highlightedProductId={highlightedProductId}
-            onEdit={openEditDialog}
-            onDelete={openDeleteDialog}
-            onPrint={handlePrintLabel}
-            onFocus={focusProductInTable}
+        <ResponsiveTable>
+          <DataGrid
+            loading={loading}
+            rows={filteredProducts}
+            getRowId={(row) => row._id}
+            rowSelectionModel={selectionModel}
+            onRowSelectionModelChange={(nextSelection) => setSelectionModel(nextSelection)}
             paginationModel={paginationModel}
-            onPageChange={(page) => setPaginationModel((current) => ({ ...current, page }))}
-          />
-        ) : (
-          <ResponsiveTable>
-            <DataGrid
-              loading={loading}
-              rows={filteredProducts}
-              getRowId={(row) => row._id}
-              rowSelectionModel={selectionModel}
-              onRowSelectionModelChange={(nextSelection) => setSelectionModel(nextSelection)}
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
-              onRowClick={(params) => {
-                setHighlightedProductId(String(params.row._id));
-                setSelectionModel([String(params.row._id)]);
-              }}
-              rowHeight={60}
-              columnHeaderHeight={54}
-              getRowClassName={(params) => {
-                if (String(params.row._id) === String(highlightedProductId)) return "product-row-scanned";
-                if (query.trim()) return "product-row-filter-hit";
-                return "";
-              }}
-              sx={{
-                "& .product-cell": {
-                  pl: 0.5,
-                  pr: 0.5
-                },
-                "& .product-row-filter-hit .MuiDataGrid-cell": {
-                  bgcolor: "rgba(39, 86, 107, 0.06)"
-                },
-                "& .product-row-scanned .MuiDataGrid-cell": {
-                  bgcolor: "rgba(255, 193, 7, 0.18)",
-                  borderLeft: "4px solid rgba(255, 143, 0, 0.85)"
-                }
-              }}
-              columns={[
+            onPaginationModelChange={setPaginationModel}
+            onRowClick={(params) => {
+              setHighlightedProductId(String(params.row._id));
+              setSelectionModel([String(params.row._id)]);
+            }}
+            rowHeight={isMobile ? 54 : 60}
+            columnHeaderHeight={isMobile ? 48 : 54}
+            getRowClassName={(params) => {
+              if (String(params.row._id) === String(highlightedProductId)) return "product-row-scanned";
+              if (query.trim()) return "product-row-filter-hit";
+              return "";
+            }}
+            sx={{
+              "& .product-cell": {
+                pl: 0.5,
+                pr: 0.5
+              },
+              "& .product-row-filter-hit .MuiDataGrid-cell": {
+                bgcolor: "rgba(39, 86, 107, 0.06)"
+              },
+              "& .product-row-scanned .MuiDataGrid-cell": {
+                bgcolor: "rgba(255, 193, 7, 0.18)",
+                borderLeft: "4px solid rgba(255, 143, 0, 0.85)"
+              }
+            }}
+            columns={isMobile ? [
+              {
+                field: "product",
+                headerName: "Продукт",
+                flex: 1.8,
+                minWidth: 220,
+                cellClassName: "product-cell",
+                renderCell: (params) => <ProductIdentity product={params?.row} compact />
+              },
+              { field: "price", headerName: "Цена", flex: 0.8, minWidth: 110, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+              {
+                field: "isActive",
+                headerName: "Статус",
+                flex: 0.7,
+                minWidth: 90,
+                renderCell: (params) => <Chip size="small" label={params?.value ? "Активен" : "Скрит"} color={params?.value ? "success" : "default"} />
+              },
+              {
+                field: "actions",
+                headerName: "Действия",
+                sortable: false,
+                filterable: false,
+                width: 180,
+                minWidth: 180,
+                align: "center",
+                headerAlign: "center",
+                renderCell: (params) => (
+                  <GridRowActions
+                    onEdit={() => openEditDialog(params.row)}
+                    onDelete={() => openDeleteDialog(params.row)}
+                    onPrint={() => void handlePrintLabel(params.row)}
+                  />
+                )
+              }
+            ] : [
                 {
                   field: "product",
                   headerName: "Продукт",
@@ -684,10 +616,9 @@ export default function ProductsPagePolished() {
                   )
                 }
               ]}
-              disableRowSelectionOnClick
-            />
-          </ResponsiveTable>
-        )}
+            disableRowSelectionOnClick
+          />
+        </ResponsiveTable>
       </DataSection>
 
       <Dialog open={open} onClose={() => { setOpen(false); resetForm(); }} fullWidth maxWidth="md" fullScreen={isMobile} PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2.5 } } }}>
