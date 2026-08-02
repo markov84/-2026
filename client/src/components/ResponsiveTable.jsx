@@ -47,11 +47,11 @@ export default function ResponsiveTable({ children }) {
         "& .MuiDataGrid-columnHeaders": {
           backgroundColor: isDark ? "#0a0f14" : "rgba(36,66,74,0.06)",
           borderBottom: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(40,53,64,0.08)",
-          color: "#ffffff"
+          color: isDark ? "#ffffff" : "#1f3342"
         },
         "& .MuiDataGrid-columnHeaderTitle": {
           fontWeight: 800,
-          color: isDark ? "#ffffff" : "inherit",
+          color: isDark ? "#ffffff" : "#1f3342",
           lineHeight: 1.15,
           whiteSpace: "normal"
         },
@@ -77,6 +77,9 @@ export default function ResponsiveTable({ children }) {
         "& .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-cellContent": {
           fontSize: { xs: "0.74rem", sm: "0.8rem", md: "0.95rem" },
           color: isDark ? "#ffffff" : "inherit"
+        },
+        "& .MuiDataGrid-iconSeparator, & .MuiDataGrid-sortIcon, & .MuiDataGrid-menuIcon button": {
+          color: isDark ? "rgba(255,255,255,0.82)" : "#4b6477"
         },
         "& .MuiDataGrid-columnHeader": {
           px: { xs: 0.5, md: 1 }
