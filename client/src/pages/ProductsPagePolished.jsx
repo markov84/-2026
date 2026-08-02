@@ -513,8 +513,8 @@ export default function ProductsPagePolished() {
               setHighlightedProductId(String(params.row._id));
               setSelectionModel([String(params.row._id)]);
             }}
-            rowHeight={isMobile ? 54 : 60}
-            columnHeaderHeight={isMobile ? 48 : 54}
+            rowHeight={60}
+            columnHeaderHeight={54}
             getRowClassName={(params) => {
               if (String(params.row._id) === String(highlightedProductId)) return "product-row-scanned";
               if (query.trim()) return "product-row-filter-hit";
@@ -533,41 +533,7 @@ export default function ProductsPagePolished() {
                 borderLeft: "4px solid rgba(255, 143, 0, 0.85)"
               }
             }}
-            columns={isMobile ? [
-              {
-                field: "product",
-                headerName: "Продукт",
-                flex: 1.8,
-                minWidth: 220,
-                cellClassName: "product-cell",
-                renderCell: (params) => <ProductIdentity product={params?.row} compact />
-              },
-              { field: "price", headerName: "Цена", flex: 0.8, minWidth: 110, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
-              {
-                field: "isActive",
-                headerName: "Статус",
-                flex: 0.7,
-                minWidth: 90,
-                renderCell: (params) => <Chip size="small" label={params?.value ? "Активен" : "Скрит"} color={params?.value ? "success" : "default"} />
-              },
-              {
-                field: "actions",
-                headerName: "Действия",
-                sortable: false,
-                filterable: false,
-                width: 180,
-                minWidth: 180,
-                align: "center",
-                headerAlign: "center",
-                renderCell: (params) => (
-                  <GridRowActions
-                    onEdit={() => openEditDialog(params.row)}
-                    onDelete={() => openDeleteDialog(params.row)}
-                    onPrint={() => void handlePrintLabel(params.row)}
-                  />
-                )
-              }
-            ] : [
+            columns={[
                 {
                   field: "product",
                   headerName: "Продукт",

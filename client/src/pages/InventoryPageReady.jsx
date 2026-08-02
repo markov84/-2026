@@ -468,13 +468,9 @@ export default function InventoryPageReady() {
                   autoHeight
                   rows={scannedProductInventoryRows}
                   getRowId={(row) => row._id}
-                  rowHeight={isMobile ? 48 : 52}
-                  columnHeaderHeight={isMobile ? 40 : 42}
-                  columns={isMobile ? [
-                    { field: "store", headerName: "Магазин", flex: 1.2, minWidth: 180, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
-                    { field: "quantity", headerName: "Бр.", flex: 0.45, minWidth: 70 },
-                    { field: "status", headerName: "Статус", flex: 0.7, minWidth: 100, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "OK"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> }
-                  ] : [
+                  rowHeight={52}
+                  columnHeaderHeight={42}
+                  columns={[
                     { field: "store", headerName: "Магазин / склад", flex: 1.4, minWidth: 220, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
                     { field: "quantity", headerName: "Бройки", flex: 0.5, minWidth: 90 },
                     { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 90 },
@@ -491,17 +487,11 @@ export default function InventoryPageReady() {
           <DataGrid
             autoHeight
             loading={loading}
-            rowHeight={isMobile ? 52 : 56}
-            columnHeaderHeight={isMobile ? 42 : 44}
+            rowHeight={56}
+            columnHeaderHeight={44}
             rows={filteredInventory}
             getRowId={(row) => row._id}
-            columns={isMobile ? [
-              { field: "product", headerName: "Продукт", flex: 1.4, minWidth: 220, renderCell: (params) => <ProductIdentity product={params?.row?.product} compact /> },
-              { field: "storeName", headerName: "Магазин", flex: 1, minWidth: 160, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
-              { field: "quantity", headerName: "Кол.", flex: 0.4, minWidth: 70 },
-              { field: "status", headerName: "Статус", flex: 0.65, minWidth: 95, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "OK"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
-            ] : [
+            columns={[
               { field: "product", headerName: "Продукт", flex: 2, minWidth: 280, renderCell: (params) => <ProductIdentity product={params?.row?.product} /> },
               {
                 field: "productCode",
