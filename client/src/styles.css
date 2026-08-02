@@ -26,6 +26,7 @@
 
 html {
   min-height: 100%;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(142, 171, 188, 0.18), transparent 22%),
     radial-gradient(circle at 88% 10%, rgba(111, 133, 149, 0.14), transparent 18%),
@@ -45,6 +46,7 @@ body {
   position: relative;
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   color: var(--app-ink);
   background: transparent;
   background-attachment: fixed;
@@ -52,6 +54,7 @@ body {
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
   position: relative;
   z-index: 1;
 }

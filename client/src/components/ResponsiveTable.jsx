@@ -39,7 +39,7 @@ export default function ResponsiveTable({ children }) {
           minWidth: 0
         },
         "& .MuiDataGrid-root": {
-          minWidth: { xs: 720, md: 0 },
+          minWidth: { xs: 560, sm: 640, md: 0 },
           border: "none",
           backgroundColor: isDark ? "#05070a" : "rgba(255,255,255,0.68)",
           color: isDark ? "#ffffff" : "inherit"
@@ -51,11 +51,14 @@ export default function ResponsiveTable({ children }) {
         },
         "& .MuiDataGrid-columnHeaderTitle": {
           fontWeight: 800,
-          color: isDark ? "#ffffff" : "inherit"
+          color: isDark ? "#ffffff" : "inherit",
+          lineHeight: 1.15,
+          whiteSpace: "normal"
         },
         "& .MuiDataGrid-cell": {
           borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(40,53,64,0.07)",
-          color: isDark ? "#ffffff" : "inherit"
+          color: isDark ? "#ffffff" : "inherit",
+          px: { xs: 0.5, md: 1 }
         },
         "& .MuiDataGrid-row": {
           backgroundColor: isDark ? "#05070a" : "rgba(255,255,255,0.24)",
@@ -69,11 +72,14 @@ export default function ResponsiveTable({ children }) {
           backgroundColor: isDark ? "#05070a" : "transparent"
         },
         "& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader": {
-          py: { xs: 0.7, md: 0.85 }
+          py: { xs: 0.45, md: 0.85 }
         },
         "& .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-cellContent": {
-          fontSize: { xs: "0.82rem", md: "0.95rem" },
+          fontSize: { xs: "0.74rem", sm: "0.8rem", md: "0.95rem" },
           color: isDark ? "#ffffff" : "inherit"
+        },
+        "& .MuiDataGrid-columnHeader": {
+          px: { xs: 0.5, md: 1 }
         },
         "& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel": {
           fontSize: { xs: "0.75rem", md: "0.875rem" },
@@ -81,7 +87,7 @@ export default function ResponsiveTable({ children }) {
         }
       }}
     >
-      <Box sx={{ height: { xs: 620, md: 720 }, minHeight: 620 }}>
+      <Box sx={{ height: { xs: 500, sm: 560, md: 720 }, minHeight: { xs: 500, sm: 560, md: 620 } }}>
         {tableChildren}
       </Box>
     </Box>

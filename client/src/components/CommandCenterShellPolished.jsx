@@ -230,8 +230,8 @@ export default function CommandCenterShellPolished({ children }) {
       <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
         <Toolbar
           sx={{
-            minHeight: 68,
-            px: { xs: 2, md: 3 },
+            minHeight: { xs: 60, md: 68 },
+            px: { xs: 1.25, md: 3 },
             justifyContent: "space-between",
             borderBottom: "1px solid rgba(31,42,51,0.08)",
             backgroundColor: "rgba(253,252,248,0.88)",
@@ -251,14 +251,14 @@ export default function CommandCenterShellPolished({ children }) {
               </Typography>
             </Box>
           </Stack>
-          <Chip label="Система активна" color="secondary" variant="outlined" />
+          <Chip label="Система активна" color="secondary" variant="outlined" sx={{ display: { xs: "none", sm: "inline-flex" } }} />
         </Toolbar>
 
         <Box
           sx={{
-            px: { xs: 1.5, md: 3 },
-            py: { xs: 2, md: 3 },
-            pb: { xs: 12, md: 3 },
+            px: { xs: 0.75, sm: 1.25, md: 3 },
+            py: { xs: 1, md: 3 },
+            pb: { xs: 10, md: 3 },
             width: "100%",
             maxWidth: 1320,
             mx: "auto"
