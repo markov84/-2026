@@ -492,7 +492,7 @@ export default function CommandCenterShellClean({ children }) {
           borderRight: "1px solid rgba(35,52,59,0.08)"
         }}
       >
-        <Box sx={{ position: "sticky", top: 0, height: "100vh" }}>
+        <Box sx={{ position: "fixed", top: 0, left: 0, width: drawerWidth, height: "100vh", zIndex: 1100 }}>
           <Navigation />
         </Box>
       </Box>
