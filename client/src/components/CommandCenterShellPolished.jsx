@@ -218,16 +218,20 @@ export default function CommandCenterShellPolished({ children }) {
       >
         <Box
           sx={{
-            position: "sticky",
+            position: "fixed",
             top: 0,
-            height: "100vh"
+            left: 0,
+            bottom: 0,
+            width: drawerWidth,
+            height: "100vh",
+            zIndex: 1100
           }}
         >
           <Navigation />
         </Box>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: { lg: `calc(100% - ${drawerWidth}px)` }, ml: { lg: `${drawerWidth}px` } }}>
         <Toolbar
           sx={{
             minHeight: { xs: 60, md: 68 },
