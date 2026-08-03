@@ -470,7 +470,8 @@ export default function ProductsPagePolished() {
   }
 
   function handleLabelCopiesChange(nextValue) {
-    const safeValue = Number(nextValue) || 6;
+    const parsedValue = Number(nextValue);
+    const safeValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(1, Math.round(parsedValue))) : 6;
     setLabelCopies(safeValue);
     setProductLabelCopies(safeValue);
   }
@@ -812,19 +813,14 @@ export default function ProductsPagePolished() {
             </TextField>
 
             <TextField
-              select
               size="small"
-              label="Етикети на страница"
+              type="number"
+              label="Брой етикети"
               value={String(labelCopies)}
               onChange={(event) => handleLabelCopiesChange(event.target.value)}
+              inputProps={{ min: 1, max: 500, step: 1 }}
               fullWidth
-            >
-              {[1, 2, 3, 4, 6, 8, 9, 12, 15, 18, 24].map((count) => (
-                <MenuItem key={count} value={String(count)}>
-                  {count}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
 
             <Typography variant="caption" color="text.secondary">
               Тези настройки важат за печат от бутона в колоната "Действия" и се запомнят автоматично.

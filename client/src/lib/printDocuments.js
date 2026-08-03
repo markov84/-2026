@@ -6,6 +6,7 @@ const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
 const DEFAULT_LABEL_SCALE_PERCENT = 78;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
 const DEFAULT_LABEL_COPIES = 6;
+const MAX_LABEL_COPIES = 500;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -291,7 +292,7 @@ function clampLabelScalePercent(value) {
 function clampLabelCopies(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return DEFAULT_LABEL_COPIES;
-  return Math.min(24, Math.max(1, Math.round(numeric)));
+  return Math.min(MAX_LABEL_COPIES, Math.max(1, Math.round(numeric)));
 }
 
 export function getProductLabelScale() {
