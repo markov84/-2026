@@ -135,6 +135,7 @@ export default function ProductsPagePolished() {
   const [selectionModel, setSelectionModel] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [form, setForm] = useState(initialForm);
+  const [labelSettingsOpen, setLabelSettingsOpen] = useState(false);
   const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
   const [labelCopies, setLabelCopies] = useState(() => getProductLabelCopies());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
@@ -505,34 +506,6 @@ export default function ProductsPagePolished() {
               sx={{ maxWidth: { xs: "100%", lg: 460 } }}
             />
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              <TextField
-                select
-                size="small"
-                label="Етикет %"
-                value={String(labelScalePercent)}
-                onChange={(event) => handleLabelScaleChange(event.target.value)}
-                sx={{ width: 122 }}
-              >
-                {[55, 65, 78, 90, 100, 110].map((size) => (
-                  <MenuItem key={size} value={String(size)}>
-                    {size}%
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                size="small"
-                label="Брой"
-                value={String(labelCopies)}
-                onChange={(event) => handleLabelCopiesChange(event.target.value)}
-                sx={{ width: 98 }}
-              >
-                {[1, 2, 3, 4, 6, 8, 9, 12, 15, 18, 24].map((count) => (
-                  <MenuItem key={count} value={String(count)}>
-                    {count}
-                  </MenuItem>
-                ))}
-              </TextField>
               <Chip label={`Показани: ${filteredProducts.length}`} variant="outlined" />
               <Chip label={`Продукти: ${data.length}`} color="secondary" variant="outlined" />
               <Chip label="Снимки от линк или компютър" color="primary" variant="outlined" />
@@ -540,7 +513,14 @@ export default function ProductsPagePolished() {
             </Stack>
           </Stack>
         }
-        actions={<Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreateDialog}>Нов продукт</Button>}
+        actions={
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", md: "auto" } }}>
+            <Button variant="outlined" onClick={() => setLabelSettingsOpen(true)}>
+              Настройки етикет
+            </Button>
+            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreateDialog}>Нов продукт</Button>
+          </Stack>
+        }
       >
         <ResponsiveTable>
           <DataGrid
@@ -804,6 +784,58 @@ export default function ProductsPagePolished() {
           onConfirm={handleSave}
           confirmLabel={editingProductId ? "Запази промените" : "Запази"}
         />
+      </Dialog>
+
+      <Dialog
+        open={labelSettingsOpen}
+        onClose={() => setLabelSettingsOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2.5 } } }}
+      >
+        <DialogTitle>Настройки за етикети</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              select
+              size="small"
+              label="Размер на етикета"
+              value={String(labelScalePercent)}
+              onChange={(event) => handleLabelScaleChange(event.target.value)}
+              fullWidth
+            >
+              {[55, 65, 78, 90, 100, 110].map((size) => (
+                <MenuItem key={size} value={String(size)}>
+                  {size}%
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              size="small"
+              label="Етикети на страница"
+              value={String(labelCopies)}
+              onChange={(event) => handleLabelCopiesChange(event.target.value)}
+              fullWidth
+            >
+              {[1, 2, 3, 4, 6, 8, 9, 12, 15, 18, 24].map((count) => (
+                <MenuItem key={count} value={String(count)}>
+                  {count}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Typography variant="caption" color="text.secondary">
+              Тези настройки важат за печат от бутона в колоната "Действия" и се запомнят автоматично.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <Stack direction="row" justifyContent="flex-end" sx={{ p: 2 }}>
+          <Button variant="contained" onClick={() => setLabelSettingsOpen(false)}>
+            Готово
+          </Button>
+        </Stack>
       </Dialog>
       <BarcodeScannerDialog
         open={scanBarcodeOpen}
