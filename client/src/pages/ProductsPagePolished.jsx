@@ -49,7 +49,7 @@ import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
-import { getProductLabelScale, printProductLabel, setProductLabelScale } from "../lib/printDocuments";
+import { getProductLabelCopies, getProductLabelScale, printProductLabel, setProductLabelCopies, setProductLabelScale } from "../lib/printDocuments";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
@@ -136,6 +136,7 @@ export default function ProductsPagePolished() {
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [form, setForm] = useState(initialForm);
   const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
+  const [labelCopies, setLabelCopies] = useState(() => getProductLabelCopies());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -455,7 +456,7 @@ export default function ProductsPagePolished() {
 
   async function handlePrintLabel(product) {
     try {
-      await printProductLabel(product, { scalePercent: labelScalePercent });
+      await printProductLabel(product, { scalePercent: labelScalePercent, copies: labelCopies });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
     }
@@ -465,6 +466,12 @@ export default function ProductsPagePolished() {
     const safeValue = Number(nextValue) || 78;
     setLabelScalePercent(safeValue);
     setProductLabelScale(safeValue);
+  }
+
+  function handleLabelCopiesChange(nextValue) {
+    const safeValue = Number(nextValue) || 6;
+    setLabelCopies(safeValue);
+    setProductLabelCopies(safeValue);
   }
 
   return (
@@ -509,6 +516,20 @@ export default function ProductsPagePolished() {
                 {[55, 65, 78, 90, 100, 110].map((size) => (
                   <MenuItem key={size} value={String(size)}>
                     {size}%
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                size="small"
+                label="Брой"
+                value={String(labelCopies)}
+                onChange={(event) => handleLabelCopiesChange(event.target.value)}
+                sx={{ width: 98 }}
+              >
+                {[1, 2, 3, 4, 6, 8, 9, 12, 15, 18, 24].map((count) => (
+                  <MenuItem key={count} value={String(count)}>
+                    {count}
                   </MenuItem>
                 ))}
               </TextField>
