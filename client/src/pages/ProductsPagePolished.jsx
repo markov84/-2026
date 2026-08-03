@@ -49,7 +49,7 @@ import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
-import { printProductLabel } from "../lib/printDocuments";
+import { getProductLabelScale, printProductLabel, setProductLabelScale } from "../lib/printDocuments";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
@@ -135,6 +135,7 @@ export default function ProductsPagePolished() {
   const [selectionModel, setSelectionModel] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [form, setForm] = useState(initialForm);
+  const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -454,10 +455,16 @@ export default function ProductsPagePolished() {
 
   async function handlePrintLabel(product) {
     try {
-      await printProductLabel(product);
+      await printProductLabel(product, { scalePercent: labelScalePercent });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
     }
+  }
+
+  function handleLabelScaleChange(nextValue) {
+    const safeValue = Number(nextValue) || 78;
+    setLabelScalePercent(safeValue);
+    setProductLabelScale(safeValue);
   }
 
   return (
@@ -491,6 +498,20 @@ export default function ProductsPagePolished() {
               sx={{ maxWidth: { xs: "100%", lg: 460 } }}
             />
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <TextField
+                select
+                size="small"
+                label="Етикет %"
+                value={String(labelScalePercent)}
+                onChange={(event) => handleLabelScaleChange(event.target.value)}
+                sx={{ width: 122 }}
+              >
+                {[55, 65, 78, 90, 100, 110].map((size) => (
+                  <MenuItem key={size} value={String(size)}>
+                    {size}%
+                  </MenuItem>
+                ))}
+              </TextField>
               <Chip label={`Показани: ${filteredProducts.length}`} variant="outlined" />
               <Chip label={`Продукти: ${data.length}`} color="secondary" variant="outlined" />
               <Chip label="Снимки от линк или компютър" color="primary" variant="outlined" />
