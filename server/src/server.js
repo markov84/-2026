@@ -75,7 +75,23 @@ const io = new Server(server, {
 });
 
 app.use(cors(corsOptions));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https:"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"]
+      }
+    },
+    crossOriginEmbedderPolicy: false
+  })
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
@@ -87,15 +103,14 @@ app.get("/", (req, res) => {
   });
 });
 
-// Rate limiting: 1000 requests per 15 minutes per IP
+// Global API throttling to reduce abuse and brute-force pressure.
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
-    skip: (req) => {
-      // Skip rate limiting for health checks
-      return req.path === "/health" || req.path === "/api/health";
-    }
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.path === "/health" || req.path === "/api/health"
   })
 );
 
