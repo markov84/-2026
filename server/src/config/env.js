@@ -45,9 +45,11 @@ const smtpPort = Number(smtpPortRaw || 587);
 const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
 const generatedJwtSecret = crypto.randomBytes(32).toString("hex");
 
+const normalizedPort = Number.parseInt(envValue("PORT"), 10);
+
 export const env = {
   host: process.env.HOST || "0.0.0.0",
-  port: process.env.PORT || 5000,
+  port: Number.isFinite(normalizedPort) && normalizedPort > 0 ? normalizedPort : 5000,
   mongoUri: process.env.MONGODB_URI || "",
   jwtSecret: envValue("JWT_SECRET") || (isProduction ? generatedJwtSecret : "change-me"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
