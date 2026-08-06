@@ -10,6 +10,7 @@ import { connectDb } from "./config/db.js";
 import routes from "./routes/index.js";
 import authRoutes from "./routes/authRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { csrfProtection } from "./middleware/csrf.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -95,6 +96,8 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
+app.use(csrfProtection);
+app.use(csrfProtection);
 
 app.get("/", (req, res) => {
   res.status(200).json({
