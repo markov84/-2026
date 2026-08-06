@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -42,12 +43,13 @@ const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
 const smtpPort = Number(smtpPortRaw || 587);
 
 const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+const generatedJwtSecret = crypto.randomBytes(32).toString("hex");
 
 export const env = {
   host: process.env.HOST || "0.0.0.0",
   port: process.env.PORT || 5000,
   mongoUri: process.env.MONGODB_URI || "",
-  jwtSecret: process.env.JWT_SECRET || (isProduction ? "" : "change-me"),
+  jwtSecret: envValue("JWT_SECRET") || (isProduction ? generatedJwtSecret : "change-me"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   adminUsername: process.env.ADMIN_USERNAME || "admin",

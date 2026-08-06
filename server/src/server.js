@@ -132,8 +132,8 @@ io.on("connection", (socket) => {
 });
 
 async function start() {
-  if (process.env.NODE_ENV === "production" && !env.jwtSecret) {
-    throw new Error("JWT_SECRET must be set in production.");
+  if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+    console.warn("JWT_SECRET not provided; using a temporary generated secret for this process.");
   }
 
   server.listen(env.port, env.host, () => {
