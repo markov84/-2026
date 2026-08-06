@@ -41,15 +41,17 @@ const mailProvider = explicitMailProvider || (resendApiKey ? "resend" : "smtp");
 const smtpPortRaw = envValue("SMTP_PORT", "MAIL_PORT");
 const smtpPort = Number(smtpPortRaw || 587);
 
+const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+
 export const env = {
   host: process.env.HOST || "0.0.0.0",
   port: process.env.PORT || 5000,
   mongoUri: process.env.MONGODB_URI || "",
-  jwtSecret: process.env.JWT_SECRET || "change-me",
+  jwtSecret: process.env.JWT_SECRET || (isProduction ? "" : "change-me"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   adminUsername: process.env.ADMIN_USERNAME || "admin",
-  adminPassword: process.env.ADMIN_PASSWORD || "Markov8406162224",
+  adminPassword: process.env.ADMIN_PASSWORD || "",
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
     apiKey: process.env.CLOUDINARY_API_KEY || "",

@@ -5,41 +5,15 @@ import { User } from "../models/User.js";
 import { signToken } from "../utils/jwt.js";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { createAuthLimiter } from "../middleware/rateLimit.js";
+import { env } from "../config/env.js";
 
 const router = Router();
-
-router.get(
-  "/seed-admin",
-  asyncHandler(async (req, res) => {
-    const passwordHash = await bcrypt.hash("markov84", 10);
-
-    const user = await User.findOneAndUpdate(
-      { username: "admin" },
-      {
-        username: "admin",
-        fullName: "Administrator",
-        role: "admin",
-        active: true,
-        permissions: [],
-        passwordHash
-      },
-      { upsert: true, new: true }
-    );
-
-    return res.json({
-      message: "Admin created successfully.",
-      user: {
-        id: user._id,
-        username: user.username,
-        fullName: user.fullName,
-        role: user.role
-      }
-    });
-  })
-);
+const loginLimiter = createAuthLimiter();
 
 router.post(
   "/login",
+  loginLimiter,
   [
     body("username").trim().notEmpty(),
     body("password").isString().notEmpty()
@@ -51,7 +25,8 @@ router.post(
     }
 
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
+    const normalizedUsername = String(username || "").trim().toLowerCase();
+    const user = await User.findOne({ username: { $regex: new RegExp(`^${normalizedUsername}$`, "i") } });
 
     if (!user || !user.active || !user.passwordHash) {
       return res.status(401).json({ message: "Invalid username or password." });

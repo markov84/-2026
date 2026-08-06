@@ -114,6 +114,10 @@ io.on("connection", (socket) => {
 });
 
 async function start() {
+  if (process.env.NODE_ENV === "production" && !env.jwtSecret) {
+    throw new Error("JWT_SECRET must be set in production.");
+  }
+
   server.listen(env.port, env.host, () => {
     console.log(`Server listening on http://${env.host}:${env.port}`);
   });
