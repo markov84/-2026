@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
 
 router.post(
   "/",
-  [body("name").trim().notEmpty()],
+  [body("name").trim().notEmpty().isLength({ max: 120 })],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -28,7 +28,7 @@ router.post(
 
 router.put(
   "/:id",
-  [body("name").optional().trim().notEmpty()],
+  [body("name").optional().trim().notEmpty().isLength({ max: 120 })],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

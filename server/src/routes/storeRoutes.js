@@ -22,10 +22,10 @@ router.get("/", async (req, res) => {
 router.post(
   "/",
   [
-    body("name").trim().notEmpty(),
-    body("code").trim().notEmpty(),
-    body("city").trim().notEmpty(),
-    body("address").trim().notEmpty()
+    body("name").trim().notEmpty().isLength({ max: 120 }),
+    body("code").trim().notEmpty().isLength({ max: 40 }),
+    body("city").trim().notEmpty().isLength({ max: 120 }),
+    body("address").trim().notEmpty().isLength({ max: 250 })
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -42,10 +42,10 @@ router.post(
 router.put(
   "/:id",
   [
-    body("name").optional().trim().notEmpty(),
-    body("code").optional().trim().notEmpty(),
-    body("city").optional().trim().notEmpty(),
-    body("address").optional().trim().notEmpty()
+    body("name").optional().trim().notEmpty().isLength({ max: 120 }),
+    body("code").optional().trim().notEmpty().isLength({ max: 40 }),
+    body("city").optional().trim().notEmpty().isLength({ max: 120 }),
+    body("address").optional().trim().notEmpty().isLength({ max: 250 })
   ],
   async (req, res) => {
     const errors = validationResult(req);

@@ -16,7 +16,8 @@ router.post(
   "/",
   [
     body("customerType").optional().isIn(["person", "company"]),
-    body("fullName").trim().notEmpty(),
+    body("fullName").trim().notEmpty().isLength({ max: 120 }),
+    body("company").optional({ nullable: true }).trim().isLength({ max: 120 }),
     body("company").if(body("customerType").equals("company")).trim().notEmpty()
   ],
   async (req, res) => {
@@ -34,7 +35,8 @@ router.put(
   "/:id",
   [
     body("customerType").optional().isIn(["person", "company"]),
-    body("fullName").optional().trim().notEmpty(),
+    body("fullName").optional().trim().notEmpty().isLength({ max: 120 }),
+    body("company").optional({ nullable: true }).trim().isLength({ max: 120 }),
     body("company").if(body("customerType").equals("company")).trim().notEmpty()
   ],
   async (req, res) => {
