@@ -2,6 +2,7 @@ import { CircularProgress, Stack } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./providers/AuthProviderStable";
 import CommandCenterShell from "./components/CommandCenterShellClean";
+import FormKeyboardNavigation from "./components/FormKeyboardNavigation";
 import LoginPage from "./pages/LoginPage";
 import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPagePolished";
 import ProductsPage from "./pages/ProductsPagePolished";
@@ -71,12 +72,15 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      {user ? (
-        <Route path="/*" element={<PrivateRoutes user={user} />} />
-      ) : (
-        <Route path="*" element={<LoginPage />} />
-      )}
-    </Routes>
+    <>
+      <FormKeyboardNavigation />
+      <Routes>
+        {user ? (
+          <Route path="/*" element={<PrivateRoutes user={user} />} />
+        ) : (
+          <Route path="*" element={<LoginPage />} />
+        )}
+      </Routes>
+    </>
   );
 }
