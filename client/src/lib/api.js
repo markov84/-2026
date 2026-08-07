@@ -6,14 +6,30 @@ const RETRYABLE_ERROR_CODES = new Set(["ECONNABORTED", "ERR_NETWORK"]);
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 30000
+  timeout: 30000,
+  withCredentials: true
 });
+
+function getCsrfToken() {
+  if (typeof document === "undefined") {
+    return "";
+  }
+
+  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
 
 api.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    config.headers["X-CSRF-Token"] = csrfToken;
+  }
+
   return config;
 });
 

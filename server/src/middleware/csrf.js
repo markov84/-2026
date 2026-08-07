@@ -15,6 +15,8 @@ function createCsrfToken() {
 export function csrfProtection(req, res, next) {
   const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
   const method = req.method.toUpperCase();
+  const requestPath = req.path || req.originalUrl?.split("?")[0] || "/";
+  const normalizedPath = requestPath.replace(/^\/api/, "");
 
   if (safeMethods.has(method)) {
     const token = req.cookies?.csrfToken || createCsrfToken();
@@ -28,7 +30,7 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
-  if (req.path === "/login" || req.path === "/auth/login") {
+  if (normalizedPath === "/login" || normalizedPath === "/auth/login" || requestPath.endsWith("/login")) {
     return next();
   }
 
