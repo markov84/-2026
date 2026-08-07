@@ -1,10 +1,43 @@
 import { Box } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
+import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import { Children, cloneElement, isValidElement } from "react";
 
 export default function ResponsiveTable({ children }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const gridApiRef = useGridApiRef();
+
+  function handleGridCellKeyDown(child, params, event) {
+    if (event.key !== "Tab") {
+      child.props.onCellKeyDown?.(params, event);
+      return;
+    }
+
+    const visibleColumns = Array.isArray(child.props.columns)
+      ? child.props.columns.filter((column) => !column.hide)
+      : [];
+    const currentIndex = visibleColumns.findIndex((column) => column.field === params.field);
+
+    if (currentIndex === -1) {
+      child.props.onCellKeyDown?.(params, event);
+      return;
+    }
+
+    const nextIndex = event.shiftKey
+      ? (currentIndex - 1 + visibleColumns.length) % visibleColumns.length
+      : (currentIndex + 1) % visibleColumns.length;
+    const nextField = visibleColumns[nextIndex]?.field;
+
+    if (!nextField) {
+      child.props.onCellKeyDown?.(params, event);
+      return;
+    }
+
+    event.preventDefault();
+    gridApiRef.current.setCellFocus(params.id, nextField);
+  }
+
   const tableChildren = Children.map(children, (child) => {
     if (!isValidElement(child)) return child;
     if (!("rows" in child.props) || !("columns" in child.props)) return child;
@@ -13,6 +46,8 @@ export default function ResponsiveTable({ children }) {
       autoHeight: false,
       rowHeight: child.props.rowHeight ?? 60,
       columnHeaderHeight: child.props.columnHeaderHeight ?? 46,
+      apiRef: gridApiRef,
+      onCellKeyDown: (params, event) => handleGridCellKeyDown(child, params, event),
       initialState: {
         ...child.props.initialState,
         pagination: {

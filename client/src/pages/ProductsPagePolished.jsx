@@ -5,7 +5,7 @@ import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import {
@@ -249,7 +249,7 @@ export default function ProductsPagePolished() {
     setOpen(true);
   }
 
-  async function openEditDialog(product) {
+  const openEditDialog = useCallback(async (product) => {
     let editableProduct = product;
     try {
       editableProduct = product.imageUrl ? product : (await api.get(`/products/${product._id}`)).data;
@@ -280,7 +280,7 @@ export default function ProductsPagePolished() {
       fileInputRef.current.value = "";
     }
     setOpen(true);
-  }
+  }, []);
 
   function openDeleteDialog(product) {
     setProductToDelete(product);
@@ -419,6 +419,24 @@ export default function ProductsPagePolished() {
     setQuery(product.name || product.productNumber || product.sku || product.barcode || "");
     setPaginationModel((current) => ({ ...current, page: 0 }));
   }
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event) => {
+      if (event.key !== "F2") return;
+
+      const selectedId = selectionModel[0] || highlightedProductId;
+      const selectedProduct = filteredProducts.find((product) => String(product._id) === String(selectedId)) || data.find((product) => String(product._id) === String(selectedId));
+
+      if (!selectedProduct) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      void openEditDialog(selectedProduct);
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [data, filteredProducts, highlightedProductId, openEditDialog, selectionModel]);
 
   useBarcodeKeyboardScan((code) => {
     if (open) {
