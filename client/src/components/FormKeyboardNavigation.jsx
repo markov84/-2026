@@ -13,7 +13,7 @@ function isFocusableElement(element) {
     return true;
   }
 
-  return element.getAttribute("role") === "button" || element.getAttribute("tabindex") === "0";
+  return false;
 }
 
 function getFocusableElements(container) {
@@ -50,41 +50,16 @@ function focusNextElement(container, currentElement, reverse = false) {
 export default function FormKeyboardNavigation() {
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (!event.shiftKey) return;
+
       const activeElement = document.activeElement;
-      if (!activeElement) return;
+      if (!activeElement || !isFocusableElement(activeElement)) return;
 
-      const isTextLike = ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
-      if (!isTextLike && event.key !== "Enter") return;
-
-      if (event.key === "Enter" && !isTextLike) return;
-
-      if (event.key === "Enter" && activeElement.tagName === "TEXTAREA") return;
-
-      if (event.key === "Enter" && activeElement.tagName === "INPUT") {
-        const inputType = (activeElement.type || "text").toLowerCase();
-        if (["checkbox", "radio", "button", "submit", "reset", "file"].includes(inputType)) return;
-      }
-
-      const container = activeElement.closest(".MuiDialog-container, form, .MuiStack-root, .MuiBox-root, .MuiPaper-root");
+      const container = activeElement.closest("form, .MuiDialog-container, .MuiPaper-root");
       if (!container) return;
 
-      const shouldMoveForward = event.key === "Enter" || (event.key === "Tab" && !event.shiftKey);
-      const shouldMoveBackward = event.key === "Tab" && event.shiftKey;
-
-      if (!shouldMoveForward && !shouldMoveBackward) return;
-
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const next = focusNextElement(container, activeElement, false);
-        if (!next) {
-          const dialogButton = activeElement.closest(".MuiDialog-root")?.querySelector("button");
-          dialogButton?.focus();
-        }
-        return;
-      }
-
       event.preventDefault();
-      focusNextElement(container, activeElement, event.shiftKey);
+      focusNextElement(container, activeElement, true);
     };
 
     document.addEventListener("keydown", handleKeyDown, true);
