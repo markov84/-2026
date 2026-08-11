@@ -325,22 +325,25 @@ export function setProductLabelCopies(copies) {
   window.localStorage.setItem(LABEL_COPIES_STORAGE_KEY, String(safeCopies));
 }
 
-function buildSingleLabelHtml({ product, fallbackCode, storeUrl, barcodeDataUrl, qrDataUrl, companyLogoUrl, scale }) {
+function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, scale }) {
   const cardPadding = Math.max(8, Math.round(10 * scale));
-  const qrPx = Math.max(56, Math.round(72 * scale));
+  const qrPx = Math.max(34, Math.round(42 * scale));
   const titleFont = Math.max(12, Math.round(14 * scale));
   const skuFont = Math.max(10, Math.round(11 * scale));
+  const metaFont = Math.max(9, Math.round(10 * scale));
   const codeFont = Math.max(10, Math.round(11 * scale));
+  const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
 
   return `
     <article class="label-card" style="padding:${cardPadding}px;">
       <div class="label-title" style="font-size:${titleFont}px;">${escapeHtml(product?.name || "Продукт")}</div>
-      <div class="label-subtitle" style="font-size:${skuFont}px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
+      <div class="label-subtitle" style="font-size:${skuFont}px;">Модел: ${escapeHtml(modelCode)}</div>
+      <div class="label-meta" style="font-size:${metaFont}px;">Баркод: ${escapeHtml(fallbackCode)}</div>
 
       <div class="label-main-row">
         <div class="label-barcode-wrap">
           <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
-          <div style="font-size:${codeFont}px; margin-top:4px; font-weight:700; letter-spacing:0.08em;">${escapeHtml(fallbackCode)}</div>
+          <div style="font-size:${codeFont}px; margin-top:3px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
         <div class="label-qr-wrap">
           <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrPx}px; height:${qrPx}px; max-width:100%; display:block;" />
@@ -359,21 +362,18 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
   const codeLength = String(fallbackCode).length;
-  const barcodeWidthBase = codeLength > 16 ? 1.1 : codeLength > 12 ? 1.3 : 1.6;
+  const barcodeWidthBase = codeLength > 20 ? 0.58 : codeLength > 16 ? 0.7 : codeLength > 12 ? 0.85 : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(0.95, Number((barcodeWidthBase * scale).toFixed(2))),
-    height: Math.max(52, Math.round(62 * scale))
+    barWidth: Math.max(0.6, Number((barcodeWidthBase * scale).toFixed(2))),
+    height: Math.max(44, Math.round(50 * scale))
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(84, Math.round(98 * scale)));
-  const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
+  const qrDataUrl = await createQrPng(storeUrl, Math.max(60, Math.round(70 * scale)));
 
   const labelHtml = buildSingleLabelHtml({
     product,
     fallbackCode,
-    storeUrl,
     barcodeDataUrl,
     qrDataUrl,
-    companyLogoUrl,
     scale
   });
 
@@ -413,12 +413,18 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
       .label-subtitle {
         color: #4b5563;
         line-height: 1.2;
-        margin: 0 0 6px;
+        margin: 0 0 2px;
+      }
+      .label-meta {
+        color: #111827;
+        line-height: 1.2;
+        margin: 0 0 4px;
+        font-weight: 700;
       }
       .label-main-row {
         display: flex;
-        align-items: flex-end;
-        gap: 8px;
+        align-items: flex-start;
+        gap: 6px;
       }
       .label-barcode-wrap {
         flex: 1 1 auto;
@@ -427,7 +433,8 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
       .label-qr-wrap {
         flex: 0 0 auto;
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        margin-top: 2px;
       }
       @media print {
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
