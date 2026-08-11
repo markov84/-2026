@@ -600,6 +600,9 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
         .label-print-surface {
           width: ${thermalPrintSurface.pageWidthMm}mm;
           min-height: ${thermalPrintSurface.pageHeightMm}mm;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           overflow: hidden;
           page-break-inside: avoid;
           page-break-after: always;
@@ -612,12 +615,11 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           min-height: ${thermalPrintSurface.contentHeightMm}mm;
           text-align: left;
           overflow: hidden;
-        }
-        .${thermalPrintSurface.rotationClassName} .label-card {
-          transform-origin: top left;
+          flex: 0 0 auto;
         }
         .thermal-long-edge .label-card {
-          transform: rotate(90deg) translateY(-100%);
+          transform: rotate(90deg);
+          transform-origin: center center;
         }
         .label-title {
           font-weight: 800;
