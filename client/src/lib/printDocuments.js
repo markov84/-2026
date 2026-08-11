@@ -3,7 +3,7 @@ import JsBarcode from "jsbarcode";
 import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
-const DEFAULT_LABEL_SCALE_PERCENT = 78;
+const DEFAULT_LABEL_SCALE_PERCENT = 100;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
 const DEFAULT_LABEL_COPIES = 6;
 const MAX_LABEL_COPIES = 500;
@@ -286,7 +286,7 @@ async function createQrPng(data, size = 180) {
 function clampLabelScalePercent(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return DEFAULT_LABEL_SCALE_PERCENT;
-  return Math.min(110, Math.max(55, Math.round(numeric)));
+  return Math.min(140, Math.max(70, Math.round(numeric)));
 }
 
 function clampLabelCopies(value) {
@@ -320,31 +320,35 @@ export function setProductLabelCopies(copies) {
 }
 
 function buildSingleLabelHtml({ product, fallbackCode, storeUrl, barcodeDataUrl, qrDataUrl, companyLogoUrl, scale }) {
-  const cardPadding = Math.round(10 * scale);
-  const qrPx = Math.max(88, Math.round(120 * scale));
-  const logoPx = Math.max(26, Math.round(38 * scale));
+  const cardPadding = Math.round(14 * scale);
+  const qrPx = Math.max(100, Math.round(150 * scale));
+  const logoPx = Math.max(28, Math.round(42 * scale));
+  const titleFont = Math.max(12, Math.round(15 * scale));
+  const skuFont = Math.max(10, Math.round(11 * scale));
+  const codeFont = Math.max(10, Math.round(11 * scale));
+  const qrTextFont = Math.max(9, Math.round(10 * scale));
 
   return `
     <article class="label-card" style="padding:${cardPadding}px;">
       <div class="label-brand-row">
         <img src="${escapeHtml(companyLogoUrl)}" alt="MARK LIGHT logo" style="width:${logoPx}px; height:${logoPx}px; object-fit:contain;" />
         <div style="text-align:left; min-width:0;">
-          <div style="font-size:${Math.max(10, Math.round(12 * scale))}px; font-weight:800; letter-spacing:0.08em; color:#111827;">MARK LIGHT</div>
-          <div style="font-size:${Math.max(8, Math.round(9 * scale))}px; color:#6b7280; letter-spacing:0.08em; text-transform:uppercase;">Lighting Trade</div>
+          <div style="font-size:${Math.max(11, Math.round(13 * scale))}px; font-weight:800; letter-spacing:0.08em; color:#111827;">MARK LIGHT</div>
+          <div style="font-size:${Math.max(9, Math.round(10 * scale))}px; color:#6b7280; letter-spacing:0.08em; text-transform:uppercase;">Lighting Trade</div>
         </div>
       </div>
 
-      <div style="font-size:${Math.max(11, Math.round(13 * scale))}px; font-weight:800; margin:5px 0 4px; line-height:1.2;">${escapeHtml(product?.name || "Продукт")}</div>
-      <div style="font-size:${Math.max(9, Math.round(10 * scale))}px; color:#6b7280; margin-bottom:8px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
+      <div style="font-size:${titleFont}px; font-weight:800; margin:6px 0 4px; line-height:1.2;">${escapeHtml(product?.name || "Продукт")}</div>
+      <div style="font-size:${skuFont}px; color:#6b7280; margin-bottom:8px;">${escapeHtml(product?.sku || product?.productNumber || "")}</div>
 
-      <div class="label-barcode-wrap">
-        <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto;" />
-        <div style="font-size:${Math.max(9, Math.round(10 * scale))}px; margin-top:4px; font-weight:700; letter-spacing:0.08em;">${escapeHtml(fallbackCode)}</div>
+      <div class="label-barcode-wrap" style="margin-bottom:8px;">
+        <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
+        <div style="font-size:${codeFont}px; margin-top:5px; font-weight:700; letter-spacing:0.08em;">${escapeHtml(fallbackCode)}</div>
       </div>
 
       <div class="label-qr-wrap">
-        <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrPx}px; height:${qrPx}px; max-width:100%;" />
-        <div style="font-size:${Math.max(8, Math.round(9 * scale))}px; margin-top:4px; color:#6b7280;">${escapeHtml(storeUrl)}</div>
+        <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrPx}px; height:${qrPx}px; max-width:100%; display:block;" />
+        <div style="font-size:${qrTextFont}px; margin-top:5px; color:#6b7280;">${escapeHtml(storeUrl)}</div>
       </div>
     </article>
   `;
@@ -359,10 +363,10 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(1.2, Number((1.8 * scale).toFixed(2))),
-    height: Math.max(40, Math.round(56 * scale))
+    barWidth: Math.max(1.6, Number((2.2 * scale).toFixed(2))),
+    height: Math.max(54, Math.round(70 * scale))
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(96, Math.round(140 * scale)));
+  const qrDataUrl = await createQrPng(storeUrl, Math.max(112, Math.round(170 * scale)));
   const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
   const labelHtml = buildSingleLabelHtml({
@@ -386,7 +390,8 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
         width: 100%;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6mm;
+        gap: 7mm;
+        align-items: start;
       }
       .label-card {
         border: 1px solid #d1d5db;
@@ -394,6 +399,7 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
         text-align: center;
         page-break-inside: avoid;
         background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
       }
       .label-brand-row {
         display: flex;
