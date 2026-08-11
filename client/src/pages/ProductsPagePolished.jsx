@@ -55,13 +55,16 @@ import {
   getProductLabelCustomWidthMm,
   getProductLabelPaperPreset,
   getProductLabelScale,
+  getProductLabelThermalOrientation,
   printProductLabel,
   PRODUCT_LABEL_PAPER_PRESETS,
+  PRODUCT_LABEL_THERMAL_ORIENTATIONS,
   setProductLabelCopies,
   setProductLabelCustomHeightMm,
   setProductLabelCustomWidthMm,
   setProductLabelPaperPreset,
-  setProductLabelScale
+  setProductLabelScale,
+  setProductLabelThermalOrientation
 } from "../lib/printDocuments";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
@@ -154,6 +157,7 @@ export default function ProductsPagePolished() {
   const [labelPaperPreset, setLabelPaperPreset] = useState(() => getProductLabelPaperPreset());
   const [labelCustomWidthMm, setLabelCustomWidthMm] = useState(() => getProductLabelCustomWidthMm());
   const [labelCustomHeightMm, setLabelCustomHeightMm] = useState(() => getProductLabelCustomHeightMm());
+  const [labelThermalOrientation, setLabelThermalOrientation] = useState(() => getProductLabelThermalOrientation());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -496,7 +500,8 @@ export default function ProductsPagePolished() {
         copies: labelCopies,
         paperPreset: labelPaperPreset,
         customWidthMm: labelCustomWidthMm,
-        customHeightMm: labelCustomHeightMm
+        customHeightMm: labelCustomHeightMm,
+        thermalOrientation: labelThermalOrientation
       });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
@@ -533,6 +538,11 @@ export default function ProductsPagePolished() {
     const safeValue = Number.isFinite(numeric) ? Math.min(120, Math.max(20, Math.round(numeric))) : 40;
     setLabelCustomHeightMm(safeValue);
     setProductLabelCustomHeightMm(safeValue);
+  }
+
+  function handleLabelThermalOrientationChange(nextValue) {
+    setLabelThermalOrientation(nextValue);
+    setProductLabelThermalOrientation(nextValue);
   }
 
   return (
@@ -894,6 +904,23 @@ export default function ProductsPagePolished() {
               </Stack>
             ) : null}
 
+            {labelPaperPreset !== "a4-3x8" ? (
+              <TextField
+                select
+                size="small"
+                label="Ориентация на термо етикета"
+                value={labelThermalOrientation}
+                onChange={(event) => handleLabelThermalOrientationChange(event.target.value)}
+                fullWidth
+              >
+                {PRODUCT_LABEL_THERMAL_ORIENTATIONS.map((orientation) => (
+                  <MenuItem key={orientation.id} value={orientation.id}>
+                    {orientation.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ) : null}
+
             <TextField
               select
               size="small"
@@ -924,6 +951,9 @@ export default function ProductsPagePolished() {
             </Typography>
             <Typography variant="caption" color="text.secondary">
               За Phomemo M221 най-често се ползват 40x30, 50x30, 50x40, 60x40 и 70x80 mm етикети.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Ако печата на късата страна, избери "По дългата страна".
             </Typography>
           </Stack>
         </DialogContent>

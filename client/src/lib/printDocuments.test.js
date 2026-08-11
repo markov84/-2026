@@ -3,7 +3,8 @@ import {
   getProductLabelCustomHeightMm,
   getProductLabelCustomWidthMm,
   getProductLabelPaperPreset,
-  getProductLabelScale
+  getProductLabelScale,
+  getProductLabelThermalOrientation
 } from "./printDocuments";
 
 describe("product label defaults", () => {
@@ -22,5 +23,9 @@ describe("product label defaults", () => {
   it("uses safe default custom thermal size", () => {
     expect(getProductLabelCustomWidthMm()).toBe(60);
     expect(getProductLabelCustomHeightMm()).toBe(40);
+  });
+
+  it("uses long-edge as default thermal orientation", () => {
+    expect(getProductLabelThermalOrientation()).toBe("long-edge");
   });
 });

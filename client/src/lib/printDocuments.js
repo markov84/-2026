@@ -10,9 +10,11 @@ const MAX_LABEL_COPIES = 500;
 const LABEL_PAPER_PRESET_STORAGE_KEY = "productLabelPaperPreset";
 const LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY = "productLabelCustomWidthMm";
 const LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY = "productLabelCustomHeightMm";
+const LABEL_THERMAL_ORIENTATION_STORAGE_KEY = "productLabelThermalOrientation";
 const DEFAULT_LABEL_PAPER_PRESET = "thermal-40x30";
 const DEFAULT_CUSTOM_WIDTH_MM = 60;
 const DEFAULT_CUSTOM_HEIGHT_MM = 40;
+const DEFAULT_THERMAL_ORIENTATION = "long-edge";
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-40x30", label: "M221 често: 40 x 30 mm", kind: "thermal", widthMm: 40, heightMm: 30 },
@@ -22,6 +24,11 @@ export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-70x80", label: "M221 често: 70 x 80 mm", kind: "thermal", widthMm: 70, heightMm: 80 },
   { id: "thermal-custom", label: "M221 персонален размер (mm)", kind: "thermal-custom" },
   { id: "a4-3x8", label: "A4 лист (3 x 8 етикета)", kind: "a4", columns: 3, rows: 8, gapMm: 4 }
+];
+
+export const PRODUCT_LABEL_THERMAL_ORIENTATIONS = [
+  { id: "long-edge", label: "По дългата страна" },
+  { id: "short-edge", label: "По късата страна" }
 ];
 
 function escapeHtml(value) {
@@ -311,6 +318,10 @@ function clampLabelCopies(value) {
   return Math.min(MAX_LABEL_COPIES, Math.max(1, Math.round(numeric)));
 }
 
+function normalizeThermalOrientation(value) {
+  return PRODUCT_LABEL_THERMAL_ORIENTATIONS.some((option) => option.id === value) ? value : DEFAULT_THERMAL_ORIENTATION;
+}
+
 function getPaperPresetById(presetId) {
   return PRODUCT_LABEL_PAPER_PRESETS.find((preset) => preset.id === presetId) || PRODUCT_LABEL_PAPER_PRESETS[0];
 }
@@ -332,6 +343,30 @@ function resolveThermalSizeMm(preset, customWidthMm, customHeightMm) {
   return {
     widthMm: clampLabelDimensionMm(preset.widthMm, DEFAULT_CUSTOM_WIDTH_MM),
     heightMm: clampLabelDimensionMm(preset.heightMm, DEFAULT_CUSTOM_HEIGHT_MM)
+  };
+}
+
+function resolveThermalPrintSurface(sizeMm, orientation) {
+  const longSideMm = Math.max(sizeMm.widthMm, sizeMm.heightMm);
+  const shortSideMm = Math.min(sizeMm.widthMm, sizeMm.heightMm);
+  const safeOrientation = normalizeThermalOrientation(orientation);
+
+  if (safeOrientation === "long-edge") {
+    return {
+      pageWidthMm: shortSideMm,
+      pageHeightMm: longSideMm,
+      contentWidthMm: longSideMm,
+      contentHeightMm: shortSideMm,
+      rotationClassName: "thermal-long-edge"
+    };
+  }
+
+  return {
+    pageWidthMm: shortSideMm,
+    pageHeightMm: longSideMm,
+    contentWidthMm: shortSideMm,
+    contentHeightMm: longSideMm,
+    rotationClassName: "thermal-short-edge"
   };
 }
 
@@ -373,6 +408,17 @@ export function setProductLabelPaperPreset(presetId) {
   if (typeof window === "undefined") return;
   const safePreset = getPaperPresetById(presetId).id;
   window.localStorage.setItem(LABEL_PAPER_PRESET_STORAGE_KEY, safePreset);
+}
+
+export function getProductLabelThermalOrientation() {
+  if (typeof window === "undefined") return DEFAULT_THERMAL_ORIENTATION;
+  return normalizeThermalOrientation(window.localStorage.getItem(LABEL_THERMAL_ORIENTATION_STORAGE_KEY));
+}
+
+export function setProductLabelThermalOrientation(orientation) {
+  if (typeof window === "undefined") return;
+  const safeOrientation = normalizeThermalOrientation(orientation);
+  window.localStorage.setItem(LABEL_THERMAL_ORIENTATION_STORAGE_KEY, safeOrientation);
 }
 
 export function getProductLabelCustomWidthMm() {
@@ -425,7 +471,7 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   `;
 }
 
-export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm } = {}) {
+export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
   const safeCopies = clampLabelCopies(copies ?? getProductLabelCopies());
@@ -435,6 +481,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     customWidthMm ?? getProductLabelCustomWidthMm(),
     customHeightMm ?? getProductLabelCustomHeightMm()
   );
+  const thermalPrintSurface = resolveThermalPrintSurface(thermalSize, thermalOrientation ?? getProductLabelThermalOrientation());
   const isA4Sheet = safePaperPreset.kind === "a4";
   const scale = safeScalePercent / 100;
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
@@ -471,6 +518,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   });
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
+  const thermalLabelsHtml = Array.from({ length: safeCopies }, () => `<div class="label-print-surface">${labelHtml}</div>`).join("");
 
   const bodyHtml = isA4Sheet
     ? `
@@ -536,29 +584,40 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     `
     : `
       <style>
-        @page { size: ${thermalSize.widthMm}mm ${thermalSize.heightMm}mm; margin: 0; }
+        @page { size: ${thermalPrintSurface.pageWidthMm}mm ${thermalPrintSurface.pageHeightMm}mm; margin: 0; }
         * { box-sizing: border-box; }
         html, body {
           margin: 0;
           padding: 0;
-          width: ${thermalSize.widthMm}mm;
-          min-height: ${thermalSize.heightMm}mm;
+          width: ${thermalPrintSurface.pageWidthMm}mm;
+          min-height: ${thermalPrintSurface.pageHeightMm}mm;
           font-family: "Segoe UI", Arial, sans-serif;
           color: #111827;
         }
         .label-sheet {
-          width: ${thermalSize.widthMm}mm;
+          width: ${thermalPrintSurface.pageWidthMm}mm;
         }
-        .label-card {
-          width: ${thermalSize.widthMm}mm;
-          min-height: ${thermalSize.heightMm}mm;
-          text-align: left;
+        .label-print-surface {
+          width: ${thermalPrintSurface.pageWidthMm}mm;
+          min-height: ${thermalPrintSurface.pageHeightMm}mm;
+          overflow: hidden;
           page-break-inside: avoid;
           page-break-after: always;
+        }
+        .label-print-surface:last-child {
+          page-break-after: auto;
+        }
+        .label-card {
+          width: ${thermalPrintSurface.contentWidthMm}mm;
+          min-height: ${thermalPrintSurface.contentHeightMm}mm;
+          text-align: left;
           overflow: hidden;
         }
-        .label-card:last-child {
-          page-break-after: auto;
+        .${thermalPrintSurface.rotationClassName} .label-card {
+          transform-origin: top left;
+        }
+        .thermal-long-edge .label-card {
+          transform: rotate(90deg) translateY(-100%);
         }
         .label-title {
           font-weight: 800;
@@ -595,7 +654,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       </style>
-      <section class="label-sheet">${labelsHtml}</section>
+      <section class="label-sheet ${thermalPrintSurface.rotationClassName}">${thermalLabelsHtml}</section>
     `;
 
   printCustomHtml(title, bodyHtml);
