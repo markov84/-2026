@@ -482,7 +482,7 @@ export default function ProductsPagePolished() {
   }
 
   function handleLabelScaleChange(nextValue) {
-    const safeValue = Number(nextValue) || 78;
+    const safeValue = Number(nextValue) || 100;
     setLabelScalePercent(safeValue);
     setProductLabelScale(safeValue);
   }
@@ -823,7 +823,7 @@ export default function ProductsPagePolished() {
               onChange={(event) => handleLabelScaleChange(event.target.value)}
               fullWidth
             >
-              {[55, 65, 78, 90, 100, 110].map((size) => (
+              {[70, 85, 100, 115, 130, 140].map((size) => (
                 <MenuItem key={size} value={String(size)}>
                   {size}%
                 </MenuItem>
