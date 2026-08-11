@@ -300,6 +300,10 @@ function clampLabelCopies(value) {
 export function getProductLabelScale() {
   if (typeof window === "undefined") return DEFAULT_LABEL_SCALE_PERCENT;
   const storedValue = window.localStorage.getItem(LABEL_SCALE_STORAGE_KEY);
+  if (storedValue === "78") {
+    window.localStorage.setItem(LABEL_SCALE_STORAGE_KEY, String(DEFAULT_LABEL_SCALE_PERCENT));
+    return DEFAULT_LABEL_SCALE_PERCENT;
+  }
   return clampLabelScalePercent(storedValue || DEFAULT_LABEL_SCALE_PERCENT);
 }
 
