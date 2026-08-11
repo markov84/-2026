@@ -49,7 +49,16 @@ import { useAuth } from "../providers/AuthProviderStable";
 
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
-import { getProductLabelCopies, getProductLabelScale, printProductLabel, setProductLabelCopies, setProductLabelScale } from "../lib/printDocuments";
+import {
+  getProductLabelCopies,
+  getProductLabelPaperPreset,
+  getProductLabelScale,
+  printProductLabel,
+  PRODUCT_LABEL_PAPER_PRESETS,
+  setProductLabelCopies,
+  setProductLabelPaperPreset,
+  setProductLabelScale
+} from "../lib/printDocuments";
 import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
@@ -138,6 +147,7 @@ export default function ProductsPagePolished() {
   const [labelSettingsOpen, setLabelSettingsOpen] = useState(false);
   const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
   const [labelCopies, setLabelCopies] = useState(() => getProductLabelCopies());
+  const [labelPaperPreset, setLabelPaperPreset] = useState(() => getProductLabelPaperPreset());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -475,7 +485,11 @@ export default function ProductsPagePolished() {
 
   async function handlePrintLabel(product) {
     try {
-      await printProductLabel(product, { scalePercent: labelScalePercent, copies: labelCopies });
+      await printProductLabel(product, {
+        scalePercent: labelScalePercent,
+        copies: labelCopies,
+        paperPreset: labelPaperPreset
+      });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
     }
@@ -492,6 +506,11 @@ export default function ProductsPagePolished() {
     const safeValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(1, Math.round(parsedValue))) : 6;
     setLabelCopies(safeValue);
     setProductLabelCopies(safeValue);
+  }
+
+  function handleLabelPaperPresetChange(nextValue) {
+    setLabelPaperPreset(nextValue);
+    setProductLabelPaperPreset(nextValue);
   }
 
   return (
@@ -818,6 +837,21 @@ export default function ProductsPagePolished() {
             <TextField
               select
               size="small"
+              label="Тип печат"
+              value={labelPaperPreset}
+              onChange={(event) => handleLabelPaperPresetChange(event.target.value)}
+              fullWidth
+            >
+              {PRODUCT_LABEL_PAPER_PRESETS.map((preset) => (
+                <MenuItem key={preset.id} value={preset.id}>
+                  {preset.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              size="small"
               label="Размер на етикета"
               value={String(labelScalePercent)}
               onChange={(event) => handleLabelScaleChange(event.target.value)}
@@ -841,7 +875,7 @@ export default function ProductsPagePolished() {
             />
 
             <Typography variant="caption" color="text.secondary">
-              Тези настройки важат за печат от бутона в колоната "Действия" и се запомнят автоматично.
+              Можеш да печаташ както на термо ролка, така и на обикновен принтер на A4. Настройките се запомнят автоматично.
             </Typography>
           </Stack>
         </DialogContent>

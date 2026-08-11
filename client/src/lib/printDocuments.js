@@ -7,8 +7,15 @@ const DEFAULT_LABEL_SCALE_PERCENT = 100;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
 const DEFAULT_LABEL_COPIES = 6;
 const MAX_LABEL_COPIES = 500;
-const THERMAL_LABEL_WIDTH_MM = 58;
-const THERMAL_LABEL_HEIGHT_MM = 40;
+const LABEL_PAPER_PRESET_STORAGE_KEY = "productLabelPaperPreset";
+const DEFAULT_LABEL_PAPER_PRESET = "thermal-58x40";
+
+export const PRODUCT_LABEL_PAPER_PRESETS = [
+  { id: "thermal-58x40", label: "Термо ролка 58 x 40 mm", kind: "thermal", widthMm: 58, heightMm: 40 },
+  { id: "thermal-80x50", label: "Термо ролка 80 x 50 mm", kind: "thermal", widthMm: 80, heightMm: 50 },
+  { id: "thermal-100x70", label: "Термо ролка 100 x 70 mm", kind: "thermal", widthMm: 100, heightMm: 70 },
+  { id: "a4-3x8", label: "A4 лист (3 x 8 етикета)", kind: "a4", columns: 3, rows: 8, gapMm: 4 }
+];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -297,6 +304,10 @@ function clampLabelCopies(value) {
   return Math.min(MAX_LABEL_COPIES, Math.max(1, Math.round(numeric)));
 }
 
+function getPaperPresetById(presetId) {
+  return PRODUCT_LABEL_PAPER_PRESETS.find((preset) => preset.id === presetId) || PRODUCT_LABEL_PAPER_PRESETS[0];
+}
+
 export function getProductLabelScale() {
   if (typeof window === "undefined") return DEFAULT_LABEL_SCALE_PERCENT;
   const storedValue = window.localStorage.getItem(LABEL_SCALE_STORAGE_KEY);
@@ -323,6 +334,18 @@ export function setProductLabelCopies(copies) {
   if (typeof window === "undefined") return;
   const safeCopies = clampLabelCopies(copies);
   window.localStorage.setItem(LABEL_COPIES_STORAGE_KEY, String(safeCopies));
+}
+
+export function getProductLabelPaperPreset() {
+  if (typeof window === "undefined") return DEFAULT_LABEL_PAPER_PRESET;
+  const storedPreset = window.localStorage.getItem(LABEL_PAPER_PRESET_STORAGE_KEY) || DEFAULT_LABEL_PAPER_PRESET;
+  return getPaperPresetById(storedPreset).id;
+}
+
+export function setProductLabelPaperPreset(presetId) {
+  if (typeof window === "undefined") return;
+  const safePreset = getPaperPresetById(presetId).id;
+  window.localStorage.setItem(LABEL_PAPER_PRESET_STORAGE_KEY, safePreset);
 }
 
 function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, scale }) {
@@ -353,21 +376,37 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   `;
 }
 
-export async function printProductLabel(product, { scalePercent, copies } = {}) {
+export async function printProductLabel(product, { scalePercent, copies, paperPreset } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
   const safeCopies = clampLabelCopies(copies ?? getProductLabelCopies());
+  const safePaperPreset = getPaperPresetById(paperPreset ?? getProductLabelPaperPreset());
+  const isA4Sheet = safePaperPreset.kind === "a4";
   const scale = safeScalePercent / 100;
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
   const codeLength = String(fallbackCode).length;
-  const barcodeWidthBase = codeLength > 20 ? 0.58 : codeLength > 16 ? 0.7 : codeLength > 12 ? 0.85 : 1.05;
+  const barcodeWidthBase = isA4Sheet
+    ? codeLength > 20
+      ? 1.0
+      : codeLength > 16
+        ? 1.15
+        : codeLength > 12
+          ? 1.3
+          : 1.5
+    : codeLength > 20
+      ? 0.58
+      : codeLength > 16
+        ? 0.7
+        : codeLength > 12
+          ? 0.85
+          : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(0.6, Number((barcodeWidthBase * scale).toFixed(2))),
-    height: Math.max(44, Math.round(50 * scale))
+    barWidth: Math.max(isA4Sheet ? 1.0 : 0.6, Number((barcodeWidthBase * scale).toFixed(2))),
+    height: Math.max(isA4Sheet ? 56 : 44, Math.round((isA4Sheet ? 64 : 50) * scale))
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(60, Math.round(70 * scale)));
+  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 60, Math.round((isA4Sheet ? 84 : 70) * scale)));
 
   const labelHtml = buildSingleLabelHtml({
     product,
@@ -379,69 +418,131 @@ export async function printProductLabel(product, { scalePercent, copies } = {}) 
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
 
-  const bodyHtml = `
-    <style>
-      @page { size: ${THERMAL_LABEL_WIDTH_MM}mm ${THERMAL_LABEL_HEIGHT_MM}mm; margin: 0; }
-      * { box-sizing: border-box; }
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: ${THERMAL_LABEL_WIDTH_MM}mm;
-        min-height: ${THERMAL_LABEL_HEIGHT_MM}mm;
-        font-family: "Segoe UI", Arial, sans-serif;
-        color: #111827;
-      }
-      .label-sheet {
-        width: ${THERMAL_LABEL_WIDTH_MM}mm;
-      }
-      .label-card {
-        width: ${THERMAL_LABEL_WIDTH_MM}mm;
-        min-height: ${THERMAL_LABEL_HEIGHT_MM}mm;
-        text-align: left;
-        page-break-inside: avoid;
-        page-break-after: always;
-        overflow: hidden;
-      }
-      .label-card:last-child {
-        page-break-after: auto;
-      }
-      .label-title {
-        font-weight: 800;
-        line-height: 1.2;
-        margin: 0 0 2px;
-      }
-      .label-subtitle {
-        color: #4b5563;
-        line-height: 1.2;
-        margin: 0 0 2px;
-      }
-      .label-meta {
-        color: #111827;
-        line-height: 1.2;
-        margin: 0 0 4px;
-        font-weight: 700;
-      }
-      .label-main-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 6px;
-      }
-      .label-barcode-wrap {
-        flex: 1 1 auto;
-        min-width: 0;
-      }
-      .label-qr-wrap {
-        flex: 0 0 auto;
-        display: flex;
-        justify-content: flex-start;
-        margin-top: 2px;
-      }
-      @media print {
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      }
-    </style>
-    <section class="label-sheet">${labelsHtml}</section>
-  `;
+  const bodyHtml = isA4Sheet
+    ? `
+      <style>
+        @page { size: A4 portrait; margin: 8mm; }
+        * { box-sizing: border-box; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: "Segoe UI", Arial, sans-serif;
+          color: #111827;
+        }
+        .label-sheet {
+          display: grid;
+          grid-template-columns: repeat(${safePaperPreset.columns || 3}, minmax(0, 1fr));
+          gap: ${safePaperPreset.gapMm || 4}mm;
+        }
+        .label-card {
+          width: 100%;
+          min-height: 31mm;
+          border: 1px solid #111827;
+          border-radius: 2mm;
+          text-align: left;
+          page-break-inside: avoid;
+          overflow: hidden;
+        }
+        .label-title {
+          font-weight: 800;
+          line-height: 1.2;
+          margin: 0 0 2px;
+        }
+        .label-subtitle {
+          color: #4b5563;
+          line-height: 1.2;
+          margin: 0 0 2px;
+        }
+        .label-meta {
+          color: #111827;
+          line-height: 1.2;
+          margin: 0 0 4px;
+          font-weight: 700;
+        }
+        .label-main-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        .label-barcode-wrap {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .label-qr-wrap {
+          flex: 0 0 auto;
+          display: flex;
+          justify-content: flex-start;
+          margin-top: 2px;
+        }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+      <section class="label-sheet">${labelsHtml}</section>
+    `
+    : `
+      <style>
+        @page { size: ${safePaperPreset.widthMm}mm ${safePaperPreset.heightMm}mm; margin: 0; }
+        * { box-sizing: border-box; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: ${safePaperPreset.widthMm}mm;
+          min-height: ${safePaperPreset.heightMm}mm;
+          font-family: "Segoe UI", Arial, sans-serif;
+          color: #111827;
+        }
+        .label-sheet {
+          width: ${safePaperPreset.widthMm}mm;
+        }
+        .label-card {
+          width: ${safePaperPreset.widthMm}mm;
+          min-height: ${safePaperPreset.heightMm}mm;
+          text-align: left;
+          page-break-inside: avoid;
+          page-break-after: always;
+          overflow: hidden;
+        }
+        .label-card:last-child {
+          page-break-after: auto;
+        }
+        .label-title {
+          font-weight: 800;
+          line-height: 1.2;
+          margin: 0 0 2px;
+        }
+        .label-subtitle {
+          color: #4b5563;
+          line-height: 1.2;
+          margin: 0 0 2px;
+        }
+        .label-meta {
+          color: #111827;
+          line-height: 1.2;
+          margin: 0 0 4px;
+          font-weight: 700;
+        }
+        .label-main-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        .label-barcode-wrap {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .label-qr-wrap {
+          flex: 0 0 auto;
+          display: flex;
+          justify-content: flex-start;
+          margin-top: 2px;
+        }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+      <section class="label-sheet">${labelsHtml}</section>
+    `;
 
   printCustomHtml(title, bodyHtml);
 }
