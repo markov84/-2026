@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getProductLabelPaperPreset, getProductLabelScale } from "./printDocuments";
+import {
+  getProductLabelCustomHeightMm,
+  getProductLabelCustomWidthMm,
+  getProductLabelPaperPreset,
+  getProductLabelScale
+} from "./printDocuments";
 
 describe("product label defaults", () => {
   beforeEach(() => {
@@ -11,6 +16,11 @@ describe("product label defaults", () => {
   });
 
   it("uses thermal preset as default paper type", () => {
-    expect(getProductLabelPaperPreset()).toBe("thermal-58x40");
+    expect(getProductLabelPaperPreset()).toBe("thermal-40x30");
+  });
+
+  it("uses safe default custom thermal size", () => {
+    expect(getProductLabelCustomWidthMm()).toBe(60);
+    expect(getProductLabelCustomHeightMm()).toBe(40);
   });
 });

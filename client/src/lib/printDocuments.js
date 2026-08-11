@@ -8,12 +8,19 @@ const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
 const DEFAULT_LABEL_COPIES = 6;
 const MAX_LABEL_COPIES = 500;
 const LABEL_PAPER_PRESET_STORAGE_KEY = "productLabelPaperPreset";
-const DEFAULT_LABEL_PAPER_PRESET = "thermal-58x40";
+const LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY = "productLabelCustomWidthMm";
+const LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY = "productLabelCustomHeightMm";
+const DEFAULT_LABEL_PAPER_PRESET = "thermal-40x30";
+const DEFAULT_CUSTOM_WIDTH_MM = 60;
+const DEFAULT_CUSTOM_HEIGHT_MM = 40;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
-  { id: "thermal-58x40", label: "Термо ролка 58 x 40 mm", kind: "thermal", widthMm: 58, heightMm: 40 },
-  { id: "thermal-80x50", label: "Термо ролка 80 x 50 mm", kind: "thermal", widthMm: 80, heightMm: 50 },
-  { id: "thermal-100x70", label: "Термо ролка 100 x 70 mm", kind: "thermal", widthMm: 100, heightMm: 70 },
+  { id: "thermal-40x30", label: "M221 често: 40 x 30 mm", kind: "thermal", widthMm: 40, heightMm: 30 },
+  { id: "thermal-50x30", label: "M221 често: 50 x 30 mm", kind: "thermal", widthMm: 50, heightMm: 30 },
+  { id: "thermal-50x40", label: "M221 често: 50 x 40 mm", kind: "thermal", widthMm: 50, heightMm: 40 },
+  { id: "thermal-60x40", label: "M221 често: 60 x 40 mm", kind: "thermal", widthMm: 60, heightMm: 40 },
+  { id: "thermal-70x80", label: "M221 често: 70 x 80 mm", kind: "thermal", widthMm: 70, heightMm: 80 },
+  { id: "thermal-custom", label: "M221 персонален размер (mm)", kind: "thermal-custom" },
   { id: "a4-3x8", label: "A4 лист (3 x 8 етикета)", kind: "a4", columns: 3, rows: 8, gapMm: 4 }
 ];
 
@@ -308,6 +315,26 @@ function getPaperPresetById(presetId) {
   return PRODUCT_LABEL_PAPER_PRESETS.find((preset) => preset.id === presetId) || PRODUCT_LABEL_PAPER_PRESETS[0];
 }
 
+function clampLabelDimensionMm(value, fallback) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(120, Math.max(20, Math.round(numeric)));
+}
+
+function resolveThermalSizeMm(preset, customWidthMm, customHeightMm) {
+  if (preset.kind === "thermal-custom") {
+    return {
+      widthMm: clampLabelDimensionMm(customWidthMm, DEFAULT_CUSTOM_WIDTH_MM),
+      heightMm: clampLabelDimensionMm(customHeightMm, DEFAULT_CUSTOM_HEIGHT_MM)
+    };
+  }
+  return {
+    widthMm: clampLabelDimensionMm(preset.widthMm, DEFAULT_CUSTOM_WIDTH_MM),
+    heightMm: clampLabelDimensionMm(preset.heightMm, DEFAULT_CUSTOM_HEIGHT_MM)
+  };
+}
+
 export function getProductLabelScale() {
   if (typeof window === "undefined") return DEFAULT_LABEL_SCALE_PERCENT;
   const storedValue = window.localStorage.getItem(LABEL_SCALE_STORAGE_KEY);
@@ -348,6 +375,28 @@ export function setProductLabelPaperPreset(presetId) {
   window.localStorage.setItem(LABEL_PAPER_PRESET_STORAGE_KEY, safePreset);
 }
 
+export function getProductLabelCustomWidthMm() {
+  if (typeof window === "undefined") return DEFAULT_CUSTOM_WIDTH_MM;
+  return clampLabelDimensionMm(window.localStorage.getItem(LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY), DEFAULT_CUSTOM_WIDTH_MM);
+}
+
+export function setProductLabelCustomWidthMm(widthMm) {
+  if (typeof window === "undefined") return;
+  const safeWidth = clampLabelDimensionMm(widthMm, DEFAULT_CUSTOM_WIDTH_MM);
+  window.localStorage.setItem(LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY, String(safeWidth));
+}
+
+export function getProductLabelCustomHeightMm() {
+  if (typeof window === "undefined") return DEFAULT_CUSTOM_HEIGHT_MM;
+  return clampLabelDimensionMm(window.localStorage.getItem(LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY), DEFAULT_CUSTOM_HEIGHT_MM);
+}
+
+export function setProductLabelCustomHeightMm(heightMm) {
+  if (typeof window === "undefined") return;
+  const safeHeight = clampLabelDimensionMm(heightMm, DEFAULT_CUSTOM_HEIGHT_MM);
+  window.localStorage.setItem(LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY, String(safeHeight));
+}
+
 function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, scale }) {
   const cardPadding = Math.max(8, Math.round(10 * scale));
   const qrPx = Math.max(34, Math.round(42 * scale));
@@ -376,11 +425,16 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   `;
 }
 
-export async function printProductLabel(product, { scalePercent, copies, paperPreset } = {}) {
+export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
   const safeCopies = clampLabelCopies(copies ?? getProductLabelCopies());
   const safePaperPreset = getPaperPresetById(paperPreset ?? getProductLabelPaperPreset());
+  const thermalSize = resolveThermalSizeMm(
+    safePaperPreset,
+    customWidthMm ?? getProductLabelCustomWidthMm(),
+    customHeightMm ?? getProductLabelCustomHeightMm()
+  );
   const isA4Sheet = safePaperPreset.kind === "a4";
   const scale = safeScalePercent / 100;
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
@@ -482,22 +536,22 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     `
     : `
       <style>
-        @page { size: ${safePaperPreset.widthMm}mm ${safePaperPreset.heightMm}mm; margin: 0; }
+        @page { size: ${thermalSize.widthMm}mm ${thermalSize.heightMm}mm; margin: 0; }
         * { box-sizing: border-box; }
         html, body {
           margin: 0;
           padding: 0;
-          width: ${safePaperPreset.widthMm}mm;
-          min-height: ${safePaperPreset.heightMm}mm;
+          width: ${thermalSize.widthMm}mm;
+          min-height: ${thermalSize.heightMm}mm;
           font-family: "Segoe UI", Arial, sans-serif;
           color: #111827;
         }
         .label-sheet {
-          width: ${safePaperPreset.widthMm}mm;
+          width: ${thermalSize.widthMm}mm;
         }
         .label-card {
-          width: ${safePaperPreset.widthMm}mm;
-          min-height: ${safePaperPreset.heightMm}mm;
+          width: ${thermalSize.widthMm}mm;
+          min-height: ${thermalSize.heightMm}mm;
           text-align: left;
           page-break-inside: avoid;
           page-break-after: always;

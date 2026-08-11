@@ -51,11 +51,15 @@ import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import api from "../lib/api";
 import {
   getProductLabelCopies,
+  getProductLabelCustomHeightMm,
+  getProductLabelCustomWidthMm,
   getProductLabelPaperPreset,
   getProductLabelScale,
   printProductLabel,
   PRODUCT_LABEL_PAPER_PRESETS,
   setProductLabelCopies,
+  setProductLabelCustomHeightMm,
+  setProductLabelCustomWidthMm,
   setProductLabelPaperPreset,
   setProductLabelScale
 } from "../lib/printDocuments";
@@ -148,6 +152,8 @@ export default function ProductsPagePolished() {
   const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
   const [labelCopies, setLabelCopies] = useState(() => getProductLabelCopies());
   const [labelPaperPreset, setLabelPaperPreset] = useState(() => getProductLabelPaperPreset());
+  const [labelCustomWidthMm, setLabelCustomWidthMm] = useState(() => getProductLabelCustomWidthMm());
+  const [labelCustomHeightMm, setLabelCustomHeightMm] = useState(() => getProductLabelCustomHeightMm());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -488,7 +494,9 @@ export default function ProductsPagePolished() {
       await printProductLabel(product, {
         scalePercent: labelScalePercent,
         copies: labelCopies,
-        paperPreset: labelPaperPreset
+        paperPreset: labelPaperPreset,
+        customWidthMm: labelCustomWidthMm,
+        customHeightMm: labelCustomHeightMm
       });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
@@ -511,6 +519,20 @@ export default function ProductsPagePolished() {
   function handleLabelPaperPresetChange(nextValue) {
     setLabelPaperPreset(nextValue);
     setProductLabelPaperPreset(nextValue);
+  }
+
+  function handleLabelCustomWidthChange(nextValue) {
+    const numeric = Number(nextValue);
+    const safeValue = Number.isFinite(numeric) ? Math.min(120, Math.max(20, Math.round(numeric))) : 60;
+    setLabelCustomWidthMm(safeValue);
+    setProductLabelCustomWidthMm(safeValue);
+  }
+
+  function handleLabelCustomHeightChange(nextValue) {
+    const numeric = Number(nextValue);
+    const safeValue = Number.isFinite(numeric) ? Math.min(120, Math.max(20, Math.round(numeric))) : 40;
+    setLabelCustomHeightMm(safeValue);
+    setProductLabelCustomHeightMm(safeValue);
   }
 
   return (
@@ -849,6 +871,29 @@ export default function ProductsPagePolished() {
               ))}
             </TextField>
 
+            {labelPaperPreset === "thermal-custom" ? (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Ширина (mm)"
+                  value={String(labelCustomWidthMm)}
+                  onChange={(event) => handleLabelCustomWidthChange(event.target.value)}
+                  inputProps={{ min: 20, max: 120, step: 1 }}
+                  fullWidth
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Височина (mm)"
+                  value={String(labelCustomHeightMm)}
+                  onChange={(event) => handleLabelCustomHeightChange(event.target.value)}
+                  inputProps={{ min: 20, max: 120, step: 1 }}
+                  fullWidth
+                />
+              </Stack>
+            ) : null}
+
             <TextField
               select
               size="small"
@@ -876,6 +921,9 @@ export default function ProductsPagePolished() {
 
             <Typography variant="caption" color="text.secondary">
               Можеш да печаташ както на термо ролка, така и на обикновен принтер на A4. Настройките се запомнят автоматично.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              За Phomemo M221 най-често се ползват 40x30, 50x30, 50x40, 60x40 и 70x80 mm етикети.
             </Typography>
           </Stack>
         </DialogContent>
