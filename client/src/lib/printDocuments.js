@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
+import { jsPDF } from "jspdf";
 import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
@@ -299,6 +300,15 @@ function printCustomHtml(title, html) {
   printWindow.document.close();
 }
 
+function printPdfDocument(pdfDocument) {
+  if (!pdfDocument) return;
+
+  pdfDocument.setProperties({ title: "Етикет" });
+  const blobUrl = pdfDocument.output("bloburl");
+  const printWindow = window.open(blobUrl, "_blank");
+  if (!printWindow) return;
+}
+
 async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, data, {
@@ -520,6 +530,117 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   `;
 }
 
+function truncateText(value, maxChars) {
+  const text = String(value || "").trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 1))}…`;
+}
+
+function drawThermalLabelOnPdf(pdf, {
+  product,
+  fallbackCode,
+  barcodeDataUrl,
+  qrDataUrl,
+  logoDataUrl,
+  pageWidthMm,
+  pageHeightMm,
+  offsetXmm,
+  offsetYmm,
+  scale
+}) {
+  const safeScale = Math.max(1, scale);
+  const margin = Math.max(1.2, Number((1.8 / safeScale).toFixed(2)));
+  const x = margin + offsetXmm;
+  const y = margin + offsetYmm;
+  const contentWidth = Math.max(12, pageWidthMm - margin * 2 - Math.abs(offsetXmm));
+  const contentHeight = Math.max(12, pageHeightMm - margin * 2 - Math.abs(offsetYmm));
+  const textAreaWidth = contentWidth;
+  const qrSize = Math.min(Math.max(9, 11 * safeScale), Math.max(9, contentHeight * 0.45));
+  const barcodeHeight = Math.min(Math.max(10, 12 * safeScale), Math.max(10, contentHeight * 0.42));
+  const headerHeight = Math.min(Math.max(5, 6.5 * safeScale), contentHeight * 0.24);
+
+  let cursorY = y;
+  if (logoDataUrl) {
+    const logoHeight = Math.max(3.8, headerHeight - 1.6);
+    const logoWidth = Math.min(contentWidth * 0.6, logoHeight * 4);
+    pdf.addImage(logoDataUrl, "PNG", x, cursorY, logoWidth, logoHeight, undefined, "FAST");
+    cursorY += logoHeight + 0.6;
+  }
+
+  const titlePt = Math.max(10, Math.round(10 * safeScale));
+  const metaPt = Math.max(8, Math.round(8 * safeScale));
+  const codePt = Math.max(9, Math.round(9 * safeScale));
+  const productName = truncateText(product?.name || "Продукт", 44);
+  const modelCode = truncateText(product?.productNumber || product?.sku || "-", 30);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(titlePt);
+  const titleLines = pdf.splitTextToSize(productName, textAreaWidth);
+  pdf.text(titleLines.slice(0, 2), x, cursorY + 3.2, { baseline: "top" });
+  cursorY += Math.min(8.2 * safeScale, 9.2);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(metaPt);
+  pdf.text(`Model: ${modelCode}`, x, cursorY, { baseline: "top" });
+  cursorY += 3.8;
+  pdf.text(`Barcode: ${fallbackCode}`, x, cursorY, { baseline: "top" });
+  cursorY += 4.1;
+
+  const qrX = x + contentWidth - qrSize;
+  const barcodeWidth = Math.max(10, qrX - x - 1.6);
+  const barcodeY = Math.min(y + contentHeight - barcodeHeight - 4, cursorY + 0.6);
+  pdf.addImage(barcodeDataUrl, "PNG", x, barcodeY, barcodeWidth, barcodeHeight, undefined, "FAST");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(codePt);
+  const codeY = Math.min(y + contentHeight - 0.8, barcodeY + barcodeHeight + 1.2);
+  pdf.text(String(fallbackCode), x, codeY, { baseline: "bottom" });
+
+  const qrY = Math.max(cursorY, y + contentHeight - qrSize - 1.2);
+  pdf.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize, undefined, "FAST");
+}
+
+function printThermalLabelPdf({
+  product,
+  fallbackCode,
+  barcodeDataUrl,
+  qrDataUrl,
+  logoDataUrl,
+  copies,
+  thermalPrintSurface,
+  scale,
+  offsetXmm,
+  offsetYmm
+}) {
+  const orientation = thermalPrintSurface.pageWidthMm >= thermalPrintSurface.pageHeightMm ? "landscape" : "portrait";
+  const pdf = new jsPDF({
+    orientation,
+    unit: "mm",
+    format: [thermalPrintSurface.pageWidthMm, thermalPrintSurface.pageHeightMm],
+    compress: true
+  });
+
+  for (let index = 0; index < copies; index += 1) {
+    if (index > 0) {
+      pdf.addPage([thermalPrintSurface.pageWidthMm, thermalPrintSurface.pageHeightMm], orientation);
+    }
+    drawThermalLabelOnPdf(pdf, {
+      product,
+      fallbackCode,
+      barcodeDataUrl,
+      qrDataUrl,
+      logoDataUrl,
+      pageWidthMm: thermalPrintSurface.pageWidthMm,
+      pageHeightMm: thermalPrintSurface.pageHeightMm,
+      offsetXmm,
+      offsetYmm,
+      scale
+    });
+  }
+
+  printPdfDocument(pdf);
+}
+
 export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation, offsetXmm, offsetYmm } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
@@ -578,6 +699,22 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
   const thermalLabelsHtml = Array.from({ length: safeCopies }, () => `<div class="label-print-surface">${labelHtml}</div>`).join("");
+
+  if (!isA4Sheet) {
+    printThermalLabelPdf({
+      product,
+      fallbackCode,
+      barcodeDataUrl,
+      qrDataUrl,
+      logoDataUrl,
+      copies: safeCopies,
+      thermalPrintSurface,
+      scale,
+      offsetXmm: safeOffsetXmm,
+      offsetYmm: safeOffsetYmm
+    });
+    return;
+  }
 
   const bodyHtml = isA4Sheet
     ? `
