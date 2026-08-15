@@ -4,6 +4,10 @@ import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
 const DEFAULT_LABEL_SCALE_PERCENT = 100;
+export const MIN_LABEL_SCALE_PERCENT = 60;
+export const MAX_LABEL_SCALE_PERCENT = 280;
+export const MIN_LABEL_DIMENSION_MM = 20;
+export const MAX_LABEL_DIMENSION_MM = 200;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
 const DEFAULT_LABEL_COPIES = 6;
 const MAX_LABEL_COPIES = 500;
@@ -17,10 +21,15 @@ const DEFAULT_CUSTOM_HEIGHT_MM = 40;
 const DEFAULT_THERMAL_ORIENTATION = "long-edge";
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
+  { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
+  { id: "thermal-40x20", label: "Термо: 40 x 20 mm", kind: "thermal", widthMm: 40, heightMm: 20 },
   { id: "thermal-40x30", label: "M221 често: 40 x 30 mm", kind: "thermal", widthMm: 40, heightMm: 30 },
   { id: "thermal-50x30", label: "M221 често: 50 x 30 mm", kind: "thermal", widthMm: 50, heightMm: 30 },
   { id: "thermal-50x40", label: "M221 често: 50 x 40 mm", kind: "thermal", widthMm: 50, heightMm: 40 },
+  { id: "thermal-58x40", label: "Термо: 58 x 40 mm", kind: "thermal", widthMm: 58, heightMm: 40 },
   { id: "thermal-60x40", label: "M221 често: 60 x 40 mm", kind: "thermal", widthMm: 60, heightMm: 40 },
+  { id: "thermal-80x50", label: "Термо: 80 x 50 mm", kind: "thermal", widthMm: 80, heightMm: 50 },
+  { id: "thermal-100x150", label: "Куриерски: 100 x 150 mm (4x6")", kind: "thermal", widthMm: 100, heightMm: 150 },
   { id: "thermal-70x80", label: "M221 често: 70 x 80 mm", kind: "thermal", widthMm: 70, heightMm: 80 },
   { id: "thermal-custom", label: "M221 персонален размер (mm)", kind: "thermal-custom" },
   { id: "a4-3x8", label: "A4 лист (3 x 8 етикета)", kind: "a4", columns: 3, rows: 8, gapMm: 4 }
@@ -309,7 +318,7 @@ async function createQrPng(data, size = 180) {
 function clampLabelScalePercent(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return DEFAULT_LABEL_SCALE_PERCENT;
-  return Math.min(140, Math.max(70, Math.round(numeric)));
+  return Math.min(MAX_LABEL_SCALE_PERCENT, Math.max(MIN_LABEL_SCALE_PERCENT, Math.round(numeric)));
 }
 
 function clampLabelCopies(value) {
@@ -330,7 +339,7 @@ function clampLabelDimensionMm(value, fallback) {
   if (value === null || value === undefined || value === "") return fallback;
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
-  return Math.min(120, Math.max(20, Math.round(numeric)));
+  return Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)));
 }
 
 function resolveThermalSizeMm(preset, customWidthMm, customHeightMm) {
@@ -353,11 +362,11 @@ function resolveThermalPrintSurface(sizeMm, orientation) {
 
   if (safeOrientation === "long-edge") {
     return {
-      pageWidthMm: shortSideMm,
-      pageHeightMm: longSideMm,
+      pageWidthMm: longSideMm,
+      pageHeightMm: shortSideMm,
       contentWidthMm: longSideMm,
       contentHeightMm: shortSideMm,
-      rotationClassName: "thermal-long-edge"
+      rotationClassName: ""
     };
   }
 
@@ -366,7 +375,7 @@ function resolveThermalPrintSurface(sizeMm, orientation) {
     pageHeightMm: longSideMm,
     contentWidthMm: shortSideMm,
     contentHeightMm: longSideMm,
-    rotationClassName: "thermal-short-edge"
+    rotationClassName: ""
   };
 }
 
@@ -543,7 +552,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           border-radius: 2mm;
           text-align: left;
           page-break-inside: avoid;
-          overflow: hidden;
+          overflow: visible;
         }
         .label-title {
           font-weight: 800;
@@ -601,9 +610,9 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           width: ${thermalPrintSurface.pageWidthMm}mm;
           min-height: ${thermalPrintSurface.pageHeightMm}mm;
           display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
+          align-items: stretch;
+          justify-content: flex-start;
+          overflow: visible;
           page-break-inside: avoid;
           page-break-after: always;
         }
@@ -614,12 +623,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           width: ${thermalPrintSurface.contentWidthMm}mm;
           min-height: ${thermalPrintSurface.contentHeightMm}mm;
           text-align: left;
-          overflow: hidden;
+          overflow: visible;
           flex: 0 0 auto;
-        }
-        .thermal-long-edge .label-card {
-          transform: rotate(90deg);
-          transform-origin: center center;
         }
         .label-title {
           font-weight: 800;

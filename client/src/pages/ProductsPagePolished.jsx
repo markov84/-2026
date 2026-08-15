@@ -53,6 +53,10 @@ import {
   getProductLabelCopies,
   getProductLabelCustomHeightMm,
   getProductLabelCustomWidthMm,
+  MAX_LABEL_DIMENSION_MM,
+  MAX_LABEL_SCALE_PERCENT,
+  MIN_LABEL_DIMENSION_MM,
+  MIN_LABEL_SCALE_PERCENT,
   getProductLabelPaperPreset,
   getProductLabelScale,
   getProductLabelThermalOrientation,
@@ -509,7 +513,10 @@ export default function ProductsPagePolished() {
   }
 
   function handleLabelScaleChange(nextValue) {
-    const safeValue = Number(nextValue) || 100;
+    const parsedValue = Number(nextValue);
+    const safeValue = Number.isFinite(parsedValue)
+      ? Math.min(MAX_LABEL_SCALE_PERCENT, Math.max(MIN_LABEL_SCALE_PERCENT, Math.round(parsedValue)))
+      : 100;
     setLabelScalePercent(safeValue);
     setProductLabelScale(safeValue);
   }
@@ -528,14 +535,18 @@ export default function ProductsPagePolished() {
 
   function handleLabelCustomWidthChange(nextValue) {
     const numeric = Number(nextValue);
-    const safeValue = Number.isFinite(numeric) ? Math.min(120, Math.max(20, Math.round(numeric))) : 60;
+    const safeValue = Number.isFinite(numeric)
+      ? Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)))
+      : 60;
     setLabelCustomWidthMm(safeValue);
     setProductLabelCustomWidthMm(safeValue);
   }
 
   function handleLabelCustomHeightChange(nextValue) {
     const numeric = Number(nextValue);
-    const safeValue = Number.isFinite(numeric) ? Math.min(120, Math.max(20, Math.round(numeric))) : 40;
+    const safeValue = Number.isFinite(numeric)
+      ? Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)))
+      : 40;
     setLabelCustomHeightMm(safeValue);
     setProductLabelCustomHeightMm(safeValue);
   }
@@ -889,7 +900,7 @@ export default function ProductsPagePolished() {
                   label="Ширина (mm)"
                   value={String(labelCustomWidthMm)}
                   onChange={(event) => handleLabelCustomWidthChange(event.target.value)}
-                  inputProps={{ min: 20, max: 120, step: 1 }}
+                  inputProps={{ min: MIN_LABEL_DIMENSION_MM, max: MAX_LABEL_DIMENSION_MM, step: 1 }}
                   fullWidth
                 />
                 <TextField
@@ -898,7 +909,7 @@ export default function ProductsPagePolished() {
                   label="Височина (mm)"
                   value={String(labelCustomHeightMm)}
                   onChange={(event) => handleLabelCustomHeightChange(event.target.value)}
-                  inputProps={{ min: 20, max: 120, step: 1 }}
+                  inputProps={{ min: MIN_LABEL_DIMENSION_MM, max: MAX_LABEL_DIMENSION_MM, step: 1 }}
                   fullWidth
                 />
               </Stack>
@@ -922,19 +933,15 @@ export default function ProductsPagePolished() {
             ) : null}
 
             <TextField
-              select
               size="small"
-              label="Размер на етикета"
+              type="number"
+              label="Размер на етикета (%)"
               value={String(labelScalePercent)}
               onChange={(event) => handleLabelScaleChange(event.target.value)}
+              inputProps={{ min: MIN_LABEL_SCALE_PERCENT, max: MAX_LABEL_SCALE_PERCENT, step: 1 }}
+              helperText={`Ръчно въвеждане: ${MIN_LABEL_SCALE_PERCENT}% - ${MAX_LABEL_SCALE_PERCENT}%`}
               fullWidth
-            >
-              {[70, 85, 100, 115, 130, 140].map((size) => (
-                <MenuItem key={size} value={String(size)}>
-                  {size}%
-                </MenuItem>
-              ))}
-            </TextField>
+            />
 
             <TextField
               size="small"
