@@ -1105,13 +1105,16 @@ export default function ProductsPagePolished() {
                 >
                   <Box component="img" src="/MARK%20LIGHT.png" alt="Logo" sx={{ maxWidth: "62%", maxHeight: 14, width: "auto", height: "auto", display: "block", mb: 0.35 }} />
                   <Typography sx={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.05 }} noWrap>
-                    Име на продукта пример
+                    Име на продукта (пълен пример)
                   </Typography>
                   <Typography sx={{ mt: 0.2, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
-                    Model: SKU-1-0014
+                    Model: ML-A5157
                   </Typography>
                   <Typography sx={{ mt: 0.12, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
-                    Barcode: SKU-1-0014
+                    SKU: SKU-1-0007
+                  </Typography>
+                  <Typography sx={{ mt: 0.12, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
+                    Barcode: SKU-1-0007
                   </Typography>
                   <Stack direction="row" spacing={0.8} sx={{ mt: 0.45, alignItems: "flex-end" }}>
                     <Box sx={{ flex: 1, alignSelf: "flex-end" }}>
