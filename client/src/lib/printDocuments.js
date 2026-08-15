@@ -26,7 +26,7 @@ const DEFAULT_LABEL_OFFSET_X_MM = 0;
 const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
-const LABEL_GLOBAL_LEFT_SHIFT_MM = 2.8;
+const LABEL_GLOBAL_LEFT_SHIFT_MM = 5;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -545,6 +545,14 @@ function truncateText(value, maxChars) {
   return `${text.slice(0, Math.max(0, maxChars - 1))}…`;
 }
 
+function extractAfterFirstHyphen(value) {
+  const text = String(value || "").trim();
+  const hyphenIndex = text.indexOf("-");
+  if (hyphenIndex < 0) return text;
+  const extracted = text.slice(hyphenIndex + 1).trim();
+  return extracted || text;
+}
+
 function toPdfSafeText(value) {
   const source = String(value || "");
   const map = {
@@ -686,8 +694,8 @@ async function renderThermalLabelCanvasDataUrl({
 
   const logoImage = await loadImageElement(logoDataUrl);
   if (logoImage) {
-    const logoBoxWidth = Math.floor(contentWidthPx * 0.66);
-    const logoBoxHeight = Math.max(mm(5.8), Math.floor(contentHeightPx * 0.28));
+    const logoBoxWidth = Math.floor(contentWidthPx * 0.92);
+    const logoBoxHeight = Math.max(mm(7.2), Math.floor(contentHeightPx * 0.34));
     const ratio = logoImage.width / logoImage.height;
     let logoWidth = logoBoxWidth;
     let logoHeight = Math.floor(logoWidth / ratio);
@@ -696,9 +704,13 @@ async function renderThermalLabelCanvasDataUrl({
       logoWidth = Math.floor(logoHeight * ratio);
     }
     context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
+
+    context.fillStyle = "#111827";
+    context.font = `600 ${Math.max(11, mm(1.35))}px \"Segoe UI\", Arial, sans-serif`;
+    context.fillText("MARK LIGHT", leftPadPx, topPadPx + logoHeight + Math.max(11, mm(1.45)));
   }
 
-  let cursorYPx = topPadPx + Math.max(mm(6.4), Math.floor(contentHeightPx * 0.28));
+  let cursorYPx = topPadPx + Math.max(mm(8.8), Math.floor(contentHeightPx * 0.4));
   const titleFontPx = Math.max(15, Math.round(14 * safeScale));
   const metaFontPx = Math.max(11, Math.round(10 * safeScale));
   const lineHeightPx = Math.max(14, Math.round(metaFontPx * 1.18));
@@ -709,7 +721,8 @@ async function renderThermalLabelCanvasDataUrl({
   const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
   cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 4;
 
-  const modelCode = truncateText(String(product?.productNumber || "-").trim() || "-", 34);
+  const modelSource = String(product?.productNumber || product?.name || product?.sku || "-").trim() || "-";
+  const modelCode = truncateText(extractAfterFirstHyphen(modelSource), 36);
   const skuCode = truncateText(String(product?.sku || "-").trim() || "-", 34);
 
   context.font = `500 ${metaFontPx}px \"Segoe UI\", Arial, sans-serif`;
@@ -727,7 +740,7 @@ async function renderThermalLabelCanvasDataUrl({
   const qrY = topPadPx + contentHeightPx - qrSizePx;
   const barcodeAreaX = leftPadPx;
   const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - mm(1.2));
-  const barcodeAreaY = Math.max(cursorYPx, topPadPx + Math.floor(contentHeightPx * 0.62));
+  const barcodeAreaY = Math.max(cursorYPx + mm(1), topPadPx + Math.floor(contentHeightPx * 0.68));
   const barcodeAreaHeight = Math.max(mm(7.2), topPadPx + contentHeightPx - barcodeAreaY - 1);
 
   if (barcodeImage) {
