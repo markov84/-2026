@@ -544,6 +544,25 @@ function truncateText(value, maxChars) {
   return `${text.slice(0, Math.max(0, maxChars - 1))}…`;
 }
 
+function toPdfSafeText(value) {
+  const source = String(value || "");
+  const map = {
+    А: "A", а: "a", Б: "B", б: "b", В: "V", в: "v", Г: "G", г: "g", Д: "D", д: "d",
+    Е: "E", е: "e", Ж: "Zh", ж: "zh", З: "Z", з: "z", И: "I", и: "i", Й: "Y", й: "y",
+    К: "K", к: "k", Л: "L", л: "l", М: "M", м: "m", Н: "N", н: "n", О: "O", о: "o",
+    П: "P", п: "p", Р: "R", р: "r", С: "S", с: "s", Т: "T", т: "t", У: "U", у: "u",
+    Ф: "F", ф: "f", Х: "H", х: "h", Ц: "Ts", ц: "ts", Ч: "Ch", ч: "ch", Ш: "Sh", ш: "sh",
+    Щ: "Sht", щ: "sht", Ъ: "A", ъ: "a", Ь: "", ь: "", Ю: "Yu", ю: "yu", Я: "Ya", я: "ya"
+  };
+
+  const transliterated = source
+    .split("")
+    .map((char) => (Object.prototype.hasOwnProperty.call(map, char) ? map[char] : char))
+    .join("");
+
+  return transliterated.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+}
+
 function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -598,22 +617,22 @@ function drawThermalLabelOnPdf(pdf, {
     cursorY += logoHeight + 0.8;
   }
 
-  const productName = truncateText(product?.name || "Продукт", 48);
+  const productName = toPdfSafeText(truncateText(product?.name || "Product", 48));
   const modelCodeRaw = String(product?.productNumber || "").trim();
   const skuCodeRaw = String(product?.sku || "").trim();
-  const modelCode = truncateText(modelCodeRaw || skuCodeRaw || "-", 32);
-  const skuCode = truncateText(skuCodeRaw || "-", 30);
+  const modelCode = toPdfSafeText(truncateText(modelCodeRaw || skuCodeRaw || "-", 32));
+  const skuCode = toPdfSafeText(truncateText(skuCodeRaw || "-", 30));
   const sameModelAndSku = modelCodeRaw && skuCodeRaw && modelCodeRaw.toLowerCase() === skuCodeRaw.toLowerCase();
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(titlePt);
-  const titleLines = pdf.splitTextToSize(`Модел: ${modelCode}`, Math.max(12, contentWidth - 0.2));
+  const titleLines = pdf.splitTextToSize(`Model: ${modelCode}`, Math.max(12, contentWidth - 0.2));
   pdf.text(titleLines.slice(0, 2), baseX, cursorY + 0.2, { baseline: "top" });
   cursorY += Math.min(topAreaHeight * 0.48, 5.8 + 2.4 * safeScale);
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(metaPt);
-  pdf.text(`Име: ${productName}`, baseX, cursorY, { baseline: "top" });
+  pdf.text(`Name: ${productName}`, baseX, cursorY, { baseline: "top" });
   cursorY += 3.2;
   if (sameModelAndSku) {
     pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
