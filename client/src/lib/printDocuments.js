@@ -15,10 +15,16 @@ const LABEL_PAPER_PRESET_STORAGE_KEY = "productLabelPaperPreset";
 const LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY = "productLabelCustomWidthMm";
 const LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY = "productLabelCustomHeightMm";
 const LABEL_THERMAL_ORIENTATION_STORAGE_KEY = "productLabelThermalOrientation";
+const LABEL_OFFSET_X_MM_STORAGE_KEY = "productLabelOffsetXmm";
+const LABEL_OFFSET_Y_MM_STORAGE_KEY = "productLabelOffsetYmm";
 const DEFAULT_LABEL_PAPER_PRESET = "thermal-40x30";
 const DEFAULT_CUSTOM_WIDTH_MM = 60;
 const DEFAULT_CUSTOM_HEIGHT_MM = 40;
 const DEFAULT_THERMAL_ORIENTATION = "long-edge";
+const DEFAULT_LABEL_OFFSET_X_MM = 0;
+const DEFAULT_LABEL_OFFSET_Y_MM = 0;
+export const MIN_LABEL_OFFSET_MM = -20;
+export const MAX_LABEL_OFFSET_MM = 20;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -342,6 +348,13 @@ function clampLabelDimensionMm(value, fallback) {
   return Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)));
 }
 
+function clampLabelOffsetMm(value, fallback = 0) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(MAX_LABEL_OFFSET_MM, Math.max(MIN_LABEL_OFFSET_MM, Number(numeric.toFixed(1))));
+}
+
 function resolveThermalSizeMm(preset, customWidthMm, customHeightMm) {
   if (preset.kind === "thermal-custom") {
     return {
@@ -452,17 +465,43 @@ export function setProductLabelCustomHeightMm(heightMm) {
   window.localStorage.setItem(LABEL_CUSTOM_HEIGHT_MM_STORAGE_KEY, String(safeHeight));
 }
 
-function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, scale }) {
-  const cardPadding = Math.max(8, Math.round(10 * scale));
-  const qrPx = Math.max(34, Math.round(42 * scale));
-  const titleFont = Math.max(12, Math.round(14 * scale));
-  const skuFont = Math.max(10, Math.round(11 * scale));
-  const metaFont = Math.max(9, Math.round(10 * scale));
-  const codeFont = Math.max(10, Math.round(11 * scale));
+export function getProductLabelOffsetXmm() {
+  if (typeof window === "undefined") return DEFAULT_LABEL_OFFSET_X_MM;
+  return clampLabelOffsetMm(window.localStorage.getItem(LABEL_OFFSET_X_MM_STORAGE_KEY), DEFAULT_LABEL_OFFSET_X_MM);
+}
+
+export function setProductLabelOffsetXmm(value) {
+  if (typeof window === "undefined") return;
+  const safeOffset = clampLabelOffsetMm(value, DEFAULT_LABEL_OFFSET_X_MM);
+  window.localStorage.setItem(LABEL_OFFSET_X_MM_STORAGE_KEY, String(safeOffset));
+}
+
+export function getProductLabelOffsetYmm() {
+  if (typeof window === "undefined") return DEFAULT_LABEL_OFFSET_Y_MM;
+  return clampLabelOffsetMm(window.localStorage.getItem(LABEL_OFFSET_Y_MM_STORAGE_KEY), DEFAULT_LABEL_OFFSET_Y_MM);
+}
+
+export function setProductLabelOffsetYmm(value) {
+  if (typeof window === "undefined") return;
+  const safeOffset = clampLabelOffsetMm(value, DEFAULT_LABEL_OFFSET_Y_MM);
+  window.localStorage.setItem(LABEL_OFFSET_Y_MM_STORAGE_KEY, String(safeOffset));
+}
+
+function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm }) {
+  const cardPadding = Math.max(6, Math.round(7 * scale));
+  const qrPx = Math.max(26, Math.round(30 * scale));
+  const titleFont = Math.max(10, Math.round(12 * scale));
+  const skuFont = Math.max(8, Math.round(9 * scale));
+  const metaFont = Math.max(8, Math.round(9 * scale));
+  const codeFont = Math.max(9, Math.round(10 * scale));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
+  const logoHtml = logoDataUrl
+    ? `<img src="${escapeHtml(logoDataUrl)}" alt="Logo" style="height:${Math.max(10, Math.round(12 * scale))}px; width:auto; display:block; margin-bottom:2px;" />`
+    : "";
 
   return `
-    <article class="label-card" style="padding:${cardPadding}px;">
+    <article class="label-card" style="padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;">
+      ${logoHtml}
       <div class="label-title" style="font-size:${titleFont}px;">${escapeHtml(product?.name || "Продукт")}</div>
       <div class="label-subtitle" style="font-size:${skuFont}px;">Модел: ${escapeHtml(modelCode)}</div>
       <div class="label-meta" style="font-size:${metaFont}px;">Баркод: ${escapeHtml(fallbackCode)}</div>
@@ -480,11 +519,13 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   `;
 }
 
-export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation } = {}) {
+export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation, offsetXmm, offsetYmm } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
   const safeCopies = clampLabelCopies(copies ?? getProductLabelCopies());
   const safePaperPreset = getPaperPresetById(paperPreset ?? getProductLabelPaperPreset());
+  const safeOffsetXmm = clampLabelOffsetMm(offsetXmm ?? getProductLabelOffsetXmm(), DEFAULT_LABEL_OFFSET_X_MM);
+  const safeOffsetYmm = clampLabelOffsetMm(offsetYmm ?? getProductLabelOffsetYmm(), DEFAULT_LABEL_OFFSET_Y_MM);
   const thermalSize = resolveThermalSizeMm(
     safePaperPreset,
     customWidthMm ?? getProductLabelCustomWidthMm(),
@@ -517,13 +558,17 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     height: Math.max(isA4Sheet ? 56 : 44, Math.round((isA4Sheet ? 64 : 50) * scale))
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 60, Math.round((isA4Sheet ? 84 : 70) * scale)));
+  const logoDataUrl = await loadImageAsDataUrl(new URL("/MARK%20LIGHT.png", window.location.origin).toString());
 
   const labelHtml = buildSingleLabelHtml({
     product,
     fallbackCode,
     barcodeDataUrl,
     qrDataUrl,
-    scale
+    logoDataUrl,
+    scale,
+    offsetXmm: safeOffsetXmm,
+    offsetYmm: safeOffsetYmm
   });
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
@@ -627,6 +672,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           min-height: 100%;
           text-align: left;
           overflow: hidden;
+          position: relative;
         }
         .label-title {
           font-weight: 800;

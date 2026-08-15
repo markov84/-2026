@@ -53,9 +53,13 @@ import {
   getProductLabelCopies,
   getProductLabelCustomHeightMm,
   getProductLabelCustomWidthMm,
+  getProductLabelOffsetXmm,
+  getProductLabelOffsetYmm,
   MAX_LABEL_DIMENSION_MM,
+  MAX_LABEL_OFFSET_MM,
   MAX_LABEL_SCALE_PERCENT,
   MIN_LABEL_DIMENSION_MM,
+  MIN_LABEL_OFFSET_MM,
   MIN_LABEL_SCALE_PERCENT,
   getProductLabelPaperPreset,
   getProductLabelScale,
@@ -66,6 +70,8 @@ import {
   setProductLabelCopies,
   setProductLabelCustomHeightMm,
   setProductLabelCustomWidthMm,
+  setProductLabelOffsetXmm,
+  setProductLabelOffsetYmm,
   setProductLabelPaperPreset,
   setProductLabelScale,
   setProductLabelThermalOrientation
@@ -195,6 +201,8 @@ export default function ProductsPagePolished() {
   const [labelCustomWidthMm, setLabelCustomWidthMm] = useState(() => getProductLabelCustomWidthMm());
   const [labelCustomHeightMm, setLabelCustomHeightMm] = useState(() => getProductLabelCustomHeightMm());
   const [labelThermalOrientation, setLabelThermalOrientation] = useState(() => getProductLabelThermalOrientation());
+  const [labelOffsetXmm, setLabelOffsetXmm] = useState(() => getProductLabelOffsetXmm());
+  const [labelOffsetYmm, setLabelOffsetYmm] = useState(() => getProductLabelOffsetYmm());
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -553,7 +561,9 @@ export default function ProductsPagePolished() {
         paperPreset: labelPaperPreset,
         customWidthMm: labelCustomWidthMm,
         customHeightMm: labelCustomHeightMm,
-        thermalOrientation: labelThermalOrientation
+        thermalOrientation: labelThermalOrientation,
+        offsetXmm: labelOffsetXmm,
+        offsetYmm: labelOffsetYmm
       });
     } catch (error) {
       toast.error(error?.message || "Неуспешно генериране на етикет.");
@@ -610,6 +620,24 @@ export default function ProductsPagePolished() {
   function handleLabelThermalOrientationChange(nextValue) {
     setLabelThermalOrientation(nextValue);
     setProductLabelThermalOrientation(nextValue);
+  }
+
+  function handleLabelOffsetXChange(nextValue) {
+    const numeric = Number(nextValue);
+    const safeValue = Number.isFinite(numeric)
+      ? Math.min(MAX_LABEL_OFFSET_MM, Math.max(MIN_LABEL_OFFSET_MM, Number(numeric.toFixed(1))))
+      : 0;
+    setLabelOffsetXmm(safeValue);
+    setProductLabelOffsetXmm(safeValue);
+  }
+
+  function handleLabelOffsetYChange(nextValue) {
+    const numeric = Number(nextValue);
+    const safeValue = Number.isFinite(numeric)
+      ? Math.min(MAX_LABEL_OFFSET_MM, Math.max(MIN_LABEL_OFFSET_MM, Number(numeric.toFixed(1))))
+      : 0;
+    setLabelOffsetYmm(safeValue);
+    setProductLabelOffsetYmm(safeValue);
   }
 
   return (
@@ -1011,6 +1039,31 @@ export default function ProductsPagePolished() {
               fullWidth
             />
 
+            {labelPaperPreset !== "a4-3x8" ? (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Отместване X (mm)"
+                  value={String(labelOffsetXmm)}
+                  onChange={(event) => handleLabelOffsetXChange(event.target.value)}
+                  inputProps={{ min: MIN_LABEL_OFFSET_MM, max: MAX_LABEL_OFFSET_MM, step: 0.5 }}
+                  helperText="- = наляво, + = надясно"
+                  fullWidth
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Отместване Y (mm)"
+                  value={String(labelOffsetYmm)}
+                  onChange={(event) => handleLabelOffsetYChange(event.target.value)}
+                  inputProps={{ min: MIN_LABEL_OFFSET_MM, max: MAX_LABEL_OFFSET_MM, step: 0.5 }}
+                  helperText="- = нагоре, + = надолу"
+                  fullWidth
+                />
+              </Stack>
+            ) : null}
+
             <Box sx={{ border: "1px solid rgba(39,86,107,0.2)", borderRadius: 2, p: 1.25, bgcolor: "rgba(39,86,107,0.03)" }}>
               <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
                 Преглед на етикета (live)
@@ -1037,7 +1090,7 @@ export default function ProductsPagePolished() {
                     p: 0.8,
                     overflow: "hidden",
                     bgcolor: "#fff",
-                    transform: `scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
+                    transform: `translate(${Math.round(labelOffsetXmm * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
                     transformOrigin: "center center"
                   }}
                 >
@@ -1075,6 +1128,9 @@ export default function ProductsPagePolished() {
               </Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                 Площ за печат: {previewPageSize.pageWidthMm} x {previewPageSize.pageHeightMm} mm | Мащаб: {labelScalePercent}%
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                Отместване: X {labelOffsetXmm} mm, Y {labelOffsetYmm} mm
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                 Това е симулация за нагласяне. Реалният печат зависи и от настройката Scale/Zoom в драйвера на принтера.
