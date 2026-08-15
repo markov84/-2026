@@ -487,13 +487,14 @@ export function setProductLabelOffsetYmm(value) {
   window.localStorage.setItem(LABEL_OFFSET_Y_MM_STORAGE_KEY, String(safeOffset));
 }
 
-function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm }) {
+function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm, isThermal }) {
+  const readabilityBoost = isThermal ? 1.35 : 1;
   const cardPadding = Math.max(6, Math.round(7 * scale));
-  const qrPx = Math.max(26, Math.round(30 * scale));
-  const titleFont = Math.max(10, Math.round(12 * scale));
-  const skuFont = Math.max(8, Math.round(9 * scale));
-  const metaFont = Math.max(8, Math.round(9 * scale));
-  const codeFont = Math.max(9, Math.round(10 * scale));
+  const qrPx = Math.max(isThermal ? 34 : 26, Math.round((isThermal ? 34 : 30) * scale * readabilityBoost));
+  const titleFont = Math.max(isThermal ? 12 : 10, Math.round(12 * scale * readabilityBoost));
+  const skuFont = Math.max(isThermal ? 10 : 8, Math.round(9 * scale * readabilityBoost));
+  const metaFont = Math.max(isThermal ? 10 : 8, Math.round(9 * scale * readabilityBoost));
+  const codeFont = Math.max(isThermal ? 11 : 9, Math.round(10 * scale * readabilityBoost));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
     ? `<img src="${escapeHtml(logoDataUrl)}" alt="Logo" style="height:${Math.max(10, Math.round(12 * scale))}px; width:auto; display:block; margin-bottom:2px;" />`
@@ -533,7 +534,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   );
   const thermalPrintSurface = resolveThermalPrintSurface(thermalSize, thermalOrientation ?? getProductLabelThermalOrientation());
   const isA4Sheet = safePaperPreset.kind === "a4";
-  const scale = safeScalePercent / 100;
+  const thermalAreaMm = thermalPrintSurface.contentWidthMm * thermalPrintSurface.contentHeightMm;
+  const thermalMinReadableScalePercent = thermalAreaMm <= 2000 ? 175 : thermalAreaMm <= 3600 ? 150 : 130;
+  const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.max(safeScalePercent, thermalMinReadableScalePercent);
+  const scale = effectiveScalePercent / 100;
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
@@ -554,10 +558,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           ? 0.85
           : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(isA4Sheet ? 1.0 : 0.6, Number((barcodeWidthBase * scale).toFixed(2))),
-    height: Math.max(isA4Sheet ? 56 : 44, Math.round((isA4Sheet ? 64 : 50) * scale))
+    barWidth: Math.max(isA4Sheet ? 1.0 : 0.9, Number((barcodeWidthBase * scale).toFixed(2))),
+    height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * scale))
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 60, Math.round((isA4Sheet ? 84 : 70) * scale)));
+  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * scale)));
   const logoDataUrl = await loadImageAsDataUrl(new URL("/MARK%20LIGHT.png", window.location.origin).toString());
 
   const labelHtml = buildSingleLabelHtml({
@@ -568,7 +572,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     logoDataUrl,
     scale,
     offsetXmm: safeOffsetXmm,
-    offsetYmm: safeOffsetYmm
+    offsetYmm: safeOffsetYmm,
+    isThermal: !isA4Sheet
   });
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
