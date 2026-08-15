@@ -143,6 +143,39 @@ function saveStoredList(key, values) {
   window.localStorage.setItem(key, JSON.stringify(values));
 }
 
+function getPresetLabelSizeMm(presetId, customWidthMm, customHeightMm) {
+  const preset = PRODUCT_LABEL_PAPER_PRESETS.find((item) => item.id === presetId) || PRODUCT_LABEL_PAPER_PRESETS[0];
+  if (preset?.kind === "thermal-custom") {
+    return {
+      widthMm: Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Number(customWidthMm) || 60)),
+      heightMm: Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Number(customHeightMm) || 40)),
+      kind: "thermal-custom"
+    };
+  }
+  if (preset?.kind === "thermal") {
+    return {
+      widthMm: Number(preset.widthMm) || 60,
+      heightMm: Number(preset.heightMm) || 40,
+      kind: "thermal"
+    };
+  }
+
+  return {
+    widthMm: 63.5,
+    heightMm: 33.9,
+    kind: "a4"
+  };
+}
+
+function getPreviewPageSizeMm(widthMm, heightMm, orientation) {
+  const longSideMm = Math.max(widthMm, heightMm);
+  const shortSideMm = Math.min(widthMm, heightMm);
+  if (orientation === "long-edge") {
+    return { pageWidthMm: longSideMm, pageHeightMm: shortSideMm };
+  }
+  return { pageWidthMm: shortSideMm, pageHeightMm: longSideMm };
+}
+
 export default function ProductsPagePolished() {
   const { user } = useAuth();
   const { data, loading, setData } = useFetch("/products");
@@ -170,6 +203,21 @@ export default function ProductsPagePolished() {
   const isMobile = useMobileDetection();
   const fileInputRef = useRef(null);
   const canViewCost = ["admin", "manager"].includes(user?.role);
+  const previewLabelSize = useMemo(
+    () => getPresetLabelSizeMm(labelPaperPreset, labelCustomWidthMm, labelCustomHeightMm),
+    [labelPaperPreset, labelCustomWidthMm, labelCustomHeightMm]
+  );
+  const previewPageSize = useMemo(
+    () => getPreviewPageSizeMm(previewLabelSize.widthMm, previewLabelSize.heightMm, labelThermalOrientation),
+    [previewLabelSize, labelThermalOrientation]
+  );
+  const previewFitScale = useMemo(() => {
+    const maxPreviewWidthPx = 300;
+    const maxPreviewHeightPx = 170;
+    const widthScale = maxPreviewWidthPx / previewPageSize.pageWidthMm;
+    const heightScale = maxPreviewHeightPx / previewPageSize.pageHeightMm;
+    return Math.max(1.6, Math.min(widthScale, heightScale));
+  }, [previewPageSize]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -523,7 +571,7 @@ export default function ProductsPagePolished() {
 
   function handleLabelCopiesChange(nextValue) {
     const parsedValue = Number(nextValue);
-    const safeValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(1, Math.round(parsedValue))) : 6;
+    const safeValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(1, Math.round(parsedValue))) : 1;
     setLabelCopies(safeValue);
     setProductLabelCopies(safeValue);
   }
@@ -538,6 +586,10 @@ export default function ProductsPagePolished() {
     const safeValue = Number.isFinite(numeric)
       ? Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)))
       : 60;
+    if (labelPaperPreset !== "thermal-custom") {
+      setLabelPaperPreset("thermal-custom");
+      setProductLabelPaperPreset("thermal-custom");
+    }
     setLabelCustomWidthMm(safeValue);
     setProductLabelCustomWidthMm(safeValue);
   }
@@ -547,6 +599,10 @@ export default function ProductsPagePolished() {
     const safeValue = Number.isFinite(numeric)
       ? Math.min(MAX_LABEL_DIMENSION_MM, Math.max(MIN_LABEL_DIMENSION_MM, Math.round(numeric)))
       : 40;
+    if (labelPaperPreset !== "thermal-custom") {
+      setLabelPaperPreset("thermal-custom");
+      setProductLabelPaperPreset("thermal-custom");
+    }
     setLabelCustomHeightMm(safeValue);
     setProductLabelCustomHeightMm(safeValue);
   }
@@ -892,7 +948,7 @@ export default function ProductsPagePolished() {
               ))}
             </TextField>
 
-            {labelPaperPreset === "thermal-custom" ? (
+            {labelPaperPreset !== "a4-3x8" ? (
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                 <TextField
                   size="small"
@@ -901,6 +957,7 @@ export default function ProductsPagePolished() {
                   value={String(labelCustomWidthMm)}
                   onChange={(event) => handleLabelCustomWidthChange(event.target.value)}
                   inputProps={{ min: MIN_LABEL_DIMENSION_MM, max: MAX_LABEL_DIMENSION_MM, step: 1 }}
+                  helperText={labelPaperPreset === "thermal-custom" ? "Персонален размер" : "Промяна = автоматично към персонален"}
                   fullWidth
                 />
                 <TextField
@@ -910,6 +967,7 @@ export default function ProductsPagePolished() {
                   value={String(labelCustomHeightMm)}
                   onChange={(event) => handleLabelCustomHeightChange(event.target.value)}
                   inputProps={{ min: MIN_LABEL_DIMENSION_MM, max: MAX_LABEL_DIMENSION_MM, step: 1 }}
+                  helperText={labelPaperPreset === "thermal-custom" ? "Персонален размер" : "Промяна = автоматично към персонален"}
                   fullWidth
                 />
               </Stack>
@@ -952,6 +1010,76 @@ export default function ProductsPagePolished() {
               inputProps={{ min: 1, max: 500, step: 1 }}
               fullWidth
             />
+
+            <Box sx={{ border: "1px solid rgba(39,86,107,0.2)", borderRadius: 2, p: 1.25, bgcolor: "rgba(39,86,107,0.03)" }}>
+              <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                Преглед на етикета (live)
+              </Typography>
+              <Box
+                sx={{
+                  width: "100%",
+                  minHeight: 190,
+                  borderRadius: 1.5,
+                  border: "1px dashed rgba(17,24,39,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  p: 1,
+                  bgcolor: "#fff"
+                }}
+              >
+                <Box
+                  sx={{
+                    width: `${Math.round(previewPageSize.pageWidthMm * previewFitScale)}px`,
+                    height: `${Math.round(previewPageSize.pageHeightMm * previewFitScale)}px`,
+                    border: "1px solid #111827",
+                    borderRadius: 1,
+                    p: 0.8,
+                    overflow: "hidden",
+                    bgcolor: "#fff",
+                    transform: `scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
+                    transformOrigin: "center center"
+                  }}
+                >
+                  <Typography sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.1 }} noWrap>
+                    POL-ML-ST-9033-3-BK
+                  </Typography>
+                  <Typography sx={{ mt: 0.35, fontSize: 8, color: "#374151", lineHeight: 1.1 }} noWrap>
+                    Модел: SKU-1-0014
+                  </Typography>
+                  <Typography sx={{ mt: 0.2, fontSize: 8, color: "#374151", lineHeight: 1.1 }} noWrap>
+                    Баркод: SKU-1-0014
+                  </Typography>
+                  <Stack direction="row" spacing={0.8} sx={{ mt: 0.8, alignItems: "flex-end" }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Box
+                        sx={{
+                          height: 17,
+                          width: "100%",
+                          backgroundImage: "repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 3px)",
+                          backgroundSize: "3px 100%"
+                        }}
+                      />
+                      <Typography sx={{ fontSize: 9, fontWeight: 700, lineHeight: 1.05 }}>SKU-1-0014</Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        border: "1px solid #111827",
+                        backgroundImage: "repeating-linear-gradient(0deg, #111827 0 2px, #fff 2px 4px), repeating-linear-gradient(90deg, rgba(17,24,39,0.85) 0 2px, transparent 2px 4px)"
+                      }}
+                    />
+                  </Stack>
+                </Box>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                Площ за печат: {previewPageSize.pageWidthMm} x {previewPageSize.pageHeightMm} mm | Мащаб: {labelScalePercent}%
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                Това е симулация за нагласяне. Реалният печат зависи и от настройката Scale/Zoom в драйвера на принтера.
+              </Typography>
+            </Box>
 
             <Typography variant="caption" color="text.secondary">
               Можеш да печаташ както на термо ролка, така и на обикновен принтер на A4. Настройките се запомнят автоматично.
