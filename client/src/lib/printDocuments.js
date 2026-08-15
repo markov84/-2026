@@ -617,8 +617,12 @@ function drawThermalLabelOnPdf(pdf, {
   pdf.text(`Barcode: ${fallbackCode}`, baseX, cursorY, { baseline: "top" });
 
   const codeY = baseY + contentHeight - 0.7;
-  const barcodeY = Math.max(cursorY + 0.9, codeY - barcodeHeightBase - 1.6);
-  const barcodeHeight = Math.max(7.5, Math.min(barcodeHeightBase, codeY - barcodeY - 1.1));
+  const codeGapMm = 2.3;
+  const barcodeBottomLimit = codeY - codeGapMm;
+  const barcodeTop = cursorY + 1.2;
+  const maxBarcodeHeight = Math.max(7.2, barcodeBottomLimit - barcodeTop);
+  const barcodeHeight = Math.max(7.2, Math.min(barcodeHeightBase, maxBarcodeHeight));
+  const barcodeY = Math.max(barcodeTop, barcodeBottomLimit - barcodeHeight);
 
   pdf.addImage(barcodeDataUrl, "PNG", baseX, barcodeY, barcodeWidth, barcodeHeight, undefined, "FAST");
 

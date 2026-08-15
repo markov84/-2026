@@ -1120,13 +1120,13 @@ export default function ProductsPagePolished() {
                     <Box sx={{ flex: 1, alignSelf: "flex-end" }}>
                       <Box
                         sx={{
-                          height: 19,
+                          height: 17,
                           width: "100%",
                           backgroundImage: "repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 3px)",
                           backgroundSize: "3px 100%"
                         }}
                       />
-                      <Typography sx={{ fontSize: 8.7, fontWeight: 700, lineHeight: 1.05, mt: 0.1 }}>SKU-1-0014</Typography>
+                      <Typography sx={{ fontSize: 8.4, fontWeight: 700, lineHeight: 1.05, mt: 0.35 }}>SKU-1-0014</Typography>
                     </Box>
                     <Box
                       sx={{
