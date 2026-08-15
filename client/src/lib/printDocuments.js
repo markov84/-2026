@@ -568,7 +568,92 @@ function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function drawThermalLabelOnPdf(pdf, {
+async function loadImageElement(imageUrl) {
+  if (!imageUrl) return null;
+  return await new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = imageUrl;
+  });
+}
+
+async function trimLogoWhitespaceDataUrl(imageUrl) {
+  const image = await loadImageElement(imageUrl);
+  if (!image) return imageUrl;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return imageUrl;
+  context.drawImage(image, 0, 0);
+
+  const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = (y * width + x) * 4;
+      const alpha = data[index + 3];
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      const isVisiblePixel = alpha > 24 && !(r > 245 && g > 245 && b > 245);
+      if (!isVisiblePixel) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX <= minX || maxY <= minY) return imageUrl;
+
+  const cropPadding = 6;
+  const cropX = Math.max(0, minX - cropPadding);
+  const cropY = Math.max(0, minY - cropPadding);
+  const cropWidth = Math.min(width - cropX, maxX - minX + cropPadding * 2 + 1);
+  const cropHeight = Math.min(height - cropY, maxY - minY + cropPadding * 2 + 1);
+
+  const croppedCanvas = document.createElement("canvas");
+  croppedCanvas.width = cropWidth;
+  croppedCanvas.height = cropHeight;
+  const croppedContext = croppedCanvas.getContext("2d");
+  if (!croppedContext) return imageUrl;
+  croppedContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  return croppedCanvas.toDataURL("image/png");
+}
+
+function drawWrappedLines(context, text, x, y, maxWidth, maxLines, lineHeightPx) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (context.measureText(testLine).width <= maxWidth) {
+      currentLine = testLine;
+      return;
+    }
+    if (currentLine) lines.push(currentLine);
+    currentLine = word;
+  });
+  if (currentLine) lines.push(currentLine);
+
+  const finalLines = lines.slice(0, Math.max(1, maxLines));
+  finalLines.forEach((line, index) => {
+    context.fillText(line, x, y + index * lineHeightPx);
+  });
+
+  return finalLines.length;
+}
+
+async function renderThermalLabelCanvasDataUrl({
   product,
   fallbackCode,
   barcodeDataUrl,
@@ -580,82 +665,110 @@ function drawThermalLabelOnPdf(pdf, {
   offsetYmm,
   scale
 }) {
+  const pxPerMm = 8;
+  const mm = (value) => Math.round(value * pxPerMm);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(220, mm(pageWidthMm));
+  canvas.height = Math.max(130, mm(pageHeightMm));
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const leftPadPx = Math.max(0, mm(1.2 + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM));
+  const topPadPx = Math.max(0, mm(1 + offsetYmm));
+  const rightPadPx = mm(1.8);
+  const bottomPadPx = mm(1.2);
+  const contentWidthPx = Math.max(mm(12), canvas.width - leftPadPx - rightPadPx);
+  const contentHeightPx = Math.max(mm(12), canvas.height - topPadPx - bottomPadPx);
   const safeScale = Math.max(1, scale);
-  const marginLeft = 1.2;
-  const marginTop = 1.0;
-  const marginRight = 2.2;
-  const marginBottom = 1.4;
-  const baseX = clampNumber(marginLeft + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM, 0, Math.max(0, pageWidthMm - marginRight - 12));
-  const baseY = clampNumber(marginTop + offsetYmm, 0, Math.max(0, pageHeightMm - marginBottom - 12));
-  const contentWidth = Math.max(12, pageWidthMm - baseX - marginRight);
-  const contentHeight = Math.max(12, pageHeightMm - baseY - marginBottom);
 
-  const titlePt = Math.max(10, Math.round(9.5 * safeScale));
-  const metaPt = Math.max(8, Math.round(7.5 * safeScale));
-  const bottomReserved = Math.max(12.5, contentHeight * 0.52);
-  const topAreaHeight = Math.max(8, contentHeight - bottomReserved);
-  const qrSize = Math.min(Math.max(10, 12 * safeScale), contentHeight * 0.42);
-  const barcodeHeightBase = Math.min(Math.max(8.2, 9.2 * safeScale), contentHeight * 0.24);
-  const gap = 1.2;
-  const qrX = baseX + contentWidth - qrSize;
-  const barcodeWidth = Math.max(10.5, qrX - baseX - gap);
-  const qrY = baseY + contentHeight - qrSize - 1.2;
-
-  let cursorY = baseY;
-  if (logoDataUrl) {
-    const logoMaxWidth = Math.max(12, contentWidth * 0.68);
-    const logoMaxHeight = Math.max(6.4, topAreaHeight * 0.72);
-    const logoProps = pdf.getImageProperties(logoDataUrl);
-    const logoRatio = logoProps.width > 0 && logoProps.height > 0 ? logoProps.width / logoProps.height : 3;
-    let logoWidth = logoMaxWidth;
-    let logoHeight = logoWidth / logoRatio;
-    if (logoHeight > logoMaxHeight) {
-      logoHeight = logoMaxHeight;
-      logoWidth = logoHeight * logoRatio;
+  const logoImage = await loadImageElement(logoDataUrl);
+  if (logoImage) {
+    const logoBoxWidth = Math.floor(contentWidthPx * 0.66);
+    const logoBoxHeight = Math.max(mm(5.8), Math.floor(contentHeightPx * 0.28));
+    const ratio = logoImage.width / logoImage.height;
+    let logoWidth = logoBoxWidth;
+    let logoHeight = Math.floor(logoWidth / ratio);
+    if (logoHeight > logoBoxHeight) {
+      logoHeight = logoBoxHeight;
+      logoWidth = Math.floor(logoHeight * ratio);
     }
-    pdf.addImage(logoDataUrl, "PNG", baseX, cursorY, logoWidth, logoHeight, undefined, "FAST");
-    cursorY += logoHeight + 0.55;
+    context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
   }
 
-  const productName = toPdfSafeText(truncateText(product?.name || "Product", 54));
-  const modelCodeRaw = String(product?.productNumber || "").trim();
-  const skuCodeRaw = String(product?.sku || "").trim();
-  const modelCode = toPdfSafeText(truncateText(modelCodeRaw || skuCodeRaw || "-", 32));
-  const skuCode = toPdfSafeText(truncateText(skuCodeRaw || "-", 30));
-  const sameModelAndSku = modelCodeRaw && skuCodeRaw && modelCodeRaw.toLowerCase() === skuCodeRaw.toLowerCase();
+  let cursorYPx = topPadPx + Math.max(mm(6.4), Math.floor(contentHeightPx * 0.28));
+  const titleFontPx = Math.max(15, Math.round(14 * safeScale));
+  const metaFontPx = Math.max(11, Math.round(10 * safeScale));
+  const lineHeightPx = Math.max(14, Math.round(metaFontPx * 1.18));
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(titlePt);
-  const titleLines = pdf.splitTextToSize(`Product: ${productName}`, Math.max(12, contentWidth - 0.2));
-  pdf.text(titleLines.slice(0, 2), baseX, cursorY + 0.2, { baseline: "top" });
-  cursorY += Math.min(topAreaHeight * 0.48, 5.8 + 2.4 * safeScale);
+  context.fillStyle = "#111827";
+  context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
+  const visibleName = truncateText(String(product?.name || "Продукт"), 72);
+  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
+  cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 4;
 
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(metaPt);
-  pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
-  cursorY += 3;
-  if (sameModelAndSku) {
-    pdf.text(`Model: ${modelCode}`, baseX, cursorY, { baseline: "top" });
-    cursorY += 3;
-  } else {
-    pdf.text(`Model: ${modelCode}`, baseX, cursorY, { baseline: "top" });
-    cursorY += 3;
+  const modelCode = truncateText(String(product?.productNumber || "-").trim() || "-", 34);
+  const skuCode = truncateText(String(product?.sku || "-").trim() || "-", 34);
+
+  context.font = `500 ${metaFontPx}px \"Segoe UI\", Arial, sans-serif`;
+  context.fillText(`Модел: ${modelCode}`, leftPadPx, cursorYPx);
+  cursorYPx += lineHeightPx;
+  context.fillText(`SKU: ${skuCode}`, leftPadPx, cursorYPx);
+  cursorYPx += lineHeightPx;
+  context.fillText(`Баркод: ${fallbackCode}`, leftPadPx, cursorYPx);
+  cursorYPx += lineHeightPx + 2;
+
+  const qrImage = await loadImageElement(qrDataUrl);
+  const barcodeImage = await loadImageElement(barcodeDataUrl);
+  const qrSizePx = Math.min(Math.max(mm(9.8), Math.floor(contentHeightPx * 0.36)), Math.floor(contentWidthPx * 0.32));
+  const qrX = leftPadPx + contentWidthPx - qrSizePx;
+  const qrY = topPadPx + contentHeightPx - qrSizePx;
+  const barcodeAreaX = leftPadPx;
+  const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - mm(1.2));
+  const barcodeAreaY = Math.max(cursorYPx, topPadPx + Math.floor(contentHeightPx * 0.62));
+  const barcodeAreaHeight = Math.max(mm(7.2), topPadPx + contentHeightPx - barcodeAreaY - 1);
+
+  if (barcodeImage) {
+    context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
   }
-  pdf.text(`Barcode-SKU: ${toPdfSafeText(String(fallbackCode))}`, baseX, cursorY, { baseline: "top" });
-  cursorY += 3;
+  if (qrImage) {
+    context.drawImage(qrImage, qrX, qrY, qrSizePx, qrSizePx);
+  }
 
-  const barcodeBottomLimit = baseY + contentHeight - 1.2;
-  const barcodeTop = Math.max(cursorY + 1.5, baseY + contentHeight * 0.58);
-  const maxBarcodeHeight = Math.max(7.2, barcodeBottomLimit - barcodeTop);
-  const barcodeHeight = Math.max(7.2, Math.min(barcodeHeightBase, maxBarcodeHeight));
-  const barcodeY = Math.max(barcodeTop, barcodeBottomLimit - barcodeHeight);
-
-  pdf.addImage(barcodeDataUrl, "PNG", baseX, barcodeY, barcodeWidth, barcodeHeight, undefined, "FAST");
-
-  pdf.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize, undefined, "FAST");
+  return canvas.toDataURL("image/png");
 }
 
-function printThermalLabelPdf({
+async function drawThermalLabelOnPdf(pdf, {
+  product,
+  fallbackCode,
+  barcodeDataUrl,
+  qrDataUrl,
+  logoDataUrl,
+  pageWidthMm,
+  pageHeightMm,
+  offsetXmm,
+  offsetYmm,
+  scale
+}) {
+  const renderedLabelDataUrl = await renderThermalLabelCanvasDataUrl({
+    product,
+    fallbackCode,
+    barcodeDataUrl,
+    qrDataUrl,
+    logoDataUrl,
+    pageWidthMm,
+    pageHeightMm,
+    offsetXmm,
+    offsetYmm,
+    scale
+  });
+  if (!renderedLabelDataUrl) return;
+  pdf.addImage(renderedLabelDataUrl, "PNG", 0, 0, pageWidthMm, pageHeightMm, undefined, "FAST");
+}
+
+async function printThermalLabelPdf({
   product,
   fallbackCode,
   barcodeDataUrl,
@@ -679,7 +792,7 @@ function printThermalLabelPdf({
     if (index > 0) {
       pdf.addPage([thermalPrintSurface.pageWidthMm, thermalPrintSurface.pageHeightMm], orientation);
     }
-    drawThermalLabelOnPdf(pdf, {
+    await drawThermalLabelOnPdf(pdf, {
       product,
       fallbackCode,
       barcodeDataUrl,
@@ -738,10 +851,11 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * scale))
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * scale)));
-  const logoDataUrl = await loadFirstAvailableImageAsDataUrl([
+  const rawLogoDataUrl = await loadFirstAvailableImageAsDataUrl([
     new URL("/MARKLIGHT.png", window.location.origin).toString(),
     new URL("/MARK%20LIGHT.png", window.location.origin).toString()
   ]);
+  const logoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
 
   const labelHtml = buildSingleLabelHtml({
     product,
@@ -759,7 +873,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const thermalLabelsHtml = Array.from({ length: safeCopies }, () => `<div class="label-print-surface">${labelHtml}</div>`).join("");
 
   if (!isA4Sheet) {
-    printThermalLabelPdf({
+    await printThermalLabelPdf({
       product,
       fallbackCode,
       barcodeDataUrl,
