@@ -9,7 +9,7 @@ export const MAX_LABEL_SCALE_PERCENT = 280;
 export const MIN_LABEL_DIMENSION_MM = 20;
 export const MAX_LABEL_DIMENSION_MM = 200;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
-const DEFAULT_LABEL_COPIES = 6;
+const DEFAULT_LABEL_COPIES = 1;
 const MAX_LABEL_COPIES = 500;
 const LABEL_PAPER_PRESET_STORAGE_KEY = "productLabelPaperPreset";
 const LABEL_CUSTOM_WIDTH_MM_STORAGE_KEY = "productLabelCustomWidthMm";
@@ -599,32 +599,34 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           margin: 0;
           padding: 0;
           width: ${thermalPrintSurface.pageWidthMm}mm;
-          min-height: ${thermalPrintSurface.pageHeightMm}mm;
+          height: ${thermalPrintSurface.pageHeightMm}mm;
           font-family: "Segoe UI", Arial, sans-serif;
           color: #111827;
         }
         .label-sheet {
           width: ${thermalPrintSurface.pageWidthMm}mm;
+          height: ${thermalPrintSurface.pageHeightMm}mm;
         }
         .label-print-surface {
           width: ${thermalPrintSurface.pageWidthMm}mm;
-          min-height: ${thermalPrintSurface.pageHeightMm}mm;
-          display: flex;
-          align-items: stretch;
-          justify-content: flex-start;
-          overflow: visible;
+          height: ${thermalPrintSurface.pageHeightMm}mm;
+          display: block;
+          overflow: hidden;
           page-break-inside: avoid;
+          break-inside: avoid;
           page-break-after: always;
+          break-after: page;
         }
         .label-print-surface:last-child {
           page-break-after: auto;
+          break-after: auto;
         }
         .label-card {
-          width: ${thermalPrintSurface.contentWidthMm}mm;
-          min-height: ${thermalPrintSurface.contentHeightMm}mm;
+          width: 100%;
+          height: 100%;
+          min-height: 100%;
           text-align: left;
-          overflow: visible;
-          flex: 0 0 auto;
+          overflow: hidden;
         }
         .label-title {
           font-weight: 800;
