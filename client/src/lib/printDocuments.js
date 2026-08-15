@@ -26,7 +26,7 @@ const DEFAULT_LABEL_OFFSET_X_MM = 0;
 const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
-const LABEL_GLOBAL_LEFT_SHIFT_MM = 2;
+const LABEL_GLOBAL_LEFT_SHIFT_MM = 2.8;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -585,17 +585,17 @@ function drawThermalLabelOnPdf(pdf, {
   const marginTop = 1.0;
   const marginRight = 2.2;
   const marginBottom = 1.4;
-  const baseX = clampNumber(marginLeft + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM, 0.4, Math.max(0.4, pageWidthMm - marginRight - 12));
-  const baseY = clampNumber(marginTop + offsetYmm, 0.4, Math.max(0.4, pageHeightMm - marginBottom - 12));
+  const baseX = clampNumber(marginLeft + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM, 0, Math.max(0, pageWidthMm - marginRight - 12));
+  const baseY = clampNumber(marginTop + offsetYmm, 0, Math.max(0, pageHeightMm - marginBottom - 12));
   const contentWidth = Math.max(12, pageWidthMm - baseX - marginRight);
   const contentHeight = Math.max(12, pageHeightMm - baseY - marginBottom);
 
   const titlePt = Math.max(10, Math.round(9.5 * safeScale));
   const metaPt = Math.max(8, Math.round(7.5 * safeScale));
-  const bottomReserved = Math.max(11.5, contentHeight * 0.46);
+  const bottomReserved = Math.max(12.5, contentHeight * 0.52);
   const topAreaHeight = Math.max(8, contentHeight - bottomReserved);
-  const qrSize = Math.min(Math.max(10.5, 12.5 * safeScale), contentHeight * 0.44);
-  const barcodeHeightBase = Math.min(Math.max(9.5, 10.8 * safeScale), contentHeight * 0.29);
+  const qrSize = Math.min(Math.max(10, 12 * safeScale), contentHeight * 0.42);
+  const barcodeHeightBase = Math.min(Math.max(8.2, 9.2 * safeScale), contentHeight * 0.24);
   const gap = 1.2;
   const qrX = baseX + contentWidth - qrSize;
   const barcodeWidth = Math.max(10.5, qrX - baseX - gap);
@@ -617,7 +617,7 @@ function drawThermalLabelOnPdf(pdf, {
     cursorY += logoHeight + 0.55;
   }
 
-  const productName = toPdfSafeText(truncateText(product?.name || "Product", 48));
+  const productName = toPdfSafeText(truncateText(product?.name || "Product", 54));
   const modelCodeRaw = String(product?.productNumber || "").trim();
   const skuCodeRaw = String(product?.sku || "").trim();
   const modelCode = toPdfSafeText(truncateText(modelCodeRaw || skuCodeRaw || "-", 32));
@@ -626,25 +626,26 @@ function drawThermalLabelOnPdf(pdf, {
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(titlePt);
-  const titleLines = pdf.splitTextToSize(`Model: ${modelCode}`, Math.max(12, contentWidth - 0.2));
+  const titleLines = pdf.splitTextToSize(`Product: ${productName}`, Math.max(12, contentWidth - 0.2));
   pdf.text(titleLines.slice(0, 2), baseX, cursorY + 0.2, { baseline: "top" });
   cursorY += Math.min(topAreaHeight * 0.48, 5.8 + 2.4 * safeScale);
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(metaPt);
-  pdf.text(`Name: ${productName}`, baseX, cursorY, { baseline: "top" });
-  cursorY += 3.2;
+  pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
+  cursorY += 3;
   if (sameModelAndSku) {
-    pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
-    cursorY += 3.2;
+    pdf.text(`Model: ${modelCode}`, baseX, cursorY, { baseline: "top" });
+    cursorY += 3;
   } else {
-    pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
-    cursorY += 3.2;
+    pdf.text(`Model: ${modelCode}`, baseX, cursorY, { baseline: "top" });
+    cursorY += 3;
   }
-  pdf.text(`Barcode: ${fallbackCode}`, baseX, cursorY, { baseline: "top" });
+  pdf.text(`Barcode-SKU: ${toPdfSafeText(String(fallbackCode))}`, baseX, cursorY, { baseline: "top" });
+  cursorY += 3;
 
-  const barcodeBottomLimit = baseY + contentHeight - 1.0;
-  const barcodeTop = cursorY + 1.2;
+  const barcodeBottomLimit = baseY + contentHeight - 1.2;
+  const barcodeTop = Math.max(cursorY + 1.5, baseY + contentHeight * 0.58);
   const maxBarcodeHeight = Math.max(7.2, barcodeBottomLimit - barcodeTop);
   const barcodeHeight = Math.max(7.2, Math.min(barcodeHeightBase, maxBarcodeHeight));
   const barcodeY = Math.max(barcodeTop, barcodeBottomLimit - barcodeHeight);
