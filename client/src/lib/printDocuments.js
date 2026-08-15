@@ -673,7 +673,7 @@ async function renderThermalLabelCanvasDataUrl({
   offsetYmm,
   scale
 }) {
-  const pxPerMm = 8;
+  const pxPerMm = 12;
   const mm = (value) => Math.round(value * pxPerMm);
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(220, mm(pageWidthMm));
@@ -708,7 +708,7 @@ async function renderThermalLabelCanvasDataUrl({
     logoBottomPx = topPadPx + logoHeight;
   }
 
-  let cursorYPx = logoBottomPx + Math.max(3, mm(0.75));
+  let cursorYPx = logoBottomPx + Math.max(8, mm(1.4));
   const titleFontPx = Math.max(13, Math.round(12.5 * safeScale));
   const metaFontPx = Math.max(10, Math.round(9.2 * safeScale));
   const lineHeightPx = Math.max(14, Math.round(metaFontPx * 1.18));
