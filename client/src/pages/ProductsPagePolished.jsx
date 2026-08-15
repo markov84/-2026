@@ -203,6 +203,7 @@ export default function ProductsPagePolished() {
   const [labelThermalOrientation, setLabelThermalOrientation] = useState(() => getProductLabelThermalOrientation());
   const [labelOffsetXmm, setLabelOffsetXmm] = useState(() => getProductLabelOffsetXmm());
   const [labelOffsetYmm, setLabelOffsetYmm] = useState(() => getProductLabelOffsetYmm());
+  const [showLabelPreview, setShowLabelPreview] = useState(true);
   const [savedProductNames, setSavedProductNames] = useState(() => readStoredList(PRODUCT_NAME_SUGGESTIONS_KEY));
   const [hiddenProductNames, setHiddenProductNames] = useState(() => readStoredList(HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY));
   const [editingProductId, setEditingProductId] = useState(null);
@@ -1064,10 +1065,18 @@ export default function ProductsPagePolished() {
               </Stack>
             ) : null}
 
-            <Box sx={{ border: "1px solid rgba(39,86,107,0.2)", borderRadius: 2, p: 1.25, bgcolor: "rgba(39,86,107,0.03)" }}>
-              <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
-                Преглед на етикета (live)
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ pt: 0.25 }}>
+              <Typography variant="subtitle2" fontWeight={800}>
+                Покажи преглед на етикета
               </Typography>
+              <Switch size="small" checked={showLabelPreview} onChange={(event) => setShowLabelPreview(event.target.checked)} />
+            </Stack>
+
+            {showLabelPreview ? (
+              <Box sx={{ border: "1px solid rgba(39,86,107,0.2)", borderRadius: 2, p: 1.25, bgcolor: "rgba(39,86,107,0.03)" }}>
+                <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                  Преглед на етикета (live)
+                </Typography>
               <Box
                 sx={{
                   width: "100%",
@@ -1087,38 +1096,39 @@ export default function ProductsPagePolished() {
                     height: `${Math.round(previewPageSize.pageHeightMm * previewFitScale)}px`,
                     border: "1px solid #111827",
                     borderRadius: 1,
-                    p: 0.8,
+                    p: 0.7,
                     overflow: "hidden",
                     bgcolor: "#fff",
                     transform: `translate(${Math.round(labelOffsetXmm * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
                     transformOrigin: "center center"
                   }}
                 >
-                  <Typography sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.1 }} noWrap>
-                    POL-ML-ST-9033-3-BK
+                  <Box component="img" src="/MARK%20LIGHT.png" alt="Logo" sx={{ maxWidth: "62%", maxHeight: 14, width: "auto", height: "auto", display: "block", mb: 0.35 }} />
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.05 }} noWrap>
+                    Име на продукта пример
                   </Typography>
-                  <Typography sx={{ mt: 0.35, fontSize: 8, color: "#374151", lineHeight: 1.1 }} noWrap>
-                    Модел: SKU-1-0014
+                  <Typography sx={{ mt: 0.2, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
+                    Model: SKU-1-0014
                   </Typography>
-                  <Typography sx={{ mt: 0.2, fontSize: 8, color: "#374151", lineHeight: 1.1 }} noWrap>
-                    Баркод: SKU-1-0014
+                  <Typography sx={{ mt: 0.12, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
+                    Barcode: SKU-1-0014
                   </Typography>
-                  <Stack direction="row" spacing={0.8} sx={{ mt: 0.8, alignItems: "flex-end" }}>
-                    <Box sx={{ flex: 1 }}>
+                  <Stack direction="row" spacing={0.8} sx={{ mt: 0.45, alignItems: "flex-end" }}>
+                    <Box sx={{ flex: 1, alignSelf: "flex-end" }}>
                       <Box
                         sx={{
-                          height: 17,
+                          height: 19,
                           width: "100%",
                           backgroundImage: "repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 3px)",
                           backgroundSize: "3px 100%"
                         }}
                       />
-                      <Typography sx={{ fontSize: 9, fontWeight: 700, lineHeight: 1.05 }}>SKU-1-0014</Typography>
+                      <Typography sx={{ fontSize: 8.7, fontWeight: 700, lineHeight: 1.05, mt: 0.1 }}>SKU-1-0014</Typography>
                     </Box>
                     <Box
                       sx={{
-                        width: 24,
-                        height: 24,
+                        width: 26,
+                        height: 26,
                         border: "1px solid #111827",
                         backgroundImage: "repeating-linear-gradient(0deg, #111827 0 2px, #fff 2px 4px), repeating-linear-gradient(90deg, rgba(17,24,39,0.85) 0 2px, transparent 2px 4px)"
                       }}
@@ -1135,7 +1145,8 @@ export default function ProductsPagePolished() {
               <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                 Това е симулация за нагласяне. Реалният печат зависи и от настройката Scale/Zoom в драйвера на принтера.
               </Typography>
-            </Box>
+              </Box>
+            ) : null}
 
             <Typography variant="caption" color="text.secondary">
               Можеш да печаташ както на термо ролка, така и на обикновен принтер на A4. Настройките се запомнят автоматично.

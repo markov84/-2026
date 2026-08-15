@@ -536,6 +536,10 @@ function truncateText(value, maxChars) {
   return `${text.slice(0, Math.max(0, maxChars - 1))}…`;
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function drawThermalLabelOnPdf(pdf, {
   product,
   fallbackCode,
@@ -549,54 +553,63 @@ function drawThermalLabelOnPdf(pdf, {
   scale
 }) {
   const safeScale = Math.max(1, scale);
-  const margin = Math.max(1.2, Number((1.8 / safeScale).toFixed(2)));
-  const x = margin + offsetXmm;
-  const y = margin + offsetYmm;
-  const contentWidth = Math.max(12, pageWidthMm - margin * 2 - Math.abs(offsetXmm));
-  const contentHeight = Math.max(12, pageHeightMm - margin * 2 - Math.abs(offsetYmm));
-  const textAreaWidth = contentWidth;
-  const qrSize = Math.min(Math.max(9, 11 * safeScale), Math.max(9, contentHeight * 0.45));
-  const barcodeHeight = Math.min(Math.max(10, 12 * safeScale), Math.max(10, contentHeight * 0.42));
-  const headerHeight = Math.min(Math.max(5, 6.5 * safeScale), contentHeight * 0.24);
+  const margin = Math.max(0.8, Number((1.2 / safeScale).toFixed(2)));
+  const contentWidth = Math.max(12, pageWidthMm - margin * 2);
+  const contentHeight = Math.max(12, pageHeightMm - margin * 2);
+  const x = clampNumber(margin + offsetXmm, 0.3, Math.max(0.3, pageWidthMm - margin - contentWidth));
+  const y = clampNumber(margin + offsetYmm, 0.3, Math.max(0.3, pageHeightMm - margin - contentHeight));
+
+  const titlePt = Math.max(10, Math.round(9.5 * safeScale));
+  const metaPt = Math.max(8, Math.round(7.5 * safeScale));
+  const codePt = Math.max(9, Math.round(8.4 * safeScale));
+  const bottomReserved = Math.max(12, contentHeight * 0.48);
+  const topAreaHeight = Math.max(8, contentHeight - bottomReserved);
+  const qrSize = Math.min(Math.max(10.5, 12.5 * safeScale), contentHeight * 0.46);
+  const barcodeHeight = Math.min(Math.max(10.5, 12 * safeScale), contentHeight * 0.32);
+  const gap = 1.2;
+  const qrX = x + contentWidth - qrSize;
+  const barcodeWidth = Math.max(11, qrX - x - gap);
+  const barcodeY = y + contentHeight - barcodeHeight - 3.2;
+  const qrY = y + contentHeight - qrSize - 1.2;
 
   let cursorY = y;
   if (logoDataUrl) {
-    const logoHeight = Math.max(3.8, headerHeight - 1.6);
-    const logoWidth = Math.min(contentWidth * 0.6, logoHeight * 4);
+    const logoMaxWidth = Math.max(8, contentWidth * 0.6);
+    const logoMaxHeight = Math.max(3.4, topAreaHeight * 0.34);
+    const logoProps = pdf.getImageProperties(logoDataUrl);
+    const logoRatio = logoProps.width > 0 && logoProps.height > 0 ? logoProps.width / logoProps.height : 3;
+    let logoWidth = logoMaxWidth;
+    let logoHeight = logoWidth / logoRatio;
+    if (logoHeight > logoMaxHeight) {
+      logoHeight = logoMaxHeight;
+      logoWidth = logoHeight * logoRatio;
+    }
     pdf.addImage(logoDataUrl, "PNG", x, cursorY, logoWidth, logoHeight, undefined, "FAST");
-    cursorY += logoHeight + 0.6;
+    cursorY += logoHeight + 0.7;
   }
 
-  const titlePt = Math.max(10, Math.round(10 * safeScale));
-  const metaPt = Math.max(8, Math.round(8 * safeScale));
-  const codePt = Math.max(9, Math.round(9 * safeScale));
-  const productName = truncateText(product?.name || "Продукт", 44);
+  const productName = truncateText(product?.name || "Продукт", 52);
   const modelCode = truncateText(product?.productNumber || product?.sku || "-", 30);
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(titlePt);
-  const titleLines = pdf.splitTextToSize(productName, textAreaWidth);
-  pdf.text(titleLines.slice(0, 2), x, cursorY + 3.2, { baseline: "top" });
-  cursorY += Math.min(8.2 * safeScale, 9.2);
+  const titleLines = pdf.splitTextToSize(productName, contentWidth);
+  pdf.text(titleLines.slice(0, 2), x, cursorY + 0.2, { baseline: "top" });
+  cursorY += Math.min(topAreaHeight * 0.48, 5.8 + 2.4 * safeScale);
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(metaPt);
   pdf.text(`Model: ${modelCode}`, x, cursorY, { baseline: "top" });
-  cursorY += 3.8;
+  cursorY += 3.4;
   pdf.text(`Barcode: ${fallbackCode}`, x, cursorY, { baseline: "top" });
-  cursorY += 4.1;
 
-  const qrX = x + contentWidth - qrSize;
-  const barcodeWidth = Math.max(10, qrX - x - 1.6);
-  const barcodeY = Math.min(y + contentHeight - barcodeHeight - 4, cursorY + 0.6);
   pdf.addImage(barcodeDataUrl, "PNG", x, barcodeY, barcodeWidth, barcodeHeight, undefined, "FAST");
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(codePt);
-  const codeY = Math.min(y + contentHeight - 0.8, barcodeY + barcodeHeight + 1.2);
+  const codeY = Math.min(y + contentHeight - 0.6, barcodeY + barcodeHeight + 2);
   pdf.text(String(fallbackCode), x, codeY, { baseline: "bottom" });
 
-  const qrY = Math.max(cursorY, y + contentHeight - qrSize - 1.2);
   pdf.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize, undefined, "FAST");
 }
 
