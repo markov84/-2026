@@ -75,6 +75,14 @@ async function loadImageAsDataUrl(imageUrl) {
   }
 }
 
+async function loadFirstAvailableImageAsDataUrl(imageUrls = []) {
+  for (const imageUrl of imageUrls) {
+    const imageDataUrl = await loadImageAsDataUrl(imageUrl);
+    if (imageDataUrl) return imageDataUrl;
+  }
+  return "";
+}
+
 function getItemRows(items = [], { priceIncludesVat = false } = {}) {
   return items
     .map((item, index) => {
@@ -590,27 +598,27 @@ function drawThermalLabelOnPdf(pdf, {
     cursorY += logoHeight + 0.8;
   }
 
-  const productName = truncateText(product?.name || "Продукт", 52);
+  const productName = truncateText(product?.name || "Продукт", 48);
   const modelCodeRaw = String(product?.productNumber || "").trim();
   const skuCodeRaw = String(product?.sku || "").trim();
-  const modelCode = truncateText(modelCodeRaw || "-", 30);
+  const modelCode = truncateText(modelCodeRaw || skuCodeRaw || "-", 32);
   const skuCode = truncateText(skuCodeRaw || "-", 30);
   const sameModelAndSku = modelCodeRaw && skuCodeRaw && modelCodeRaw.toLowerCase() === skuCodeRaw.toLowerCase();
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(titlePt);
-  const titleLines = pdf.splitTextToSize(productName, Math.max(12, contentWidth - 0.2));
+  const titleLines = pdf.splitTextToSize(`Модел: ${modelCode}`, Math.max(12, contentWidth - 0.2));
   pdf.text(titleLines.slice(0, 2), baseX, cursorY + 0.2, { baseline: "top" });
   cursorY += Math.min(topAreaHeight * 0.48, 5.8 + 2.4 * safeScale);
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(metaPt);
+  pdf.text(`Име: ${productName}`, baseX, cursorY, { baseline: "top" });
+  cursorY += 3.2;
   if (sameModelAndSku) {
-    pdf.text(`Model/SKU: ${modelCode}`, baseX, cursorY, { baseline: "top" });
+    pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
     cursorY += 3.2;
   } else {
-    pdf.text(`Model: ${modelCode}`, baseX, cursorY, { baseline: "top" });
-    cursorY += 3.2;
     pdf.text(`SKU: ${skuCode}`, baseX, cursorY, { baseline: "top" });
     cursorY += 3.2;
   }
@@ -716,7 +724,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * scale))
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * scale)));
-  const logoDataUrl = await loadImageAsDataUrl(new URL("/MARK%20LIGHT.png", window.location.origin).toString());
+  const logoDataUrl = await loadFirstAvailableImageAsDataUrl([
+    new URL("/MARKLIGHT.png", window.location.origin).toString(),
+    new URL("/MARK%20LIGHT.png", window.location.origin).toString()
+  ]);
 
   const labelHtml = buildSingleLabelHtml({
     product,

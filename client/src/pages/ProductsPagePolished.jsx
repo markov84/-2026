@@ -1103,12 +1103,12 @@ export default function ProductsPagePolished() {
                     transformOrigin: "center center"
                   }}
                 >
-                  <Box component="img" src="/MARK%20LIGHT.png" alt="Logo" sx={{ maxWidth: "62%", maxHeight: 14, width: "auto", height: "auto", display: "block", mb: 0.35 }} />
+                  <Box component="img" src="/MARKLIGHT.png" alt="Logo" sx={{ maxWidth: "66%", maxHeight: 16, width: "auto", height: "auto", display: "block", mb: 0.4 }} />
                   <Typography sx={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.05 }} noWrap>
-                    Име на продукта (пълен пример)
+                    Модел: ML-A5157+GD
                   </Typography>
                   <Typography sx={{ mt: 0.2, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
-                    Model: ML-A5157
+                    Име: POL-ML-A5157+GD
                   </Typography>
                   <Typography sx={{ mt: 0.12, fontSize: 8.2, color: "#374151", lineHeight: 1.05 }} noWrap>
                     SKU: SKU-1-0007
