@@ -26,6 +26,7 @@ const DEFAULT_LABEL_OFFSET_X_MM = 0;
 const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
+const LABEL_GLOBAL_LEFT_SHIFT_MM = 2;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -584,15 +585,14 @@ function drawThermalLabelOnPdf(pdf, {
   const marginTop = 1.0;
   const marginRight = 2.2;
   const marginBottom = 1.4;
-  const baseX = clampNumber(marginLeft + offsetXmm, 0.4, Math.max(0.4, pageWidthMm - marginRight - 12));
+  const baseX = clampNumber(marginLeft + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM, 0.4, Math.max(0.4, pageWidthMm - marginRight - 12));
   const baseY = clampNumber(marginTop + offsetYmm, 0.4, Math.max(0.4, pageHeightMm - marginBottom - 12));
   const contentWidth = Math.max(12, pageWidthMm - baseX - marginRight);
   const contentHeight = Math.max(12, pageHeightMm - baseY - marginBottom);
 
   const titlePt = Math.max(10, Math.round(9.5 * safeScale));
   const metaPt = Math.max(8, Math.round(7.5 * safeScale));
-  const codePt = Math.max(9, Math.round(8.4 * safeScale));
-  const bottomReserved = Math.max(12, contentHeight * 0.5);
+  const bottomReserved = Math.max(11.5, contentHeight * 0.46);
   const topAreaHeight = Math.max(8, contentHeight - bottomReserved);
   const qrSize = Math.min(Math.max(10.5, 12.5 * safeScale), contentHeight * 0.44);
   const barcodeHeightBase = Math.min(Math.max(9.5, 10.8 * safeScale), contentHeight * 0.29);
@@ -603,8 +603,8 @@ function drawThermalLabelOnPdf(pdf, {
 
   let cursorY = baseY;
   if (logoDataUrl) {
-    const logoMaxWidth = Math.max(11, contentWidth * 0.65);
-    const logoMaxHeight = Math.max(4.8, topAreaHeight * 0.42);
+    const logoMaxWidth = Math.max(12, contentWidth * 0.68);
+    const logoMaxHeight = Math.max(6.4, topAreaHeight * 0.72);
     const logoProps = pdf.getImageProperties(logoDataUrl);
     const logoRatio = logoProps.width > 0 && logoProps.height > 0 ? logoProps.width / logoProps.height : 3;
     let logoWidth = logoMaxWidth;
@@ -614,7 +614,7 @@ function drawThermalLabelOnPdf(pdf, {
       logoWidth = logoHeight * logoRatio;
     }
     pdf.addImage(logoDataUrl, "PNG", baseX, cursorY, logoWidth, logoHeight, undefined, "FAST");
-    cursorY += logoHeight + 0.8;
+    cursorY += logoHeight + 0.55;
   }
 
   const productName = toPdfSafeText(truncateText(product?.name || "Product", 48));
@@ -643,19 +643,13 @@ function drawThermalLabelOnPdf(pdf, {
   }
   pdf.text(`Barcode: ${fallbackCode}`, baseX, cursorY, { baseline: "top" });
 
-  const codeY = baseY + contentHeight - 0.7;
-  const codeGapMm = 2.3;
-  const barcodeBottomLimit = codeY - codeGapMm;
+  const barcodeBottomLimit = baseY + contentHeight - 1.0;
   const barcodeTop = cursorY + 1.2;
   const maxBarcodeHeight = Math.max(7.2, barcodeBottomLimit - barcodeTop);
   const barcodeHeight = Math.max(7.2, Math.min(barcodeHeightBase, maxBarcodeHeight));
   const barcodeY = Math.max(barcodeTop, barcodeBottomLimit - barcodeHeight);
 
   pdf.addImage(barcodeDataUrl, "PNG", baseX, barcodeY, barcodeWidth, barcodeHeight, undefined, "FAST");
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(codePt);
-  pdf.text(String(fallbackCode), baseX, codeY, { baseline: "bottom" });
 
   pdf.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize, undefined, "FAST");
 }

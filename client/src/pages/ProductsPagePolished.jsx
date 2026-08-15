@@ -1099,7 +1099,7 @@ export default function ProductsPagePolished() {
                     p: 0.7,
                     overflow: "hidden",
                     bgcolor: "#fff",
-                    transform: `translate(${Math.round(labelOffsetXmm * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
+                    transform: `translate(${Math.round((labelOffsetXmm - 2) * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
                     transformOrigin: "center center"
                   }}
                 >
@@ -1126,7 +1126,6 @@ export default function ProductsPagePolished() {
                           backgroundSize: "3px 100%"
                         }}
                       />
-                      <Typography sx={{ fontSize: 8.4, fontWeight: 700, lineHeight: 1.05, mt: 0.35 }}>SKU-1-0014</Typography>
                     </Box>
                     <Box
                       sx={{
