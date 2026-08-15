@@ -26,7 +26,7 @@ const DEFAULT_LABEL_OFFSET_X_MM = 0;
 const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
-const LABEL_GLOBAL_LEFT_SHIFT_MM = 5;
+const LABEL_GLOBAL_LEFT_SHIFT_MM = 6.2;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -686,16 +686,17 @@ async function renderThermalLabelCanvasDataUrl({
 
   const leftPadPx = Math.max(0, mm(1.2 + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM));
   const topPadPx = Math.max(0, mm(1 + offsetYmm));
-  const rightPadPx = mm(1.8);
+  const rightPadPx = mm(1.2);
   const bottomPadPx = mm(1.2);
   const contentWidthPx = Math.max(mm(12), canvas.width - leftPadPx - rightPadPx);
   const contentHeightPx = Math.max(mm(12), canvas.height - topPadPx - bottomPadPx);
   const safeScale = Math.max(1, scale);
 
   const logoImage = await loadImageElement(logoDataUrl);
+  let logoBottomPx = topPadPx;
   if (logoImage) {
-    const logoBoxWidth = Math.floor(contentWidthPx * 0.92);
-    const logoBoxHeight = Math.max(mm(7.2), Math.floor(contentHeightPx * 0.34));
+    const logoBoxWidth = Math.floor(contentWidthPx * 0.94);
+    const logoBoxHeight = Math.max(mm(7), Math.floor(contentHeightPx * 0.31));
     const ratio = logoImage.width / logoImage.height;
     let logoWidth = logoBoxWidth;
     let logoHeight = Math.floor(logoWidth / ratio);
@@ -704,24 +705,21 @@ async function renderThermalLabelCanvasDataUrl({
       logoWidth = Math.floor(logoHeight * ratio);
     }
     context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
-
-    context.fillStyle = "#111827";
-    context.font = `600 ${Math.max(11, mm(1.35))}px \"Segoe UI\", Arial, sans-serif`;
-    context.fillText("MARK LIGHT", leftPadPx, topPadPx + logoHeight + Math.max(11, mm(1.45)));
+    logoBottomPx = topPadPx + logoHeight;
   }
 
-  let cursorYPx = topPadPx + Math.max(mm(8.8), Math.floor(contentHeightPx * 0.4));
-  const titleFontPx = Math.max(15, Math.round(14 * safeScale));
-  const metaFontPx = Math.max(11, Math.round(10 * safeScale));
+  let cursorYPx = logoBottomPx + Math.max(3, mm(0.75));
+  const titleFontPx = Math.max(13, Math.round(12.5 * safeScale));
+  const metaFontPx = Math.max(10, Math.round(9.2 * safeScale));
   const lineHeightPx = Math.max(14, Math.round(metaFontPx * 1.18));
 
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
-  const visibleName = truncateText(String(product?.name || "Продукт"), 72);
-  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
+  const visibleName = truncateText(String(product?.name || "Продукт"), 96);
+  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 3, Math.round(titleFontPx * 1.08));
   cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 4;
 
-  const modelSource = String(product?.productNumber || product?.name || product?.sku || "-").trim() || "-";
+  const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
   const modelCode = truncateText(extractAfterFirstHyphen(modelSource), 36);
   const skuCode = truncateText(String(product?.sku || "-").trim() || "-", 34);
 
@@ -735,12 +733,12 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.min(Math.max(mm(9.8), Math.floor(contentHeightPx * 0.36)), Math.floor(contentWidthPx * 0.32));
+  const qrSizePx = Math.min(Math.max(mm(9.2), Math.floor(contentHeightPx * 0.34)), Math.floor(contentWidthPx * 0.31));
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
   const qrY = topPadPx + contentHeightPx - qrSizePx;
   const barcodeAreaX = leftPadPx;
   const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - mm(1.2));
-  const barcodeAreaY = Math.max(cursorYPx + mm(1), topPadPx + Math.floor(contentHeightPx * 0.68));
+  const barcodeAreaY = Math.max(cursorYPx + mm(1.6), topPadPx + Math.floor(contentHeightPx * 0.72));
   const barcodeAreaHeight = Math.max(mm(7.2), topPadPx + contentHeightPx - barcodeAreaY - 1);
 
   if (barcodeImage) {
