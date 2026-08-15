@@ -29,7 +29,7 @@ export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-58x40", label: "Термо: 58 x 40 mm", kind: "thermal", widthMm: 58, heightMm: 40 },
   { id: "thermal-60x40", label: "M221 често: 60 x 40 mm", kind: "thermal", widthMm: 60, heightMm: 40 },
   { id: "thermal-80x50", label: "Термо: 80 x 50 mm", kind: "thermal", widthMm: 80, heightMm: 50 },
-  { id: "thermal-100x150", label: "Куриерски: 100 x 150 mm (4x6")", kind: "thermal", widthMm: 100, heightMm: 150 },
+  { id: "thermal-100x150", label: "Куриерски: 100 x 150 mm (4x6 in)", kind: "thermal", widthMm: 100, heightMm: 150 },
   { id: "thermal-70x80", label: "M221 често: 70 x 80 mm", kind: "thermal", widthMm: 70, heightMm: 80 },
   { id: "thermal-custom", label: "M221 персонален размер (mm)", kind: "thermal-custom" },
   { id: "a4-3x8", label: "A4 лист (3 x 8 етикета)", kind: "a4", columns: 3, rows: 8, gapMm: 4 }
