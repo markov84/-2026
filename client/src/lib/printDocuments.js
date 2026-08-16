@@ -318,6 +318,71 @@ function printPdfDocument(pdfDocument) {
   if (!printWindow) return;
 }
 
+function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface }) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const widthMm = thermalPrintSurface.pageWidthMm;
+  const heightMm = thermalPrintSurface.pageHeightMm;
+  const pagesHtml = Array.from({ length: copies }, () => `
+    <section class="label-page">
+      <img class="label-image" src="${escapeHtml(labelImageDataUrl)}" alt="Етикет" />
+    </section>
+  `).join("");
+
+  printWindow.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Етикет</title>
+        <style>
+          * { box-sizing: border-box; }
+          @page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${widthMm}mm;
+            height: ${heightMm}mm;
+            overflow: hidden;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .label-page {
+            width: ${widthMm}mm;
+            height: ${heightMm}mm;
+            page-break-after: always;
+            break-after: page;
+            overflow: hidden;
+          }
+          .label-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .label-image {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: fill;
+          }
+        </style>
+      </head>
+      <body>
+        ${pagesHtml}
+        <script>
+          window.addEventListener("load", () => {
+            window.focus();
+            window.print();
+          });
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, data, {
@@ -751,75 +816,6 @@ async function renderThermalLabelCanvasDataUrl({
   return canvas.toDataURL("image/png");
 }
 
-async function drawThermalLabelOnPdf(pdf, {
-  product,
-  fallbackCode,
-  barcodeDataUrl,
-  qrDataUrl,
-  logoDataUrl,
-  pageWidthMm,
-  pageHeightMm,
-  offsetXmm,
-  offsetYmm,
-  scale
-}) {
-  const renderedLabelDataUrl = await renderThermalLabelCanvasDataUrl({
-    product,
-    fallbackCode,
-    barcodeDataUrl,
-    qrDataUrl,
-    logoDataUrl,
-    pageWidthMm,
-    pageHeightMm,
-    offsetXmm,
-    offsetYmm,
-    scale
-  });
-  if (!renderedLabelDataUrl) return;
-  pdf.addImage(renderedLabelDataUrl, "PNG", 0, 0, pageWidthMm, pageHeightMm, undefined, "FAST");
-}
-
-async function printThermalLabelPdf({
-  product,
-  fallbackCode,
-  barcodeDataUrl,
-  qrDataUrl,
-  logoDataUrl,
-  copies,
-  thermalPrintSurface,
-  scale,
-  offsetXmm,
-  offsetYmm
-}) {
-  const orientation = thermalPrintSurface.pageWidthMm >= thermalPrintSurface.pageHeightMm ? "landscape" : "portrait";
-  const pdf = new jsPDF({
-    orientation,
-    unit: "mm",
-    format: [thermalPrintSurface.pageWidthMm, thermalPrintSurface.pageHeightMm],
-    compress: true
-  });
-
-  for (let index = 0; index < copies; index += 1) {
-    if (index > 0) {
-      pdf.addPage([thermalPrintSurface.pageWidthMm, thermalPrintSurface.pageHeightMm], orientation);
-    }
-    await drawThermalLabelOnPdf(pdf, {
-      product,
-      fallbackCode,
-      barcodeDataUrl,
-      qrDataUrl,
-      logoDataUrl,
-      pageWidthMm: thermalPrintSurface.pageWidthMm,
-      pageHeightMm: thermalPrintSurface.pageHeightMm,
-      offsetXmm,
-      offsetYmm,
-      scale
-    });
-  }
-
-  printPdfDocument(pdf);
-}
-
 export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation, offsetXmm, offsetYmm } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
@@ -884,17 +880,22 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const thermalLabelsHtml = Array.from({ length: safeCopies }, () => `<div class="label-print-surface">${labelHtml}</div>`).join("");
 
   if (!isA4Sheet) {
-    await printThermalLabelPdf({
+    const thermalLabelDataUrl = await renderThermalLabelCanvasDataUrl({
       product,
       fallbackCode,
       barcodeDataUrl,
       qrDataUrl,
       logoDataUrl,
-      copies: safeCopies,
-      thermalPrintSurface,
-      scale,
+      pageWidthMm: thermalPrintSurface.pageWidthMm,
+      pageHeightMm: thermalPrintSurface.pageHeightMm,
       offsetXmm: safeOffsetXmm,
-      offsetYmm: safeOffsetYmm
+      offsetYmm: safeOffsetYmm,
+      scale
+    });
+    printThermalLabelHtml({
+      labelImageDataUrl: thermalLabelDataUrl,
+      copies: safeCopies,
+      thermalPrintSurface
     });
     return;
   }
