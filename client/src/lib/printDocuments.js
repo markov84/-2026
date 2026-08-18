@@ -270,6 +270,28 @@ export function buildDocumentHtml(title, bodyHtml) {
   `;
 }
 
+function schedulePrintWindow(printWindow) {
+  if (!printWindow) return;
+
+  const triggerPrint = () => {
+    try {
+      printWindow.focus();
+    } catch {}
+    setTimeout(() => {
+      try {
+        printWindow.print();
+      } catch {}
+    }, 350);
+  };
+
+  if (printWindow.document.readyState === "complete") {
+    triggerPrint();
+    return;
+  }
+
+  printWindow.addEventListener("load", triggerPrint, { once: true });
+}
+
 function printHtml(title, bodyHtml) {
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
@@ -278,18 +300,20 @@ function printHtml(title, bodyHtml) {
   printWindow.document.write(`
     <script>
       window.addEventListener("load", () => {
-        window.print();
+        window.focus();
+        setTimeout(() => window.print(), 300);
       });
     </script>
   `);
   printWindow.document.close();
+  schedulePrintWindow(printWindow);
 }
 
-function printCustomHtml(title, html) {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+function printCustomHtml(title, html, printWindow = null) {
+  const targetWindow = printWindow || window.open("", "_blank");
+  if (!targetWindow) return;
 
-  printWindow.document.write(`
+  targetWindow.document.write(`
     <!doctype html>
     <html>
       <head>
@@ -300,13 +324,15 @@ function printCustomHtml(title, html) {
         ${html}
         <script>
           window.addEventListener("load", () => {
-            window.print();
+            window.focus();
+            setTimeout(() => window.print(), 300);
           });
         </script>
       </body>
     </html>
   `);
-  printWindow.document.close();
+  targetWindow.document.close();
+  schedulePrintWindow(targetWindow);
 }
 
 function printPdfDocument(pdfDocument) {
@@ -318,9 +344,9 @@ function printPdfDocument(pdfDocument) {
   if (!printWindow) return;
 }
 
-function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface }) {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
+  const targetWindow = printWindow || window.open("", "_blank");
+  if (!targetWindow) return;
 
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
@@ -330,7 +356,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface 
     </section>
   `).join("");
 
-  printWindow.document.write(`
+  targetWindow.document.write(`
     <!doctype html>
     <html>
       <head>
@@ -381,13 +407,14 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface 
         <script>
           window.addEventListener("load", () => {
             window.focus();
-            window.print();
+            setTimeout(() => window.print(), 300);
           });
         </script>
       </body>
     </html>
   `);
-  printWindow.document.close();
+  targetWindow.document.close();
+  schedulePrintWindow(targetWindow);
 }
 
 async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
@@ -838,6 +865,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   );
   const thermalPrintSurface = resolveThermalPrintSurface(thermalSize, thermalOrientation ?? getProductLabelThermalOrientation());
   const isA4Sheet = safePaperPreset.kind === "a4";
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
   const thermalAreaMm = thermalPrintSurface.contentWidthMm * thermalPrintSurface.contentHeightMm;
   const thermalMinReadableScalePercent = thermalAreaMm <= 2000 ? 175 : thermalAreaMm <= 3600 ? 150 : 130;
   const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.max(safeScalePercent, thermalMinReadableScalePercent);
@@ -903,7 +932,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     printThermalLabelHtml({
       labelImageDataUrl: thermalLabelDataUrl,
       copies: safeCopies,
-      thermalPrintSurface
+      thermalPrintSurface,
+      printWindow
     });
     return;
   }
@@ -1051,7 +1081,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       <section class="label-sheet ${thermalPrintSurface.rotationClassName}">${thermalLabelsHtml}</section>
     `;
 
-  printCustomHtml(title, bodyHtml);
+  printCustomHtml(title, bodyHtml, printWindow);
 }
 
 function composeInvoiceDocument(invoice) {
