@@ -292,28 +292,98 @@ function schedulePrintWindow(printWindow) {
   printWindow.addEventListener("load", triggerPrint, { once: true });
 }
 
+function printInFrame(html) {
+  if (!document || !document.body) return;
+
+  const frame = document.createElement("iframe");
+  frame.setAttribute("title", "Print label");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.left = "-9999px";
+  frame.style.top = "-9999px";
+  frame.style.border = "0";
+  frame.style.opacity = "0";
+  frame.style.pointerEvents = "none";
+  frame.srcdoc = html;
+  document.body.appendChild(frame);
+
+  const trigger = () => {
+    const targetWindow = frame.contentWindow;
+    if (!targetWindow) return;
+
+    try {
+      targetWindow.focus();
+    } catch {}
+
+    setTimeout(() => {
+      try {
+        targetWindow.print();
+      } catch {}
+      setTimeout(() => {
+        try {
+          frame.remove();
+        } catch {}
+      }, 1000);
+    }, 400);
+  };
+
+  if (frame.contentDocument && frame.contentDocument.readyState === "complete") {
+    trigger();
+    return;
+  }
+
+  frame.addEventListener("load", trigger, { once: true });
+}
+
 function printHtml(title, bodyHtml) {
   const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+  if (printWindow) {
+    printWindow.document.write(buildDocumentHtml(title, bodyHtml));
+    printWindow.document.write(`
+      <script>
+        window.addEventListener("load", () => {
+          window.focus();
+          setTimeout(() => window.print(), 300);
+        });
+      </script>
+    `);
+    printWindow.document.close();
+    schedulePrintWindow(printWindow);
+    return;
+  }
 
-  printWindow.document.write(buildDocumentHtml(title, bodyHtml));
-  printWindow.document.write(`
-    <script>
-      window.addEventListener("load", () => {
-        window.focus();
-        setTimeout(() => window.print(), 300);
-      });
-    </script>
-  `);
-  printWindow.document.close();
-  schedulePrintWindow(printWindow);
+  printInFrame(buildDocumentHtml(title, bodyHtml));
 }
 
 function printCustomHtml(title, html, printWindow = null) {
   const targetWindow = printWindow || window.open("", "_blank");
-  if (!targetWindow) return;
+  if (targetWindow) {
+    targetWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>${escapeHtml(title)}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </head>
+        <body>
+          ${html}
+          <script>
+            window.addEventListener("load", () => {
+              window.focus();
+              setTimeout(() => window.print(), 300);
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    targetWindow.document.close();
+    schedulePrintWindow(targetWindow);
+    return;
+  }
 
-  targetWindow.document.write(`
+  printInFrame(`
     <!doctype html>
     <html>
       <head>
@@ -322,17 +392,9 @@ function printCustomHtml(title, html, printWindow = null) {
       </head>
       <body>
         ${html}
-        <script>
-          window.addEventListener("load", () => {
-            window.focus();
-            setTimeout(() => window.print(), 300);
-          });
-        </script>
       </body>
     </html>
   `);
-  targetWindow.document.close();
-  schedulePrintWindow(targetWindow);
 }
 
 function printPdfDocument(pdfDocument) {
@@ -345,9 +407,6 @@ function printPdfDocument(pdfDocument) {
 }
 
 function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
-  const targetWindow = printWindow || window.open("", "_blank");
-  if (!targetWindow) return;
-
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
   const pagesHtml = Array.from({ length: copies }, () => `
@@ -356,7 +415,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
     </section>
   `).join("");
 
-  targetWindow.document.write(`
+  const html = `
     <!doctype html>
     <html>
       <head>
@@ -404,17 +463,27 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
       </head>
       <body>
         ${pagesHtml}
-        <script>
-          window.addEventListener("load", () => {
-            window.focus();
-            setTimeout(() => window.print(), 300);
-          });
-        </script>
       </body>
     </html>
-  `);
-  targetWindow.document.close();
-  schedulePrintWindow(targetWindow);
+  `;
+
+  const targetWindow = printWindow || window.open("", "_blank");
+  if (targetWindow) {
+    targetWindow.document.write(html);
+    targetWindow.document.write(`
+      <script>
+        window.addEventListener("load", () => {
+          window.focus();
+          setTimeout(() => window.print(), 300);
+        });
+      </script>
+    `);
+    targetWindow.document.close();
+    schedulePrintWindow(targetWindow);
+    return;
+  }
+
+  printInFrame(html);
 }
 
 async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
