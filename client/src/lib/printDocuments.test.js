@@ -4,7 +4,8 @@ import {
   getProductLabelCustomWidthMm,
   getProductLabelPaperPreset,
   getProductLabelScale,
-  getProductLabelThermalOrientation
+  getProductLabelThermalOrientation,
+  resolveThermalPrintSurface
 } from "./printDocuments";
 
 describe("product label defaults", () => {
@@ -27,5 +28,15 @@ describe("product label defaults", () => {
 
   it("uses long-edge as default thermal orientation", () => {
     expect(getProductLabelThermalOrientation()).toBe("long-edge");
+  });
+
+  it("applies short-edge thermal rotation and swapped page dimensions", () => {
+    const surface = resolveThermalPrintSurface({ widthMm: 40, heightMm: 30 }, "short-edge");
+
+    expect(surface).toMatchObject({
+      pageWidthMm: 30,
+      pageHeightMm: 40,
+      rotationClassName: "rotation-short-edge"
+    });
   });
 });

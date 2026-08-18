@@ -325,7 +325,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface 
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
   const pagesHtml = Array.from({ length: copies }, () => `
-    <section class="label-page">
+    <section class="label-page ${thermalPrintSurface.rotationClassName}">
       <img class="label-image" src="${escapeHtml(labelImageDataUrl)}" alt="Етикет" />
     </section>
   `).join("");
@@ -356,10 +356,17 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface 
             page-break-after: always;
             break-after: page;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           .label-page:last-child {
             page-break-after: auto;
             break-after: auto;
+          }
+          .label-page.rotation-short-edge {
+            transform: rotate(90deg);
+            transform-origin: center center;
           }
           .label-image {
             width: 100%;
@@ -452,7 +459,7 @@ function resolveThermalSizeMm(preset, customWidthMm, customHeightMm) {
   };
 }
 
-function resolveThermalPrintSurface(sizeMm, orientation) {
+export function resolveThermalPrintSurface(sizeMm, orientation) {
   const longSideMm = Math.max(sizeMm.widthMm, sizeMm.heightMm);
   const shortSideMm = Math.min(sizeMm.widthMm, sizeMm.heightMm);
   const safeOrientation = normalizeThermalOrientation(orientation);
@@ -463,7 +470,7 @@ function resolveThermalPrintSurface(sizeMm, orientation) {
       pageHeightMm: shortSideMm,
       contentWidthMm: longSideMm,
       contentHeightMm: shortSideMm,
-      rotationClassName: ""
+      rotationClassName: "rotation-long-edge"
     };
   }
 
@@ -472,7 +479,7 @@ function resolveThermalPrintSurface(sizeMm, orientation) {
     pageHeightMm: longSideMm,
     contentWidthMm: shortSideMm,
     contentHeightMm: longSideMm,
-    rotationClassName: ""
+    rotationClassName: "rotation-short-edge"
   };
 }
 
@@ -991,6 +998,11 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
         .label-print-surface:last-child {
           page-break-after: auto;
           break-after: auto;
+        }
+        .label-print-surface.rotation-short-edge,
+        .label-sheet.rotation-short-edge {
+          transform: rotate(90deg);
+          transform-origin: center center;
         }
         .label-card {
           width: 100%;

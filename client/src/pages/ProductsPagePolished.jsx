@@ -1099,7 +1099,7 @@ export default function ProductsPagePolished() {
                     p: 0.7,
                     overflow: "hidden",
                     bgcolor: "#fff",
-                    transform: `translate(${Math.round((labelOffsetXmm - 2) * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
+                    transform: `translate(${Math.round((labelOffsetXmm - 2) * previewFitScale)}px, ${Math.round(labelOffsetYmm * previewFitScale)}px) rotate(${labelThermalOrientation === "short-edge" ? 90 : 0}deg) scale(${Math.min(2.6, Math.max(0.7, labelScalePercent / 100))})`,
                     transformOrigin: "center center"
                   }}
                 >
