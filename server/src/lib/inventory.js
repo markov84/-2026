@@ -58,7 +58,7 @@ export async function applyInventoryDelta({ productId, storeId, quantityDelta, r
   const nextQuantity = quantityBefore + Number(quantityDelta || 0);
 
   if (nextQuantity < 0) {
-    const error = new Error("Insufficient inventory quantity.");
+    const error = new Error("Недостатъчна наличност в склада.");
     error.statusCode = 400;
     throw error;
   }
