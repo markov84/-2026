@@ -756,7 +756,7 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const leftPadPx = Math.max(0, mm(1.2 + offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM));
+  const leftPadPx = Math.max(0, mm(1.2 + offsetXmm - (LABEL_GLOBAL_LEFT_SHIFT_MM + 3)));
   const topPadPx = Math.max(0, mm(1 + offsetYmm));
   const rightPadPx = mm(1.2);
   const bottomPadPx = mm(1.2);
@@ -806,7 +806,7 @@ async function renderThermalLabelCanvasDataUrl({
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
   const qrSizePx = Math.min(Math.max(mm(10), Math.floor(contentHeightPx * 0.28)), Math.floor(contentWidthPx * 0.28));
-  const qrX = leftPadPx + contentWidthPx - qrSizePx;
+  const qrX = leftPadPx + contentWidthPx - qrSizePx - mm(3);
   const qrY = topPadPx + Math.floor(contentHeightPx * 0.54) - qrSizePx / 2;
   const barcodeAreaX = leftPadPx;
   const barcodeAreaWidth = Math.max(mm(12), qrX - barcodeAreaX - mm(1.1));
