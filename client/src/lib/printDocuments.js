@@ -756,7 +756,7 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const leftPadPx = Math.max(0, mm(1.0 + offsetXmm - (LABEL_GLOBAL_LEFT_SHIFT_MM + 2.5)));
+  const leftPadPx = Math.max(0, mm(0.9 + offsetXmm - (LABEL_GLOBAL_LEFT_SHIFT_MM + 2.5)));
   const topPadPx = Math.max(0, mm(1 + offsetYmm));
   const rightPadPx = mm(1.2);
   const bottomPadPx = mm(1.2);
@@ -767,8 +767,8 @@ async function renderThermalLabelCanvasDataUrl({
   const logoImage = await loadImageElement(logoDataUrl);
   let logoBottomPx = topPadPx;
   if (logoImage) {
-    const logoBoxWidth = Math.floor(Math.min(contentWidthPx * 0.82, contentWidthPx - mm(2.5)));
-    const logoBoxHeight = Math.max(mm(8), Math.floor(contentHeightPx * 0.29));
+    const logoBoxWidth = Math.floor(Math.min(contentWidthPx * 0.76, contentWidthPx - mm(2.2)));
+    const logoBoxHeight = Math.max(mm(7), Math.floor(contentHeightPx * 0.26));
     const ratio = logoImage.width / logoImage.height;
     let logoWidth = logoBoxWidth;
     let logoHeight = Math.floor(logoWidth / ratio);
@@ -780,11 +780,11 @@ async function renderThermalLabelCanvasDataUrl({
     logoBottomPx = topPadPx + logoHeight;
   }
 
-  let cursorYPx = logoBottomPx + Math.max(10, mm(1.3));
+  let cursorYPx = logoBottomPx + Math.max(9, mm(1.1));
   const isSmallThermalLabel = Math.min(pageWidthMm, pageHeightMm) <= 30 || pageWidthMm * pageHeightMm <= 1200;
-  const titleFontPx = Math.max(isSmallThermalLabel ? 21 : 22, Math.round((isSmallThermalLabel ? 18.5 : 18.5) * safeScale));
-  const metaFontPx = Math.max(isSmallThermalLabel ? 13.5 : 14, Math.round((isSmallThermalLabel ? 13 : 12.9) * safeScale));
-  const lineHeightPx = Math.max(isSmallThermalLabel ? 17 : 18, Math.round(metaFontPx * 1.18));
+  const titleFontPx = Math.max(isSmallThermalLabel ? 20 : 22, Math.round((isSmallThermalLabel ? 17.5 : 18.5) * safeScale));
+  const metaFontPx = Math.max(isSmallThermalLabel ? 12.8 : 14, Math.round((isSmallThermalLabel ? 12.4 : 12.9) * safeScale));
+  const lineHeightPx = Math.max(isSmallThermalLabel ? 15.5 : 18, Math.round(metaFontPx * 1.16));
 
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
@@ -806,8 +806,8 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.min(Math.max(mm(9), Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.24 : 0.28))), Math.floor(contentWidthPx * (isSmallThermalLabel ? 0.22 : 0.28)));
-  const qrX = leftPadPx + contentWidthPx - qrSizePx - mm(3);
+  const qrSizePx = Math.min(Math.max(mm(8), Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.23 : 0.28))), Math.floor(contentWidthPx * (isSmallThermalLabel ? 0.2 : 0.28)));
+  const qrX = leftPadPx + contentWidthPx - qrSizePx - mm(2.5);
   const qrY = topPadPx + Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.62 : 0.54)) - qrSizePx / 2;
   const barcodeAreaX = leftPadPx;
   const barcodeAreaWidth = Math.max(mm(12), qrX - barcodeAreaX - mm(1.1));
