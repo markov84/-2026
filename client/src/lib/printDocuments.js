@@ -767,8 +767,8 @@ async function renderThermalLabelCanvasDataUrl({
   const logoImage = await loadImageElement(logoDataUrl);
   let logoBottomPx = topPadPx;
   if (logoImage) {
-    const logoBoxWidth = Math.floor(contentWidthPx * 0.94);
-    const logoBoxHeight = Math.max(mm(7), Math.floor(contentHeightPx * 0.31));
+    const logoBoxWidth = Math.floor(contentWidthPx * 0.96);
+    const logoBoxHeight = Math.max(mm(9), Math.floor(contentHeightPx * 0.32));
     const ratio = logoImage.width / logoImage.height;
     let logoWidth = logoBoxWidth;
     let logoHeight = Math.floor(logoWidth / ratio);
@@ -780,10 +780,10 @@ async function renderThermalLabelCanvasDataUrl({
     logoBottomPx = topPadPx + logoHeight;
   }
 
-  let cursorYPx = logoBottomPx + Math.max(8, mm(1.2));
-  const titleFontPx = Math.max(18, Math.round(15 * safeScale));
-  const metaFontPx = Math.max(12, Math.round(11.5 * safeScale));
-  const lineHeightPx = Math.max(15, Math.round(metaFontPx * 1.2));
+  let cursorYPx = logoBottomPx + Math.max(10, mm(1.3));
+  const titleFontPx = Math.max(22, Math.round(18 * safeScale));
+  const metaFontPx = Math.max(14, Math.round(12.8 * safeScale));
+  const lineHeightPx = Math.max(18, Math.round(metaFontPx * 1.2));
 
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
@@ -866,8 +866,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * scale)));
   const rawLogoDataUrl = await loadFirstAvailableImageAsDataUrl([
-    new URL("/MARKLIGHT.png", window.location.origin).toString(),
-    new URL("/MARK%20LIGHT.png", window.location.origin).toString()
+    new URL("/MARK%20LIGHT.png", window.location.origin).toString(),
+    new URL("/MARKLIGHT.png", window.location.origin).toString()
   ]);
   const logoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
 
