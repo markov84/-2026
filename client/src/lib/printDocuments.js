@@ -582,13 +582,13 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   const readabilityBoost = isThermal ? 1.35 : 1;
   const cardPadding = Math.max(6, Math.round(7 * scale));
   const qrPx = Math.max(isThermal ? 34 : 26, Math.round((isThermal ? 34 : 30) * scale * readabilityBoost));
-  const titleFont = Math.max(isThermal ? 12 : 10, Math.round(12 * scale * readabilityBoost));
-  const skuFont = Math.max(isThermal ? 10 : 8, Math.round(9 * scale * readabilityBoost));
-  const metaFont = Math.max(isThermal ? 10 : 8, Math.round(9 * scale * readabilityBoost));
-  const codeFont = Math.max(isThermal ? 11 : 9, Math.round(10 * scale * readabilityBoost));
+  const titleFont = Math.max(isThermal ? 15 : 11, Math.round(13.5 * scale * readabilityBoost));
+  const skuFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
+  const metaFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
+  const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
-    ? `<img src="${escapeHtml(logoDataUrl)}" alt="Logo" style="height:${Math.max(10, Math.round(12 * scale))}px; width:auto; display:block; margin-bottom:2px;" />`
+    ? `<img src="${escapeHtml(logoDataUrl)}" alt="Logo" style="height:${Math.max(12, Math.round(15 * scale))}px; width:auto; display:block; margin-bottom:3px;" />`
     : "";
 
   return `
@@ -596,14 +596,14 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
       ${logoHtml}
       <div class="label-title" style="font-size:${titleFont}px;">${escapeHtml(product?.name || "Продукт")}</div>
       <div class="label-subtitle" style="font-size:${skuFont}px;">Модел: ${escapeHtml(modelCode)}</div>
-      <div class="label-meta" style="font-size:${metaFont}px;">Баркод: ${escapeHtml(fallbackCode)}</div>
+      <div class="label-meta" style="font-size:${metaFont}px; margin-bottom:4px;">Баркод: ${escapeHtml(fallbackCode)}</div>
 
-      <div class="label-main-row">
-        <div class="label-barcode-wrap">
+      <div class="label-main-row" style="gap:${Math.max(4, Math.round(6 * scale))}px;">
+        <div class="label-barcode-wrap" style="min-width:0;">
           <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
-          <div style="font-size:${codeFont}px; margin-top:3px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
+          <div style="font-size:${codeFont}px; margin-top:4px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
-        <div class="label-qr-wrap">
+        <div class="label-qr-wrap" style="display:flex; align-items:flex-start; justify-content:flex-start;">
           <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrPx}px; height:${qrPx}px; max-width:100%; display:block;" />
         </div>
       </div>
