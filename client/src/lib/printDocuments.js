@@ -780,16 +780,16 @@ async function renderThermalLabelCanvasDataUrl({
     logoBottomPx = topPadPx + logoHeight;
   }
 
-  let cursorYPx = logoBottomPx + Math.max(8, mm(1.4));
-  const titleFontPx = Math.max(13, Math.round(12.5 * safeScale));
-  const metaFontPx = Math.max(10, Math.round(9.2 * safeScale));
-  const lineHeightPx = Math.max(14, Math.round(metaFontPx * 1.18));
+  let cursorYPx = logoBottomPx + Math.max(8, mm(1.2));
+  const titleFontPx = Math.max(18, Math.round(15 * safeScale));
+  const metaFontPx = Math.max(12, Math.round(11.5 * safeScale));
+  const lineHeightPx = Math.max(15, Math.round(metaFontPx * 1.2));
 
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
   const visibleName = truncateText(String(product?.name || "Продукт"), 96);
-  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 3, Math.round(titleFontPx * 1.08));
-  cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 4;
+  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
+  cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 3;
 
   const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
   const modelCode = truncateText(extractAfterFirstHyphen(modelSource), 36);
@@ -801,17 +801,17 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillText(`SKU: ${skuCode}`, leftPadPx, cursorYPx);
   cursorYPx += lineHeightPx;
   context.fillText(`Баркод: ${fallbackCode}`, leftPadPx, cursorYPx);
-  cursorYPx += lineHeightPx + 2;
+  cursorYPx += Math.max(8, lineHeightPx - 2);
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.min(Math.max(mm(9.2), Math.floor(contentHeightPx * 0.34)), Math.floor(contentWidthPx * 0.31));
+  const qrSizePx = Math.min(Math.max(mm(10), Math.floor(contentHeightPx * 0.28)), Math.floor(contentWidthPx * 0.28));
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
-  const qrY = topPadPx + contentHeightPx - qrSizePx;
+  const qrY = topPadPx + Math.floor(contentHeightPx * 0.54) - qrSizePx / 2;
   const barcodeAreaX = leftPadPx;
-  const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - mm(1.2));
-  const barcodeAreaY = Math.max(cursorYPx + mm(1.6), topPadPx + Math.floor(contentHeightPx * 0.72));
-  const barcodeAreaHeight = Math.max(mm(7.2), topPadPx + contentHeightPx - barcodeAreaY - 1);
+  const barcodeAreaWidth = Math.max(mm(12), qrX - barcodeAreaX - mm(1.1));
+  const barcodeAreaY = Math.max(cursorYPx + mm(0.8), topPadPx + Math.floor(contentHeightPx * 0.58));
+  const barcodeAreaHeight = Math.max(mm(8.5), topPadPx + contentHeightPx - barcodeAreaY - 1);
 
   if (barcodeImage) {
     context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
