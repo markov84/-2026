@@ -781,19 +781,20 @@ async function renderThermalLabelCanvasDataUrl({
   }
 
   let cursorYPx = logoBottomPx + Math.max(10, mm(1.3));
-  const titleFontPx = Math.max(22, Math.round(18 * safeScale));
-  const metaFontPx = Math.max(14, Math.round(12.8 * safeScale));
-  const lineHeightPx = Math.max(18, Math.round(metaFontPx * 1.2));
+  const isSmallThermalLabel = Math.min(pageWidthMm, pageHeightMm) <= 30 || pageWidthMm * pageHeightMm <= 1200;
+  const titleFontPx = Math.max(isSmallThermalLabel ? 20 : 22, Math.round((isSmallThermalLabel ? 18 : 18.5) * safeScale));
+  const metaFontPx = Math.max(isSmallThermalLabel ? 13 : 14, Math.round((isSmallThermalLabel ? 12.8 : 12.9) * safeScale));
+  const lineHeightPx = Math.max(isSmallThermalLabel ? 16 : 18, Math.round(metaFontPx * 1.18));
 
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
-  const visibleName = truncateText(String(product?.name || "Продукт"), 96);
+  const visibleName = truncateText(String(product?.name || "Продукт"), isSmallThermalLabel ? 52 : 96);
   const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
   cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 3;
 
   const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
-  const modelCode = truncateText(extractAfterFirstHyphen(modelSource), 36);
-  const skuCode = truncateText(String(product?.sku || "-").trim() || "-", 34);
+  const modelCode = truncateText(extractAfterFirstHyphen(modelSource), isSmallThermalLabel ? 22 : 36);
+  const skuCode = truncateText(String(product?.sku || "-").trim() || "-", isSmallThermalLabel ? 18 : 34);
 
   context.font = `500 ${metaFontPx}px \"Segoe UI\", Arial, sans-serif`;
   context.fillText(`Модел: ${modelCode}`, leftPadPx, cursorYPx);
@@ -805,12 +806,12 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.min(Math.max(mm(10), Math.floor(contentHeightPx * 0.28)), Math.floor(contentWidthPx * 0.28));
+  const qrSizePx = Math.min(Math.max(mm(10), Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.26 : 0.28))), Math.floor(contentWidthPx * (isSmallThermalLabel ? 0.24 : 0.28)));
   const qrX = leftPadPx + contentWidthPx - qrSizePx - mm(3);
-  const qrY = topPadPx + Math.floor(contentHeightPx * 0.54) - qrSizePx / 2;
+  const qrY = topPadPx + Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.6 : 0.54)) - qrSizePx / 2;
   const barcodeAreaX = leftPadPx;
   const barcodeAreaWidth = Math.max(mm(12), qrX - barcodeAreaX - mm(1.1));
-  const barcodeAreaY = Math.max(cursorYPx + mm(0.8), topPadPx + Math.floor(contentHeightPx * 0.58));
+  const barcodeAreaY = Math.max(cursorYPx + mm(0.7), topPadPx + Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.66 : 0.58)));
   const barcodeAreaHeight = Math.max(mm(8.5), topPadPx + contentHeightPx - barcodeAreaY - 1);
 
   if (barcodeImage) {
