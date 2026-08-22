@@ -932,9 +932,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
   const thermalAreaMm = thermalPrintSurface.contentWidthMm * thermalPrintSurface.contentHeightMm;
-  const thermalMinReadableScalePercent = thermalAreaMm <= 2000 ? 175 : thermalAreaMm <= 3600 ? 150 : 130;
-  const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.max(safeScalePercent, thermalMinReadableScalePercent);
+  const thermalMaxSafeScalePercent = thermalAreaMm <= 2000 ? 112 : thermalAreaMm <= 3600 ? 128 : 145;
+  const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.min(safeScalePercent, thermalMaxSafeScalePercent);
   const scale = effectiveScalePercent / 100;
+  const thermalRenderScale = isA4Sheet ? scale : clampNumber(scale, 0.85, 1.15);
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
@@ -955,10 +956,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           ? 0.85
           : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(isA4Sheet ? 1.0 : 0.9, Number((barcodeWidthBase * scale).toFixed(2))),
-    height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * scale))
+    barWidth: Math.max(isA4Sheet ? 1.0 : 0.9, Number((barcodeWidthBase * thermalRenderScale).toFixed(2))),
+    height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * thermalRenderScale))
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * scale)));
+  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * thermalRenderScale)));
   const rawLogoDataUrl = await loadFirstAvailableImageAsDataUrl([
     new URL("/MARK%20LIGHT.png", window.location.origin).toString(),
     new URL("/MARKLIGHT.png", window.location.origin).toString()
@@ -991,7 +992,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       pageHeightMm: thermalPrintSurface.pageHeightMm,
       offsetXmm: safeOffsetXmm,
       offsetYmm: safeOffsetYmm,
-      scale
+      scale: thermalRenderScale
     });
     printThermalLabelHtml({
       labelImageDataUrl: thermalLabelDataUrl,

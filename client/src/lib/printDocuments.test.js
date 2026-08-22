@@ -5,6 +5,7 @@ import {
   getProductLabelPaperPreset,
   getProductLabelScale,
   getProductLabelThermalOrientation,
+  setProductLabelScale,
   resolveThermalPrintSurface
 } from "./printDocuments";
 
@@ -15,6 +16,11 @@ describe("product label defaults", () => {
 
   it("uses a larger default label scale so printed labels stay readable", () => {
     expect(getProductLabelScale()).toBe(100);
+  });
+
+  it("clamps stored label scale within safe bounds", () => {
+    setProductLabelScale(999);
+    expect(getProductLabelScale()).toBe(280);
   });
 
   it("uses thermal preset as default paper type", () => {
