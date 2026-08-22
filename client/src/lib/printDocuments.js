@@ -878,74 +878,81 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const leftPadPx = Math.max(0, mm(0.9 + offsetXmm - (LABEL_GLOBAL_LEFT_SHIFT_MM + 2.5)));
-  const topPadPx = Math.max(0, mm(1 + offsetYmm));
-  const rightPadPx = mm(1.2);
-  const bottomPadPx = mm(1.2);
-  const contentWidthPx = Math.max(mm(12), canvas.width - leftPadPx - rightPadPx);
-  const contentHeightPx = Math.max(mm(12), canvas.height - topPadPx - bottomPadPx);
-  const safeScale = Math.max(1, scale);
+  const marginX = Math.max(mm(0.9), Math.round(canvas.width * 0.032));
+  const marginY = Math.max(mm(0.8), Math.round(canvas.height * 0.03));
+  const leftPadPx = Math.max(0, Math.round(marginX + mm(offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM)));
+  const topPadPx = Math.max(0, Math.round(marginY + mm(offsetYmm)));
+  const rightPadPx = marginX;
+  const bottomPadPx = marginY;
+  const contentWidthPx = Math.max(mm(10), canvas.width - leftPadPx - rightPadPx);
+  const contentHeightPx = Math.max(mm(10), canvas.height - topPadPx - bottomPadPx);
+
+  const safeScale = clampNumber(scale, 0.9, 1.08);
+  const headerHeightPx = Math.max(mm(5.8), Math.round(contentHeightPx * 0.2));
+  const infoHeightPx = Math.max(mm(8), Math.round(contentHeightPx * 0.34));
+  const codeHeightPx = Math.max(mm(8), contentHeightPx - headerHeightPx - infoHeightPx);
+
+  const headerTop = topPadPx;
+  const infoTop = headerTop + headerHeightPx;
+  const codeTop = infoTop + infoHeightPx;
 
   const logoImage = await loadImageElement(logoDataUrl);
-  let logoBottomPx = topPadPx;
+  const brandFontPx = Math.max(9, Math.round(Math.min(contentWidthPx * 0.04, headerHeightPx * 0.36) * safeScale));
+  let brandBaseY = headerTop + brandFontPx;
+
   if (logoImage) {
-    const logoBoxWidth = Math.floor(Math.min(contentWidthPx * 0.76, contentWidthPx - mm(2.2)));
-    const logoBoxHeight = Math.max(mm(7), Math.floor(contentHeightPx * 0.26));
-    const ratio = logoImage.width / logoImage.height;
-    let logoWidth = logoBoxWidth;
+    const logoMaxWidth = Math.floor(contentWidthPx * 0.7);
+    const logoMaxHeight = Math.max(1, Math.floor(headerHeightPx - brandFontPx - 4));
+    const ratio = logoImage.width / Math.max(1, logoImage.height);
+    let logoWidth = logoMaxWidth;
     let logoHeight = Math.floor(logoWidth / ratio);
-    if (logoHeight > logoBoxHeight) {
-      logoHeight = logoBoxHeight;
+    if (logoHeight > logoMaxHeight) {
+      logoHeight = logoMaxHeight;
       logoWidth = Math.floor(logoHeight * ratio);
     }
-    context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
-    logoBottomPx = topPadPx + logoHeight;
-    const brandFontPx = Math.max(10, Math.round(11 * safeScale));
-    context.fillStyle = "#111827";
-    context.font = `700 ${brandFontPx}px \"Segoe UI\", Arial, sans-serif`;
-    context.fillText("MARK LIGHT", leftPadPx, logoBottomPx + brandFontPx);
-    logoBottomPx += brandFontPx + 2;
-  } else {
-    const fallbackLogoFontPx = Math.max(14, Math.round(16 * safeScale));
-    context.fillStyle = "#111827";
-    context.font = `800 ${fallbackLogoFontPx}px \"Segoe UI\", Arial, sans-serif`;
-    context.fillText("MARK LIGHT", leftPadPx, topPadPx + fallbackLogoFontPx);
-    logoBottomPx = topPadPx + fallbackLogoFontPx;
+    context.drawImage(logoImage, leftPadPx, headerTop, logoWidth, Math.max(1, logoHeight));
+    brandBaseY = headerTop + Math.max(1, logoHeight) + brandFontPx;
   }
 
-  let cursorYPx = logoBottomPx + Math.max(9, mm(1.1));
-  const isSmallThermalLabel = Math.min(pageWidthMm, pageHeightMm) <= 30 || pageWidthMm * pageHeightMm <= 1200;
-  const titleFontPx = Math.max(isSmallThermalLabel ? 20 : 22, Math.round((isSmallThermalLabel ? 17.5 : 18.5) * safeScale));
-  const metaFontPx = Math.max(isSmallThermalLabel ? 12.8 : 14, Math.round((isSmallThermalLabel ? 12.4 : 12.9) * safeScale));
-  const lineHeightPx = Math.max(isSmallThermalLabel ? 15.5 : 18, Math.round(metaFontPx * 1.16));
+  context.fillStyle = "#111827";
+  context.font = `700 ${brandFontPx}px \"Segoe UI\", Arial, sans-serif`;
+  context.fillText("MARK LIGHT", leftPadPx, Math.min(headerTop + headerHeightPx - 2, brandBaseY));
 
+  const isSmallThermalLabel = Math.min(pageWidthMm, pageHeightMm) <= 30 || pageWidthMm * pageHeightMm <= 1200;
+  const titleFontPx = Math.max(isSmallThermalLabel ? 10 : 11, Math.round(Math.min(infoHeightPx * 0.28, contentWidthPx * 0.05) * safeScale));
+  const metaFontPx = Math.max(isSmallThermalLabel ? 8 : 9, Math.round(Math.min(infoHeightPx * 0.2, contentWidthPx * 0.039) * safeScale));
+  const titleLineHeightPx = Math.max(titleFontPx + 1, Math.round(titleFontPx * 1.08));
+  const metaLineHeightPx = Math.max(metaFontPx + 1, Math.round(metaFontPx * 1.18));
+
+  const visibleName = truncateText(String(product?.name || "Продукт"), isSmallThermalLabel ? 38 : 64);
+  const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
+  const modelCode = truncateText(extractAfterFirstHyphen(modelSource), isSmallThermalLabel ? 18 : 28);
+  const skuCode = truncateText(String(product?.sku || "-").trim() || "-", isSmallThermalLabel ? 16 : 26);
+
+  let textY = infoTop + titleFontPx;
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
-  const visibleName = truncateText(String(product?.name || "Продукт"), isSmallThermalLabel ? 52 : 96);
-  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, cursorYPx, contentWidthPx - 2, 2, Math.round(titleFontPx * 1.08));
-  cursorYPx += Math.max(1, titleLinesCount) * Math.round(titleFontPx * 1.08) + 3;
-
-  const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
-  const modelCode = truncateText(extractAfterFirstHyphen(modelSource), isSmallThermalLabel ? 22 : 36);
-  const skuCode = truncateText(String(product?.sku || "-").trim() || "-", isSmallThermalLabel ? 18 : 34);
+  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, textY, contentWidthPx - 2, 2, titleLineHeightPx);
+  textY += Math.max(1, titleLinesCount) * titleLineHeightPx + 1;
 
   context.font = `500 ${metaFontPx}px \"Segoe UI\", Arial, sans-serif`;
-  context.fillText(`Модел: ${modelCode}`, leftPadPx, cursorYPx);
-  cursorYPx += lineHeightPx;
-  context.fillText(`SKU: ${skuCode}`, leftPadPx, cursorYPx);
-  cursorYPx += lineHeightPx;
-  context.fillText(`Баркод: ${fallbackCode}`, leftPadPx, cursorYPx);
-  cursorYPx += Math.max(8, lineHeightPx - 2);
+  context.fillText(`Модел: ${modelCode}`, leftPadPx, textY);
+  textY += metaLineHeightPx;
+  context.fillText(`SKU: ${skuCode}`, leftPadPx, textY);
+  textY += metaLineHeightPx;
+  if (textY <= infoTop + infoHeightPx - 2) {
+    context.fillText(`Баркод: ${truncateText(fallbackCode, isSmallThermalLabel ? 18 : 26)}`, leftPadPx, textY);
+  }
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.min(Math.max(mm(8), Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.23 : 0.28))), Math.floor(contentWidthPx * (isSmallThermalLabel ? 0.2 : 0.28)));
-  const qrX = leftPadPx + contentWidthPx - qrSizePx - mm(2.5);
-  const qrY = topPadPx + Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.62 : 0.54)) - qrSizePx / 2;
+  const qrSizePx = Math.max(mm(6.2), Math.min(Math.floor(codeHeightPx * 0.92), Math.floor(contentWidthPx * 0.26)));
+  const qrX = leftPadPx + contentWidthPx - qrSizePx;
+  const qrY = codeTop + Math.max(0, Math.floor((codeHeightPx - qrSizePx) / 2));
   const barcodeAreaX = leftPadPx;
-  const barcodeAreaWidth = Math.max(mm(12), qrX - barcodeAreaX - mm(1.1));
-  const barcodeAreaY = Math.max(cursorYPx + mm(0.7), topPadPx + Math.floor(contentHeightPx * (isSmallThermalLabel ? 0.66 : 0.58)));
-  const barcodeAreaHeight = Math.max(mm(8.5), topPadPx + contentHeightPx - barcodeAreaY - 1);
+  const barcodeAreaY = codeTop + 1;
+  const barcodeAreaWidth = Math.max(mm(9), qrX - barcodeAreaX - Math.max(4, mm(0.8)));
+  const barcodeAreaHeight = Math.max(mm(6), codeHeightPx - 2);
 
   if (barcodeImage) {
     context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
