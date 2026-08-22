@@ -28,7 +28,7 @@ const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
 const LABEL_GLOBAL_LEFT_SHIFT_MM = 6.2;
-const THERMAL_M221_SAFE_PROFILE_ENABLED = true;
+const THERMAL_M221_SAFE_PROFILE_ENABLED = false;
 const THERMAL_M221_VERTICAL_SCALE = 0.52;
 const THERMAL_M221_TOP_MARGIN_MM = 0.6;
 
@@ -435,15 +435,17 @@ async function printThermalLabelPdf({ labelImageDataUrl, copies, thermalPrintSur
     });
   }
 
-  const pdfDataUri = await pdf.saveAsBase64({ dataUri: true });
+  const pdfBytes = await pdf.save();
+  const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
+  const pdfBlobUrl = URL.createObjectURL(pdfBlob);
   if (printWindow) {
     try {
-      printWindow.location.replace(pdfDataUri);
+      printWindow.location.replace(pdfBlobUrl);
       return;
     } catch {}
   }
 
-  const openedWindow = window.open(pdfDataUri, "_blank");
+  const openedWindow = window.open(pdfBlobUrl, "_blank");
   if (!openedWindow) return;
 }
 
@@ -1172,7 +1174,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       if (!thermalLabelDataUrl || !thermalLabelDataUrl.startsWith("data:image/")) {
         throw new Error("Invalid thermal label image");
       }
-      printThermalLabelHtml({
+      await printThermalLabelPdf({
         labelImageDataUrl: thermalLabelDataUrl,
         copies: safeCopies,
         thermalPrintSurface,
@@ -1180,9 +1182,29 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       });
     } catch {
       try {
-        printCustomHtml(title, fallbackThermalBodyHtml, printWindow);
+        printThermalLabelHtml({
+          labelImageDataUrl: await renderThermalLabelCanvasDataUrl({
+            product,
+            fallbackCode,
+            barcodeDataUrl,
+            qrDataUrl,
+            logoDataUrl,
+            pageWidthMm: thermalPrintSurface.pageWidthMm,
+            pageHeightMm: thermalPrintSurface.pageHeightMm,
+            offsetXmm: safeOffsetXmm,
+            offsetYmm: safeOffsetYmm,
+            scale: thermalRenderScale
+          }),
+          copies: safeCopies,
+          thermalPrintSurface,
+          printWindow
+        });
       } catch {
-        printWindow.close();
+        try {
+          printCustomHtml(title, fallbackThermalBodyHtml, printWindow);
+        } catch {
+          printWindow.close();
+        }
       }
     }
     return;
