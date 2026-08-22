@@ -1005,10 +1005,23 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const shouldRenderQr = !barcodeFirst && Math.min(pageWidthMm, pageHeightMm) >= 40 && pageWidthMm * pageHeightMm >= 1900;
-  const qrSizePx = shouldRenderQr
+  let shouldRenderQr = !barcodeFirst && Math.min(pageWidthMm, pageHeightMm) >= 40 && pageWidthMm * pageHeightMm >= 1900;
+  let qrSizePx = shouldRenderQr
     ? Math.max(mm(5.8), Math.min(Math.floor(infoHeightPx * 0.9), qrColumnWidth))
     : 0;
+
+  if (barcodeFirst) {
+    const candidateQrSizePx = Math.max(mm(6), Math.min(Math.floor(infoHeightPx * 0.86), qrColumnWidth));
+    const candidateQrReservedWidth = candidateQrSizePx + Math.max(6, mm(0.9));
+    const baseBarcodeAreaX = leftPadPx + Math.max(2, mm(0.35));
+    const candidateBarcodeWidth = contentWidthPx - (baseBarcodeAreaX - leftPadPx) - candidateQrReservedWidth;
+    const minBarcodeWidthForScanPx = mm(26);
+
+    if (candidateBarcodeWidth >= minBarcodeWidthForScanPx) {
+      shouldRenderQr = true;
+      qrSizePx = candidateQrSizePx;
+    }
+  }
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
   const qrY = infoTop + Math.max(0, Math.floor((infoHeightPx - qrSizePx) / 2));
   const barcodeAreaX = leftPadPx + Math.max(2, mm(0.35));
