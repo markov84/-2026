@@ -941,8 +941,8 @@ async function renderThermalLabelCanvasDataUrl({
   const contentHeightPx = Math.max(mm(10), canvas.height - topPadPx - bottomPadPx);
 
   const safeScale = clampNumber(scale, 0.9, 1.03);
-  const headerHeightPx = Math.max(mm(5.8), Math.round(contentHeightPx * 0.2));
-  const infoHeightPx = Math.max(mm(8), Math.round(contentHeightPx * 0.34));
+  const headerHeightPx = Math.max(mm(5.8), Math.round(contentHeightPx * 0.18));
+  const infoHeightPx = Math.max(mm(8.6), Math.round(contentHeightPx * 0.41));
   const codeHeightPx = Math.max(mm(8), contentHeightPx - headerHeightPx - infoHeightPx);
 
   const headerTop = topPadPx;
@@ -972,10 +972,14 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillText("MARK LIGHT", leftPadPx, Math.min(headerTop + headerHeightPx - 2, brandBaseY));
 
   const isSmallThermalLabel = Math.min(pageWidthMm, pageHeightMm) <= 30 || pageWidthMm * pageHeightMm <= 1200;
-  const titleFontPx = Math.max(isSmallThermalLabel ? 10 : 11, Math.round(Math.min(infoHeightPx * 0.28, contentWidthPx * 0.05) * safeScale));
-  const metaFontPx = Math.max(isSmallThermalLabel ? 8 : 9, Math.round(Math.min(infoHeightPx * 0.2, contentWidthPx * 0.039) * safeScale));
+  const titleFontPx = Math.max(isSmallThermalLabel ? 10 : 11, Math.round(Math.min(infoHeightPx * 0.22, contentWidthPx * 0.045) * safeScale));
+  const metaFontPx = Math.max(isSmallThermalLabel ? 8 : 9, Math.round(Math.min(infoHeightPx * 0.17, contentWidthPx * 0.036) * safeScale));
   const titleLineHeightPx = Math.max(titleFontPx + 1, Math.round(titleFontPx * 1.08));
   const metaLineHeightPx = Math.max(metaFontPx + 1, Math.round(metaFontPx * 1.18));
+
+  const qrColumnWidth = Math.max(mm(7), Math.round(contentWidthPx * 0.24));
+  const infoGapPx = Math.max(4, mm(0.6));
+  const textMaxWidth = Math.max(mm(7.5), contentWidthPx - qrColumnWidth - infoGapPx);
 
   const visibleName = truncateText(String(product?.name || "Продукт"), isSmallThermalLabel ? 38 : 64);
   const modelSource = String(product?.name || product?.productNumber || product?.sku || "-").trim() || "-";
@@ -985,7 +989,7 @@ async function renderThermalLabelCanvasDataUrl({
   let textY = infoTop + titleFontPx;
   context.fillStyle = "#111827";
   context.font = `700 ${titleFontPx}px \"Segoe UI\", Arial, sans-serif`;
-  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, textY, contentWidthPx - 2, 2, titleLineHeightPx);
+  const titleLinesCount = drawWrappedLines(context, `Име: ${visibleName}`, leftPadPx, textY, textMaxWidth, isSmallThermalLabel ? 1 : 2, titleLineHeightPx);
   textY += Math.max(1, titleLinesCount) * titleLineHeightPx + 1;
 
   context.font = `500 ${metaFontPx}px \"Segoe UI\", Arial, sans-serif`;
@@ -999,13 +1003,13 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.max(mm(5.2), Math.min(Math.floor(infoHeightPx * 0.86), Math.floor(contentWidthPx * 0.22)));
+  const qrSizePx = Math.max(mm(5.8), Math.min(Math.floor(infoHeightPx * 0.9), qrColumnWidth));
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
   const qrY = infoTop + Math.max(0, Math.floor((infoHeightPx - qrSizePx) / 2));
   const barcodeAreaX = leftPadPx;
-  const barcodeAreaY = Math.max(infoTop + 2, Math.min(codeTop + 1, textY + 2));
-  const barcodeAreaWidth = Math.max(mm(8), qrX - barcodeAreaX - Math.max(4, mm(0.7)));
-  const barcodeAreaHeight = Math.max(mm(4.8), Math.min(Math.max(mm(4.8), codeHeightPx - 2), Math.round(contentHeightPx * 0.19)));
+  const barcodeAreaY = codeTop + Math.max(1, mm(0.5));
+  const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - Math.max(5, mm(0.9)));
+  const barcodeAreaHeight = Math.max(mm(6.8), Math.min(codeHeightPx - Math.max(1, mm(0.9)), Math.round(contentHeightPx * 0.24)));
 
   if (barcodeImage) {
     context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
@@ -1111,7 +1115,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     new URL("/MARKLIGHT.png", window.location.origin).toString()
   ]);
   const trimmedLogoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
-  const logoDataUrl = trimmedLogoDataUrl || rawLogoDataUrl;
+  const logoDataUrl = rawLogoDataUrl || trimmedLogoDataUrl;
 
   const labelHtml = buildSingleLabelHtml({
     product,
