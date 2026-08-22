@@ -999,19 +999,36 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.max(mm(6.2), Math.min(Math.floor(codeHeightPx * 0.92), Math.floor(contentWidthPx * 0.26)));
+  const qrSizePx = Math.max(mm(5.2), Math.min(Math.floor(infoHeightPx * 0.86), Math.floor(contentWidthPx * 0.22)));
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
-  const qrY = codeTop + Math.max(0, Math.floor((codeHeightPx - qrSizePx) / 2));
+  const qrY = infoTop + Math.max(0, Math.floor((infoHeightPx - qrSizePx) / 2));
   const barcodeAreaX = leftPadPx;
-  const barcodeAreaY = codeTop + 1;
-  const barcodeAreaWidth = Math.max(mm(9), qrX - barcodeAreaX - Math.max(4, mm(0.8)));
-  const barcodeAreaHeight = Math.max(mm(6), codeHeightPx - 2);
+  const barcodeAreaY = Math.max(infoTop + 2, Math.min(codeTop + 1, textY + 2));
+  const barcodeAreaWidth = Math.max(mm(8), qrX - barcodeAreaX - Math.max(4, mm(0.7)));
+  const barcodeAreaHeight = Math.max(mm(4.8), Math.min(Math.max(mm(4.8), codeHeightPx - 2), Math.round(contentHeightPx * 0.19)));
 
   if (barcodeImage) {
     context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
+  } else {
+    context.fillStyle = "#111827";
+    for (let x = barcodeAreaX; x < barcodeAreaX + barcodeAreaWidth; x += 3) {
+      context.fillRect(x, barcodeAreaY, 2, barcodeAreaHeight);
+    }
   }
   if (qrImage) {
     context.drawImage(qrImage, qrX, qrY, qrSizePx, qrSizePx);
+  } else {
+    context.strokeStyle = "#111827";
+    context.lineWidth = 1;
+    context.strokeRect(qrX, qrY, qrSizePx, qrSizePx);
+    context.fillStyle = "#111827";
+    context.fillRect(qrX + 2, qrY + 2, Math.max(2, Math.floor(qrSizePx * 0.28)), Math.max(2, Math.floor(qrSizePx * 0.28)));
+    context.fillRect(
+      qrX + qrSizePx - Math.max(2, Math.floor(qrSizePx * 0.28)) - 2,
+      qrY + qrSizePx - Math.max(2, Math.floor(qrSizePx * 0.28)) - 2,
+      Math.max(2, Math.floor(qrSizePx * 0.28)),
+      Math.max(2, Math.floor(qrSizePx * 0.28))
+    );
   }
 
   if (THERMAL_M221_SAFE_PROFILE_ENABLED) {
@@ -1093,7 +1110,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     new URL("/MARK%20LIGHT.png", window.location.origin).toString(),
     new URL("/MARKLIGHT.png", window.location.origin).toString()
   ]);
-  const logoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
+  const trimmedLogoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
+  const logoDataUrl = trimmedLogoDataUrl || rawLogoDataUrl;
 
   const labelHtml = buildSingleLabelHtml({
     product,
