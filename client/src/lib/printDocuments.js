@@ -519,6 +519,44 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
   printInFrame(html);
 }
 
+function writePreparingMessage(printWindow) {
+  if (!printWindow) return;
+  try {
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Подготовка за печат</title>
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: grid;
+              place-items: center;
+              font-family: "Segoe UI", Arial, sans-serif;
+              color: #111827;
+              background: #f9fafb;
+            }
+            .notice {
+              padding: 18px 20px;
+              border: 1px solid #d1d5db;
+              border-radius: 10px;
+              background: #fff;
+              font-size: 14px;
+              font-weight: 600;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="notice">Генериране на етикет...</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  } catch {}
+}
+
 async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, data, {
@@ -987,6 +1025,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const isA4Sheet = safePaperPreset.kind === "a4";
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
+  writePreparingMessage(printWindow);
   const thermalAreaMm = thermalPrintSurface.contentWidthMm * thermalPrintSurface.contentHeightMm;
   const thermalMaxSafeScalePercent = thermalAreaMm <= 2000 ? 108 : thermalAreaMm <= 3600 ? 120 : 138;
   const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.min(safeScalePercent, thermalMaxSafeScalePercent);
@@ -1038,19 +1077,69 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const thermalLabelsHtml = Array.from({ length: safeCopies }, () => `<div class="label-print-surface">${labelHtml}</div>`).join("");
 
   if (!isA4Sheet) {
-    const thermalLabelDataUrl = await renderThermalLabelCanvasDataUrl({
-      product,
-      fallbackCode,
-      barcodeDataUrl,
-      qrDataUrl,
-      logoDataUrl,
-      pageWidthMm: thermalPrintSurface.pageWidthMm,
-      pageHeightMm: thermalPrintSurface.pageHeightMm,
-      offsetXmm: safeOffsetXmm,
-      offsetYmm: safeOffsetYmm,
-      scale: thermalRenderScale
-    });
+    const fallbackThermalBodyHtml = `
+      <style>
+        @page { size: ${thermalPrintSurface.pageWidthMm}mm ${thermalPrintSurface.pageHeightMm}mm; margin: 0; }
+        * { box-sizing: border-box; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: ${thermalPrintSurface.pageWidthMm}mm;
+          min-height: ${thermalPrintSurface.pageHeightMm}mm;
+          font-family: "Segoe UI", Arial, sans-serif;
+          color: #111827;
+          background: #fff;
+        }
+        .label-sheet {
+          width: ${thermalPrintSurface.pageWidthMm}mm;
+        }
+        .label-print-surface {
+          width: ${thermalPrintSurface.pageWidthMm}mm;
+          height: ${thermalPrintSurface.pageHeightMm}mm;
+          overflow: hidden;
+          page-break-after: always;
+          break-after: page;
+        }
+        .label-print-surface:last-child {
+          page-break-after: auto;
+          break-after: auto;
+        }
+        .label-card {
+          width: 100%;
+          height: 100%;
+          min-height: 100%;
+          overflow: hidden;
+          position: relative;
+        }
+        .label-title { font-weight: 800; line-height: 1.2; margin: 0 0 2px; }
+        .label-subtitle { color: #4b5563; line-height: 1.2; margin: 0 0 2px; }
+        .label-meta { color: #111827; line-height: 1.2; margin: 0 0 4px; font-weight: 700; }
+        .label-main-row { display: flex; align-items: flex-start; gap: 6px; }
+        .label-barcode-wrap { flex: 1 1 auto; min-width: 0; }
+        .label-qr-wrap { flex: 0 0 auto; display: flex; justify-content: flex-start; margin-top: 2px; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+      <section class="label-sheet">${thermalLabelsHtml}</section>
+    `;
+
     try {
+      const thermalLabelDataUrl = await renderThermalLabelCanvasDataUrl({
+        product,
+        fallbackCode,
+        barcodeDataUrl,
+        qrDataUrl,
+        logoDataUrl,
+        pageWidthMm: thermalPrintSurface.pageWidthMm,
+        pageHeightMm: thermalPrintSurface.pageHeightMm,
+        offsetXmm: safeOffsetXmm,
+        offsetYmm: safeOffsetYmm,
+        scale: thermalRenderScale
+      });
+      if (!thermalLabelDataUrl || !thermalLabelDataUrl.startsWith("data:image/")) {
+        throw new Error("Invalid thermal label image");
+      }
       printThermalLabelHtml({
         labelImageDataUrl: thermalLabelDataUrl,
         copies: safeCopies,
@@ -1058,12 +1147,11 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
         printWindow
       });
     } catch {
-      await printThermalLabelPdf({
-        labelImageDataUrl: thermalLabelDataUrl,
-        copies: safeCopies,
-        thermalPrintSurface,
-        printWindow
-      });
+      try {
+        printCustomHtml(title, fallbackThermalBodyHtml, printWindow);
+      } catch {
+        printWindow.close();
+      }
     }
     return;
   }
