@@ -410,7 +410,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
   const pagesHtml = Array.from({ length: copies }, () => `
-    <section class="label-page ${thermalPrintSurface.rotationClassName}">
+    <section class="label-page">
       <img class="label-image" src="${escapeHtml(labelImageDataUrl)}" alt="Етикет" />
     </section>
   `).join("");
@@ -428,9 +428,6 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
           html, body {
             margin: 0;
             padding: 0;
-            width: ${widthMm}mm;
-            height: ${heightMm}mm;
-            overflow: hidden;
             background: #fff;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -449,15 +446,13 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
             page-break-after: auto;
             break-after: auto;
           }
-          .label-page.rotation-short-edge {
-            transform: rotate(90deg);
-            transform-origin: center center;
-          }
           .label-image {
             width: 100%;
             height: 100%;
             display: block;
             object-fit: fill;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
           }
         </style>
       </head>
