@@ -1,6 +1,7 @@
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
+import { PDFDocument } from "pdf-lib";
 import { formatCurrencyEUR, formatDate as formatUiDate } from "./currency";
 
 const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
@@ -412,29 +413,35 @@ function printPdfDocument(pdfDocument, printWindow = null) {
   if (!openedWindow) return;
 }
 
-function printThermalLabelPdf({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
+async function printThermalLabelPdf({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
   const mmToPt = (value) => (value * 72) / 25.4;
   const widthPt = mmToPt(widthMm);
   const heightPt = mmToPt(heightMm);
-  const pdf = new jsPDF({
-    unit: "pt",
-    format: [widthPt, heightPt],
-    orientation: "portrait",
-    compress: false,
-    precision: 16
-  });
+  const pdf = await PDFDocument.create();
+  const embeddedLabel = await pdf.embedPng(labelImageDataUrl);
 
   for (let index = 0; index < copies; index += 1) {
-    if (index > 0) {
-      pdf.addPage([widthPt, heightPt], "portrait");
-    }
-    pdf.addImage(labelImageDataUrl, "PNG", 0, 0, widthPt, heightPt, undefined, "NONE");
+    const page = pdf.addPage([widthPt, heightPt]);
+    page.drawImage(embeddedLabel, {
+      x: 0,
+      y: 0,
+      width: widthPt,
+      height: heightPt
+    });
   }
 
-  pdf.autoPrint();
-  printPdfDocument(pdf, printWindow);
+  const pdfDataUri = await pdf.saveAsBase64({ dataUri: true });
+  if (printWindow) {
+    try {
+      printWindow.location.replace(pdfDataUri);
+      return;
+    } catch {}
+  }
+
+  const openedWindow = window.open(pdfDataUri, "_blank");
+  if (!openedWindow) return;
 }
 
 function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
@@ -1044,7 +1051,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       scale: thermalRenderScale
     });
     try {
-      printThermalLabelPdf({
+      await printThermalLabelPdf({
         labelImageDataUrl: thermalLabelDataUrl,
         copies: safeCopies,
         thermalPrintSurface,
