@@ -1051,14 +1051,14 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       scale: thermalRenderScale
     });
     try {
-      await printThermalLabelPdf({
+      printThermalLabelHtml({
         labelImageDataUrl: thermalLabelDataUrl,
         copies: safeCopies,
         thermalPrintSurface,
         printWindow
       });
     } catch {
-      printThermalLabelHtml({
+      await printThermalLabelPdf({
         labelImageDataUrl: thermalLabelDataUrl,
         copies: safeCopies,
         thermalPrintSurface,
