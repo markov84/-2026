@@ -415,19 +415,22 @@ function printPdfDocument(pdfDocument, printWindow = null) {
 function printThermalLabelPdf({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
   const widthMm = thermalPrintSurface.pageWidthMm;
   const heightMm = thermalPrintSurface.pageHeightMm;
-  const orientation = widthMm >= heightMm ? "landscape" : "portrait";
+  const mmToPt = (value) => (value * 72) / 25.4;
+  const widthPt = mmToPt(widthMm);
+  const heightPt = mmToPt(heightMm);
   const pdf = new jsPDF({
-    unit: "mm",
-    format: [widthMm, heightMm],
-    orientation,
-    compress: true
+    unit: "pt",
+    format: [widthPt, heightPt],
+    orientation: "portrait",
+    compress: false,
+    precision: 16
   });
 
   for (let index = 0; index < copies; index += 1) {
     if (index > 0) {
-      pdf.addPage([widthMm, heightMm], orientation);
+      pdf.addPage([widthPt, heightPt], "portrait");
     }
-    pdf.addImage(labelImageDataUrl, "PNG", 0, 0, widthMm, heightMm, undefined, "FAST");
+    pdf.addImage(labelImageDataUrl, "PNG", 0, 0, widthPt, heightPt, undefined, "NONE");
   }
 
   pdf.autoPrint();
@@ -897,6 +900,11 @@ async function renderThermalLabelCanvasDataUrl({
     }
     context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
     logoBottomPx = topPadPx + logoHeight;
+    const brandFontPx = Math.max(10, Math.round(11 * safeScale));
+    context.fillStyle = "#111827";
+    context.font = `700 ${brandFontPx}px \"Segoe UI\", Arial, sans-serif`;
+    context.fillText("MARK LIGHT", leftPadPx, logoBottomPx + brandFontPx);
+    logoBottomPx += brandFontPx + 2;
   } else {
     const fallbackLogoFontPx = Math.max(14, Math.round(16 * safeScale));
     context.fillStyle = "#111827";
