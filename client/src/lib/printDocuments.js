@@ -40,6 +40,7 @@ export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-50x40", label: "M221 често: 50 x 40 mm", kind: "thermal", widthMm: 50, heightMm: 40 },
   { id: "thermal-58x40", label: "Термо: 58 x 40 mm", kind: "thermal", widthMm: 58, heightMm: 40 },
   { id: "thermal-60x40", label: "M221 често: 60 x 40 mm", kind: "thermal", widthMm: 60, heightMm: 40 },
+  { id: "thermal-67x80", label: "M221: 67 x 80 mm (barcode-first)", kind: "thermal", widthMm: 67, heightMm: 80 },
   { id: "thermal-80x50", label: "Термо: 80 x 50 mm", kind: "thermal", widthMm: 80, heightMm: 50 },
   { id: "thermal-100x150", label: "Куриерски: 100 x 150 mm (4x6 in)", kind: "thermal", widthMm: 100, heightMm: 150 },
   { id: "thermal-70x80", label: "M221 често: 70 x 80 mm", kind: "thermal", widthMm: 70, heightMm: 80 },
@@ -916,7 +917,8 @@ async function renderThermalLabelCanvasDataUrl({
   pageHeightMm,
   offsetXmm,
   offsetYmm,
-  scale
+  scale,
+  barcodeFirst = false
 }) {
   const pxPerMm = 12;
   const mm = (value) => Math.round(value * pxPerMm);
@@ -1003,7 +1005,7 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const shouldRenderQr = false;
+  const shouldRenderQr = !barcodeFirst && Math.min(pageWidthMm, pageHeightMm) >= 40 && pageWidthMm * pageHeightMm >= 1900;
   const qrSizePx = shouldRenderQr
     ? Math.max(mm(5.8), Math.min(Math.floor(infoHeightPx * 0.9), qrColumnWidth))
     : 0;
@@ -1090,6 +1092,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     customHeightMm ?? getProductLabelCustomHeightMm()
   );
   const thermalPrintSurface = resolveThermalPrintSurface(thermalSize, thermalOrientation ?? getProductLabelThermalOrientation());
+  const isBarcodeFirstProfile = safePaperPreset.id === "thermal-67x80";
   const isA4Sheet = safePaperPreset.kind === "a4";
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
@@ -1119,8 +1122,14 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           ? 0.85
           : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(isA4Sheet ? 1.0 : 1.15, Number((barcodeWidthBase * thermalRenderScale).toFixed(2))),
-    height: Math.max(isA4Sheet ? 56 : 64, Math.round((isA4Sheet ? 64 : 70) * thermalRenderScale)),
+    barWidth: Math.max(
+      isA4Sheet ? 1.0 : isBarcodeFirstProfile ? 1.35 : 1.15,
+      Number((barcodeWidthBase * thermalRenderScale).toFixed(2))
+    ),
+    height: Math.max(
+      isA4Sheet ? 56 : isBarcodeFirstProfile ? 78 : 64,
+      Math.round((isA4Sheet ? 64 : isBarcodeFirstProfile ? 82 : 70) * thermalRenderScale)
+    ),
     margin: isA4Sheet ? 2 : 10
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * thermalRenderScale)));
@@ -1205,7 +1214,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
         pageHeightMm: thermalPrintSurface.pageHeightMm,
         offsetXmm: safeOffsetXmm,
         offsetYmm: safeOffsetYmm,
-        scale: thermalRenderScale
+        scale: thermalRenderScale,
+        barcodeFirst: isBarcodeFirstProfile
       });
       if (!thermalLabelDataUrl || !thermalLabelDataUrl.startsWith("data:image/")) {
         throw new Error("Invalid thermal label image");
@@ -1229,7 +1239,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
             pageHeightMm: thermalPrintSurface.pageHeightMm,
             offsetXmm: safeOffsetXmm,
             offsetYmm: safeOffsetYmm,
-            scale: thermalRenderScale
+            scale: thermalRenderScale,
+            barcodeFirst: isBarcodeFirstProfile
           }),
           copies: safeCopies,
           thermalPrintSurface,
