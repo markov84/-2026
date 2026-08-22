@@ -397,13 +397,41 @@ function printCustomHtml(title, html, printWindow = null) {
   `);
 }
 
-function printPdfDocument(pdfDocument) {
+function printPdfDocument(pdfDocument, printWindow = null) {
   if (!pdfDocument) return;
 
   pdfDocument.setProperties({ title: "Етикет" });
   const blobUrl = pdfDocument.output("bloburl");
-  const printWindow = window.open(blobUrl, "_blank");
-  if (!printWindow) return;
+  if (printWindow) {
+    try {
+      printWindow.location.replace(blobUrl);
+      return;
+    } catch {}
+  }
+  const openedWindow = window.open(blobUrl, "_blank");
+  if (!openedWindow) return;
+}
+
+function printThermalLabelPdf({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
+  const widthMm = thermalPrintSurface.pageWidthMm;
+  const heightMm = thermalPrintSurface.pageHeightMm;
+  const orientation = widthMm >= heightMm ? "landscape" : "portrait";
+  const pdf = new jsPDF({
+    unit: "mm",
+    format: [widthMm, heightMm],
+    orientation,
+    compress: true
+  });
+
+  for (let index = 0; index < copies; index += 1) {
+    if (index > 0) {
+      pdf.addPage([widthMm, heightMm], orientation);
+    }
+    pdf.addImage(labelImageDataUrl, "PNG", 0, 0, widthMm, heightMm, undefined, "FAST");
+  }
+
+  pdf.autoPrint();
+  printPdfDocument(pdf, printWindow);
 }
 
 function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface, printWindow = null }) {
@@ -869,6 +897,12 @@ async function renderThermalLabelCanvasDataUrl({
     }
     context.drawImage(logoImage, leftPadPx, topPadPx, logoWidth, logoHeight);
     logoBottomPx = topPadPx + logoHeight;
+  } else {
+    const fallbackLogoFontPx = Math.max(14, Math.round(16 * safeScale));
+    context.fillStyle = "#111827";
+    context.font = `800 ${fallbackLogoFontPx}px \"Segoe UI\", Arial, sans-serif`;
+    context.fillText("MARK LIGHT", leftPadPx, topPadPx + fallbackLogoFontPx);
+    logoBottomPx = topPadPx + fallbackLogoFontPx;
   }
 
   let cursorYPx = logoBottomPx + Math.max(9, mm(1.1));
@@ -932,10 +966,10 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
   const thermalAreaMm = thermalPrintSurface.contentWidthMm * thermalPrintSurface.contentHeightMm;
-  const thermalMaxSafeScalePercent = thermalAreaMm <= 2000 ? 112 : thermalAreaMm <= 3600 ? 128 : 145;
+  const thermalMaxSafeScalePercent = thermalAreaMm <= 2000 ? 108 : thermalAreaMm <= 3600 ? 120 : 138;
   const effectiveScalePercent = isA4Sheet ? safeScalePercent : Math.min(safeScalePercent, thermalMaxSafeScalePercent);
   const scale = effectiveScalePercent / 100;
-  const thermalRenderScale = isA4Sheet ? scale : clampNumber(scale, 0.85, 1.15);
+  const thermalRenderScale = isA4Sheet ? scale : 1;
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
@@ -994,12 +1028,21 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       offsetYmm: safeOffsetYmm,
       scale: thermalRenderScale
     });
-    printThermalLabelHtml({
-      labelImageDataUrl: thermalLabelDataUrl,
-      copies: safeCopies,
-      thermalPrintSurface,
-      printWindow
-    });
+    try {
+      printThermalLabelPdf({
+        labelImageDataUrl: thermalLabelDataUrl,
+        copies: safeCopies,
+        thermalPrintSurface,
+        printWindow
+      });
+    } catch {
+      printThermalLabelHtml({
+        labelImageDataUrl: thermalLabelDataUrl,
+        copies: safeCopies,
+        thermalPrintSurface,
+        printWindow
+      });
+    }
     return;
   }
 
