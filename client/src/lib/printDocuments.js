@@ -28,6 +28,9 @@ const DEFAULT_LABEL_OFFSET_Y_MM = 0;
 export const MIN_LABEL_OFFSET_MM = -20;
 export const MAX_LABEL_OFFSET_MM = 20;
 const LABEL_GLOBAL_LEFT_SHIFT_MM = 6.2;
+const THERMAL_M221_SAFE_PROFILE_ENABLED = true;
+const THERMAL_M221_VERTICAL_SCALE = 0.52;
+const THERMAL_M221_TOP_MARGIN_MM = 0.6;
 
 export const PRODUCT_LABEL_PAPER_PRESETS = [
   { id: "thermal-30x20", label: "Термо: 30 x 20 mm", kind: "thermal", widthMm: 30, heightMm: 20 },
@@ -1007,6 +1010,32 @@ async function renderThermalLabelCanvasDataUrl({
   }
   if (qrImage) {
     context.drawImage(qrImage, qrX, qrY, qrSizePx, qrSizePx);
+  }
+
+  if (THERMAL_M221_SAFE_PROFILE_ENABLED) {
+    const compensatedCanvas = document.createElement("canvas");
+    compensatedCanvas.width = canvas.width;
+    compensatedCanvas.height = canvas.height;
+    const compensatedContext = compensatedCanvas.getContext("2d");
+    if (compensatedContext) {
+      compensatedContext.fillStyle = "#ffffff";
+      compensatedContext.fillRect(0, 0, compensatedCanvas.width, compensatedCanvas.height);
+      const safeVerticalScale = clampNumber(THERMAL_M221_VERTICAL_SCALE, 0.45, 0.9);
+      const outputHeight = Math.max(1, Math.round(compensatedCanvas.height * safeVerticalScale));
+      const topMargin = Math.max(0, Math.round(mm(THERMAL_M221_TOP_MARGIN_MM)));
+      compensatedContext.drawImage(
+        canvas,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        0,
+        topMargin,
+        compensatedCanvas.width,
+        outputHeight
+      );
+      return compensatedCanvas.toDataURL("image/png");
+    }
   }
 
   return canvas.toDataURL("image/png");
