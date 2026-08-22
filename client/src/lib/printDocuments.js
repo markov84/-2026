@@ -563,14 +563,14 @@ function writePreparingMessage(printWindow) {
   } catch {}
 }
 
-async function createBarcodePng(data, { barWidth = 1.8, height = 56 } = {}) {
+async function createBarcodePng(data, { barWidth = 1.8, height = 56, margin = 0 } = {}) {
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, data, {
     format: "CODE128",
     width: barWidth,
     height,
     displayValue: false,
-    margin: 0
+    margin
   });
 
   return canvas.toDataURL("image/png");
@@ -1003,25 +1003,35 @@ async function renderThermalLabelCanvasDataUrl({
 
   const qrImage = await loadImageElement(qrDataUrl);
   const barcodeImage = await loadImageElement(barcodeDataUrl);
-  const qrSizePx = Math.max(mm(5.8), Math.min(Math.floor(infoHeightPx * 0.9), qrColumnWidth));
+  const shouldRenderQr = Math.min(pageWidthMm, pageHeightMm) >= 40 && pageWidthMm * pageHeightMm >= 1900;
+  const qrSizePx = shouldRenderQr
+    ? Math.max(mm(5.8), Math.min(Math.floor(infoHeightPx * 0.9), qrColumnWidth))
+    : 0;
   const qrX = leftPadPx + contentWidthPx - qrSizePx;
   const qrY = infoTop + Math.max(0, Math.floor((infoHeightPx - qrSizePx) / 2));
-  const barcodeAreaX = leftPadPx;
+  const barcodeAreaX = leftPadPx + Math.max(2, mm(0.35));
   const barcodeAreaY = codeTop + Math.max(1, mm(0.5));
-  const barcodeAreaWidth = Math.max(mm(10), qrX - barcodeAreaX - Math.max(5, mm(0.9)));
+  const qrReservedWidth = shouldRenderQr ? qrSizePx + Math.max(6, mm(0.9)) : 0;
+  const barcodeAreaWidth = Math.max(mm(11), contentWidthPx - (barcodeAreaX - leftPadPx) - qrReservedWidth);
   const barcodeAreaHeight = Math.max(mm(6.8), Math.min(codeHeightPx - Math.max(1, mm(0.9)), Math.round(contentHeightPx * 0.24)));
+  const barcodeQuietPadX = Math.max(4, mm(0.6));
+  const barcodeDrawX = barcodeAreaX + barcodeQuietPadX;
+  const barcodeDrawWidth = Math.max(mm(8), barcodeAreaWidth - barcodeQuietPadX * 2);
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
 
   if (barcodeImage) {
-    context.drawImage(barcodeImage, barcodeAreaX, barcodeAreaY, barcodeAreaWidth, barcodeAreaHeight);
+    context.drawImage(barcodeImage, barcodeDrawX, barcodeAreaY, barcodeDrawWidth, barcodeAreaHeight);
   } else {
     context.fillStyle = "#111827";
-    for (let x = barcodeAreaX; x < barcodeAreaX + barcodeAreaWidth; x += 3) {
+    for (let x = barcodeDrawX; x < barcodeDrawX + barcodeDrawWidth; x += 3) {
       context.fillRect(x, barcodeAreaY, 2, barcodeAreaHeight);
     }
   }
-  if (qrImage) {
+  if (shouldRenderQr && qrImage) {
     context.drawImage(qrImage, qrX, qrY, qrSizePx, qrSizePx);
-  } else {
+  } else if (shouldRenderQr) {
     context.strokeStyle = "#111827";
     context.lineWidth = 1;
     context.strokeRect(qrX, qrY, qrSizePx, qrSizePx);
@@ -1106,8 +1116,9 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
           ? 0.85
           : 1.05;
   const barcodeDataUrl = await createBarcodePng(fallbackCode, {
-    barWidth: Math.max(isA4Sheet ? 1.0 : 0.9, Number((barcodeWidthBase * thermalRenderScale).toFixed(2))),
-    height: Math.max(isA4Sheet ? 56 : 62, Math.round((isA4Sheet ? 64 : 68) * thermalRenderScale))
+    barWidth: Math.max(isA4Sheet ? 1.0 : 1.15, Number((barcodeWidthBase * thermalRenderScale).toFixed(2))),
+    height: Math.max(isA4Sheet ? 56 : 64, Math.round((isA4Sheet ? 64 : 70) * thermalRenderScale)),
+    margin: isA4Sheet ? 2 : 10
   });
   const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * thermalRenderScale)));
   const rawLogoDataUrl = await loadFirstAvailableImageAsDataUrl([
