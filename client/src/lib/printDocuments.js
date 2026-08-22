@@ -479,6 +479,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 1.2mm;
           }
           .label-page:last-child {
             page-break-after: auto;
@@ -488,7 +489,7 @@ function printThermalLabelHtml({ labelImageDataUrl, copies, thermalPrintSurface,
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: fill;
+            object-fit: contain;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
           }
@@ -923,16 +924,18 @@ async function renderThermalLabelCanvasDataUrl({
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const marginX = Math.max(mm(0.9), Math.round(canvas.width * 0.032));
-  const marginY = Math.max(mm(0.8), Math.round(canvas.height * 0.03));
-  const leftPadPx = Math.max(0, Math.round(marginX + mm(offsetXmm - LABEL_GLOBAL_LEFT_SHIFT_MM)));
-  const topPadPx = Math.max(0, Math.round(marginY + mm(offsetYmm)));
+  const safeOffsetX = clampNumber(Number(offsetXmm || 0), -4, 4);
+  const safeOffsetY = clampNumber(Number(offsetYmm || 0), -4, 4);
+  const marginX = Math.max(mm(1.4), Math.round(canvas.width * 0.04));
+  const marginY = Math.max(mm(1.2), Math.round(canvas.height * 0.038));
+  const leftPadPx = Math.max(0, Math.round(marginX + mm(safeOffsetX)));
+  const topPadPx = Math.max(0, Math.round(marginY + mm(safeOffsetY)));
   const rightPadPx = marginX;
   const bottomPadPx = marginY;
   const contentWidthPx = Math.max(mm(10), canvas.width - leftPadPx - rightPadPx);
   const contentHeightPx = Math.max(mm(10), canvas.height - topPadPx - bottomPadPx);
 
-  const safeScale = clampNumber(scale, 0.9, 1.08);
+  const safeScale = clampNumber(scale, 0.9, 1.03);
   const headerHeightPx = Math.max(mm(5.8), Math.round(contentHeightPx * 0.2));
   const infoHeightPx = Math.max(mm(8), Math.round(contentHeightPx * 0.34));
   const codeHeightPx = Math.max(mm(8), contentHeightPx - headerHeightPx - infoHeightPx);
