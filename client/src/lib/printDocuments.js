@@ -773,18 +773,18 @@ export function setProductLabelOffsetYmm(value) {
   window.localStorage.setItem(LABEL_OFFSET_Y_MM_STORAGE_KEY, String(safeOffset));
 }
 
-function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm, isThermal }) {
+function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm, isThermal, barcodeFirst = false }) {
   const readabilityBoost = isThermal ? 1.35 : 1;
   const cardPadding = Math.max(6, Math.round(7 * scale));
-  const qrPx = Math.max(isThermal ? 34 : 26, Math.round((isThermal ? 34 : 30) * scale * readabilityBoost));
+  const qrSizeMm = barcodeFirst ? 22 : 12;
   const titleFont = Math.max(isThermal ? 15 : 11, Math.round(13.5 * scale * readabilityBoost));
   const skuFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
   const metaFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
   const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
-    ? `<img src="${escapeHtml(logoDataUrl)}" alt="Logo" style="height:${Math.max(12, Math.round(15 * scale))}px; width:auto; display:block; margin-bottom:3px;" />`
-    : "";
+    ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="max-width:${barcodeFirst ? 36 : 28}mm; height:${barcodeFirst ? 8 : 5}mm; object-fit:contain; display:block; margin-bottom:1mm;" />`
+    : `<div style="font-size:${Math.max(12, Math.round(14 * scale))}px; font-weight:800; line-height:1; margin-bottom:1mm;">MARK LIGHT</div>`;
 
   return `
     <article class="label-card" style="padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;">
@@ -798,8 +798,8 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
           <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
           <div style="font-size:${codeFont}px; margin-top:4px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
-        <div class="label-qr-wrap" style="display:flex; align-items:flex-start; justify-content:flex-start;">
-          <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrPx}px; height:${qrPx}px; max-width:100%; display:block;" />
+        <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;">
+          <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrSizeMm}mm; height:${qrSizeMm}mm; max-width:none; display:block; image-rendering:pixelated;" />
         </div>
       </div>
     </article>
@@ -1183,7 +1183,8 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     scale,
     offsetXmm: safeOffsetXmm,
     offsetYmm: safeOffsetYmm,
-    isThermal: !isA4Sheet
+    isThermal: !isA4Sheet,
+    barcodeFirst: isBarcodeFirstProfile
   });
 
   const labelsHtml = Array.from({ length: safeCopies }, () => labelHtml).join("");
