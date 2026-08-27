@@ -29,7 +29,7 @@ function getCameraErrorMessage(error) {
   return error?.message || "Камерата не може да бъде стартирана. Провери достъпа на браузъра.";
 }
 
-export default function BarcodeScannerDialog({ open, onClose, onDetected, onError, title = "Сканирай баркод или QR", description = "Насочи камерата към баркод или QR код и изчакай резултата." }) {
+export default function BarcodeScannerDialog({ open, onClose, onDetected, onError, title = "Сканирай баркод или QR", description = "Насочи камерата към баркод или QR код и изчакай резултата.", barcodeOnly = false }) {
   const isMobile = useMobileDetection();
   const [status, setStatus] = useState("initializing");
   const [message, setMessage] = useState("Подготвям камерата...");
@@ -72,7 +72,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
 
     try {
       const wantedFormats = [
-        "qr_code",
+        ...(barcodeOnly ? [] : ["qr_code"]),
         "ean_13",
         "ean_8",
         "code_128",
@@ -163,7 +163,7 @@ export default function BarcodeScannerDialog({ open, onClose, onDetected, onErro
         const hints = new Map();
         hints.set(DecodeHintType.TRY_HARDER, true);
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.QR_CODE,
+          ...(barcodeOnly ? [] : [BarcodeFormat.QR_CODE]),
           BarcodeFormat.EAN_13,
           BarcodeFormat.EAN_8,
           BarcodeFormat.CODE_128,

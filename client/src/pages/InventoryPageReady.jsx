@@ -590,6 +590,9 @@ export default function InventoryPageReady() {
       <BarcodeScannerDialog
         open={scanCameraOpen}
         onClose={() => setScanCameraOpen(false)}
+        barcodeOnly
+        title="Сканирай линейния баркод на продукта"
+        description="Насочи камерата към черните вертикални линии. QR кодът към сайта не се използва за проверка на наличност."
         onDetected={(code) => {
             setScanCode(code);
             void applyScannedProduct(code);
