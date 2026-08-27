@@ -514,6 +514,10 @@ export default function ProductsPagePolished() {
 
     const product = findProductByCode(code);
     if (!product) {
+      if (/^https?:\/\/marklight\.bg\/?$/i.test(String(code || "").trim())) {
+        toast.error("Сканиран е QR кодът към сайта. Насочи четеца към линейния баркод.");
+        return;
+      }
       const parsedCode = parseScannedInput(code);
       if (parsedCode) {
         setQuery(parsedCode);

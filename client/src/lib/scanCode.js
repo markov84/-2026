@@ -174,6 +174,11 @@ export function findProductByScanCode(products, rawCode) {
     const fields = [product?.name, product?.productNumber, product?.barcode, product?.sku, product?.qrCode].filter(Boolean);
     for (const field of fields) {
       const fieldValue = normalizeScanCode(field).toLowerCase();
+      const compactFieldValue = toComparableCode(fieldValue);
+      const rawCompactValue = toComparableCode(rawCode);
+      if (fieldValue === normalizedInput || (compactFieldValue && compactFieldValue === rawCompactValue)) {
+        return product;
+      }
       if (fieldValue && terms.some((term) => fieldValue.includes(term))) {
         return product;
       }
