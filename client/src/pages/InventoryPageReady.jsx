@@ -21,7 +21,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
-import { findProductByScanCode, parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, isWebsiteQrScan, parseScannedInput } from "../lib/scanCode";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -278,6 +278,11 @@ export default function InventoryPageReady() {
     if (!code) return;
 
     if (!product) {
+      if (isWebsiteQrScan(rawCode)) {
+        playScanFeedback("error");
+        toast.error("Сканиран е QR кодът към сайта. За наличност сканирай черните вертикални линии на баркода.");
+        return;
+      }
       playScanFeedback("error");
       toast.error(`Няма продукт с баркод/SKU ${code}.`);
       return;

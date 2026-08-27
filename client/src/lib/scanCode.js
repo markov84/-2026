@@ -106,6 +106,18 @@ export function parseScannedInput(rawValue) {
   return collapseRepeatedCode(likelyToken);
 }
 
+export function isWebsiteQrScan(rawValue) {
+  const value = normalizeScanCode(rawValue);
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return /^marklight\.bg$/i.test(url.hostname) && !url.searchParams.has("barcode") && !url.searchParams.has("sku") && !url.searchParams.has("productNumber");
+  } catch {
+    return false;
+  }
+}
+
 function toComparableCode(value) {
   return normalizeScanCode(value).toLowerCase().replace(/[^a-z0-9]/g, "");
 }

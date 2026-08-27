@@ -80,7 +80,7 @@ import {
   setProductLabelScale,
   setProductLabelThermalOrientation
 } from "../lib/printDocuments";
-import { findProductByScanCode, normalizeScanCode, parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, isWebsiteQrScan, normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
 const HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY = "hiddenProductNameSuggestions";
@@ -533,7 +533,7 @@ export default function ProductsPagePolished() {
       }
     }
     if (!product) {
-      if (/^https?:\/\/marklight\.bg\/?$/i.test(String(code || "").trim())) {
+      if (isWebsiteQrScan(code)) {
         toast.error("Сканиран е QR кодът към сайта. Насочи четеца към линейния баркод.");
         return;
       }
