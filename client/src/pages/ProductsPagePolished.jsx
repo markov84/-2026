@@ -80,7 +80,7 @@ import {
   setProductLabelScale,
   setProductLabelThermalOrientation
 } from "../lib/printDocuments";
-import { normalizeScanCode, parseScannedInput } from "../lib/scanCode";
+import { findProductByScanCode, normalizeScanCode, parseScannedInput } from "../lib/scanCode";
 
 const PRODUCT_NAME_SUGGESTIONS_KEY = "productNameSuggestions";
 const HIDDEN_PRODUCT_NAME_SUGGESTIONS_KEY = "hiddenProductNameSuggestions";
@@ -477,25 +477,7 @@ export default function ProductsPagePolished() {
   function findProductByCode(rawCode) {
     const normalizedCode = parseScannedInput(rawCode);
     if (!normalizedCode) return null;
-
-    const searchTerms = normalizedCode
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .map((term) => term.trim())
-      .filter(Boolean);
-
-    return (
-      data.find((product) => {
-        const searchableFields = [product.name, product.productNumber, product.barcode, product.sku, product.qrCode]
-          .filter(Boolean)
-          .map((value) => normalizeScanCode(value).toLowerCase());
-
-        return searchableFields.some((value) => {
-          if (value === normalizedCode.toLowerCase()) return true;
-          return searchTerms.some((term) => value.includes(term));
-        });
-      }) || null
-    );
+    return findProductByScanCode(data, normalizedCode);
   }
 
   function focusProductInTable(product) {
