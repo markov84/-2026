@@ -831,7 +831,7 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
           <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="width:${barcodeFirst ? 53 : 100}%; max-width:100%; height:${barcodeFirst ? 16 : "auto"}; display:block; object-fit:fill;" />
           <div style="font-size:${barcodeFirst ? `${Math.max(3.2, 3.4 * safeFontScale)}mm` : `${codeFont}px`}; margin-top:${barcodeFirst ? 1 : 4}px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
-        <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;${barcodeFirst ? "position:absolute; top:2mm; right:2mm;" : ""}">
+        <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;${barcodeFirst ? "position:absolute; bottom:3mm; right:3mm;" : ""}">
           <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrSizeMm}mm; height:${qrSizeMm}mm; max-width:none; display:block; image-rendering:pixelated;" />
         </div>
       </div>
