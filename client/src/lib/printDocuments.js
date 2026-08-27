@@ -375,45 +375,37 @@ function printCustomHtml(title, html, printWindow = null) {
         </head>
         <body>
           ${html}
+          <script>
+            window.addEventListener("load", () => {
+              const images = Array.from(document.images || []);
+              const pending = images.filter((image) => !image.complete);
+              const printNow = () => {
+                window.focus();
+                setTimeout(() => window.print(), 350);
+              };
+              if (!pending.length) {
+                printNow();
+                return;
+              }
+              let remaining = pending.length;
+              const done = () => {
+                remaining -= 1;
+                if (remaining <= 0) printNow();
+              };
+              pending.forEach((image) => {
+                image.addEventListener("load", done, { once: true });
+                image.addEventListener("error", done, { once: true });
+              });
+              setTimeout(printNow, 2500);
+            }, { once: true });
+          </script>
         </body>
       </html>
     `;
-    targetWindow.document.open();
-    targetWindow.document.write(documentHtml);
-    targetWindow.document.close();
-    const printWhenReady = () => {
-      const images = Array.from(targetWindow.document.images || []);
-      const pendingImages = images.filter((image) => !image.complete);
-      const startPrint = () => {
-        try {
-          targetWindow.focus();
-        } catch {}
-        setTimeout(() => {
-          try {
-            targetWindow.print();
-          } catch {}
-        }, 350);
-      };
-      if (!pendingImages.length) {
-        startPrint();
-        return;
-      }
-      let remaining = pendingImages.length;
-      const imageReady = () => {
-        remaining -= 1;
-        if (remaining <= 0) startPrint();
-      };
-      pendingImages.forEach((image) => {
-        image.addEventListener("load", imageReady, { once: true });
-        image.addEventListener("error", imageReady, { once: true });
-      });
-      setTimeout(startPrint, 2000);
-    };
-    if (targetWindow.document.readyState === "complete") {
-      printWhenReady();
-    } else {
-      targetWindow.addEventListener("load", printWhenReady, { once: true });
-    }
+    const htmlBlob = new Blob([documentHtml], { type: "text/html;charset=utf-8" });
+    const htmlUrl = URL.createObjectURL(htmlBlob);
+    targetWindow.location.replace(htmlUrl);
+    setTimeout(() => URL.revokeObjectURL(htmlUrl), 15000);
     return;
   }
 
