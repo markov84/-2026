@@ -8,6 +8,10 @@ const LABEL_SCALE_STORAGE_KEY = "productLabelScalePercent";
 const DEFAULT_LABEL_SCALE_PERCENT = 100;
 export const MIN_LABEL_SCALE_PERCENT = 60;
 export const MAX_LABEL_SCALE_PERCENT = 280;
+const LABEL_FONT_SCALE_STORAGE_KEY = "productLabelFontScalePercent";
+const DEFAULT_LABEL_FONT_SCALE_PERCENT = 100;
+export const MIN_LABEL_FONT_SCALE_PERCENT = 70;
+export const MAX_LABEL_FONT_SCALE_PERCENT = 180;
 export const MIN_LABEL_DIMENSION_MM = 20;
 export const MAX_LABEL_DIMENSION_MM = 200;
 const LABEL_COPIES_STORAGE_KEY = "productLabelCopies";
@@ -694,6 +698,22 @@ export function setProductLabelScale(scalePercent) {
   window.localStorage.setItem(LABEL_SCALE_STORAGE_KEY, String(safeScale));
 }
 
+export function getProductLabelFontScale() {
+  if (typeof window === "undefined") return DEFAULT_LABEL_FONT_SCALE_PERCENT;
+  const numeric = Number(window.localStorage.getItem(LABEL_FONT_SCALE_STORAGE_KEY));
+  if (!Number.isFinite(numeric)) return DEFAULT_LABEL_FONT_SCALE_PERCENT;
+  return Math.min(MAX_LABEL_FONT_SCALE_PERCENT, Math.max(MIN_LABEL_FONT_SCALE_PERCENT, Math.round(numeric)));
+}
+
+export function setProductLabelFontScale(fontScalePercent) {
+  if (typeof window === "undefined") return;
+  const numeric = Number(fontScalePercent);
+  const safeScale = Number.isFinite(numeric)
+    ? Math.min(MAX_LABEL_FONT_SCALE_PERCENT, Math.max(MIN_LABEL_FONT_SCALE_PERCENT, Math.round(numeric)))
+    : DEFAULT_LABEL_FONT_SCALE_PERCENT;
+  window.localStorage.setItem(LABEL_FONT_SCALE_STORAGE_KEY, String(safeScale));
+}
+
 export function getProductLabelCopies() {
   if (typeof window === "undefined") return DEFAULT_LABEL_COPIES;
   const storedValue = window.localStorage.getItem(LABEL_COPIES_STORAGE_KEY);
@@ -773,14 +793,15 @@ export function setProductLabelOffsetYmm(value) {
   window.localStorage.setItem(LABEL_OFFSET_Y_MM_STORAGE_KEY, String(safeOffset));
 }
 
-function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm, isThermal, barcodeFirst = false }) {
+function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, fontScale, offsetXmm, offsetYmm, isThermal, barcodeFirst = false }) {
   const readabilityBoost = isThermal ? 1.35 : 1;
+  const safeFontScale = clampNumber(fontScale ?? 1, 0.7, 1.8);
   const cardPadding = Math.max(6, Math.round(7 * scale));
   const qrSizeMm = barcodeFirst ? 28 : 12;
-  const titleFont = Math.max(isThermal ? 15 : 11, Math.round(13.5 * scale * readabilityBoost));
-  const skuFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
-  const metaFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
-  const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost));
+  const titleFont = Math.max(isThermal ? 15 : 11, Math.round(13.5 * scale * readabilityBoost * safeFontScale));
+  const skuFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost * safeFontScale));
+  const metaFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost * safeFontScale));
+  const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost * safeFontScale));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
     ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="max-width:${barcodeFirst ? 28 : 28}mm; height:${barcodeFirst ? 9 : 5}mm; object-fit:contain; object-position:left center; display:block; margin-bottom:1mm;" />`
@@ -901,6 +922,32 @@ async function trimLogoWhitespaceDataUrl(imageUrl) {
   if (!croppedContext) return imageUrl;
   croppedContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
   return croppedCanvas.toDataURL("image/png");
+}
+
+async function prepareThermalLogoDataUrl(imageUrl) {
+  const image = await loadImageElement(imageUrl);
+  if (!image) return "";
+
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return imageUrl;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0);
+
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 0; index < pixels.data.length; index += 4) {
+    const brightness = (pixels.data[index] * 299 + pixels.data[index + 1] * 587 + pixels.data[index + 2] * 114) / 1000;
+    const value = brightness < 210 ? 17 : 255;
+    pixels.data[index] = value;
+    pixels.data[index + 1] = value;
+    pixels.data[index + 2] = value;
+    pixels.data[index + 3] = 255;
+  }
+  context.putImageData(pixels, 0, 0);
+  return canvas.toDataURL("image/png");
 }
 
 function drawWrappedLines(context, text, x, y, maxWidth, maxLines, lineHeightPx) {
@@ -1113,9 +1160,11 @@ async function renderThermalLabelCanvasDataUrl({
   return canvas.toDataURL("image/png");
 }
 
-export async function printProductLabel(product, { scalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation, offsetXmm, offsetYmm } = {}) {
+export async function printProductLabel(product, { scalePercent, fontScalePercent, copies, paperPreset, customWidthMm, customHeightMm, thermalOrientation, offsetXmm, offsetYmm } = {}) {
   const storeUrl = "https://marklight.bg/";
   const safeScalePercent = clampLabelScalePercent(scalePercent ?? getProductLabelScale());
+  const safeFontScalePercent = Math.min(MAX_LABEL_FONT_SCALE_PERCENT, Math.max(MIN_LABEL_FONT_SCALE_PERCENT, Math.round(Number(fontScalePercent ?? getProductLabelFontScale()) || DEFAULT_LABEL_FONT_SCALE_PERCENT)));
+  const safeFontScale = safeFontScalePercent / 100;
   const safeCopies = clampLabelCopies(copies ?? getProductLabelCopies());
   const safePaperPreset = getPaperPresetById(paperPreset ?? getProductLabelPaperPreset());
   const safeOffsetXmm = clampLabelOffsetMm(offsetXmm ?? getProductLabelOffsetXmm(), DEFAULT_LABEL_OFFSET_X_MM);
@@ -1172,7 +1221,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     new URL("/MARKLIGHT.png", window.location.origin).toString()
   ]);
   const trimmedLogoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
-  const logoDataUrl = trimmedLogoDataUrl || rawLogoDataUrl;
+  const logoDataUrl = await prepareThermalLogoDataUrl(trimmedLogoDataUrl || rawLogoDataUrl);
 
   const labelHtml = buildSingleLabelHtml({
     product,
@@ -1181,6 +1230,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     qrDataUrl,
     logoDataUrl,
     scale,
+    fontScale: safeFontScale,
     offsetXmm: safeOffsetXmm,
     offsetYmm: safeOffsetYmm,
     isThermal: !isA4Sheet,

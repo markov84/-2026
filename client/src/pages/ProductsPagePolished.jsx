@@ -53,12 +53,15 @@ import {
   getProductLabelCopies,
   getProductLabelCustomHeightMm,
   getProductLabelCustomWidthMm,
+  getProductLabelFontScale,
   getProductLabelOffsetXmm,
   getProductLabelOffsetYmm,
   MAX_LABEL_DIMENSION_MM,
   MAX_LABEL_OFFSET_MM,
   MAX_LABEL_SCALE_PERCENT,
+  MAX_LABEL_FONT_SCALE_PERCENT,
   MIN_LABEL_DIMENSION_MM,
+  MIN_LABEL_FONT_SCALE_PERCENT,
   MIN_LABEL_OFFSET_MM,
   MIN_LABEL_SCALE_PERCENT,
   getProductLabelPaperPreset,
@@ -70,6 +73,7 @@ import {
   setProductLabelCopies,
   setProductLabelCustomHeightMm,
   setProductLabelCustomWidthMm,
+  setProductLabelFontScale,
   setProductLabelOffsetXmm,
   setProductLabelOffsetYmm,
   setProductLabelPaperPreset,
@@ -196,6 +200,7 @@ export default function ProductsPagePolished() {
   const [form, setForm] = useState(initialForm);
   const [labelSettingsOpen, setLabelSettingsOpen] = useState(false);
   const [labelScalePercent, setLabelScalePercent] = useState(() => getProductLabelScale());
+  const [labelFontScalePercent, setLabelFontScalePercent] = useState(() => getProductLabelFontScale());
   const [labelCopies, setLabelCopies] = useState(() => getProductLabelCopies());
   const [labelPaperPreset, setLabelPaperPreset] = useState(() => getProductLabelPaperPreset());
   const [labelCustomWidthMm, setLabelCustomWidthMm] = useState(() => getProductLabelCustomWidthMm());
@@ -558,6 +563,7 @@ export default function ProductsPagePolished() {
     try {
       await printProductLabel(product, {
         scalePercent: labelScalePercent,
+        fontScalePercent: labelFontScalePercent,
         copies: labelCopies,
         paperPreset: labelPaperPreset,
         customWidthMm: labelCustomWidthMm,
@@ -585,6 +591,15 @@ export default function ProductsPagePolished() {
     const safeValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(1, Math.round(parsedValue))) : 1;
     setLabelCopies(safeValue);
     setProductLabelCopies(safeValue);
+  }
+
+  function handleLabelFontScaleChange(nextValue) {
+    const parsedValue = Number(nextValue);
+    const safeValue = Number.isFinite(parsedValue)
+      ? Math.min(MAX_LABEL_FONT_SCALE_PERCENT, Math.max(MIN_LABEL_FONT_SCALE_PERCENT, Math.round(parsedValue)))
+      : 100;
+    setLabelFontScalePercent(safeValue);
+    setProductLabelFontScale(safeValue);
   }
 
   function handleLabelPaperPresetChange(nextValue) {
@@ -1027,6 +1042,17 @@ export default function ProductsPagePolished() {
               onChange={(event) => handleLabelScaleChange(event.target.value)}
               inputProps={{ min: MIN_LABEL_SCALE_PERCENT, max: MAX_LABEL_SCALE_PERCENT, step: 1 }}
               helperText={`Ръчно въвеждане: ${MIN_LABEL_SCALE_PERCENT}% - ${MAX_LABEL_SCALE_PERCENT}%`}
+              fullWidth
+            />
+
+            <TextField
+              size="small"
+              type="number"
+              label="Размер на шрифта (%)"
+              value={String(labelFontScalePercent)}
+              onChange={(event) => handleLabelFontScaleChange(event.target.value)}
+              inputProps={{ min: MIN_LABEL_FONT_SCALE_PERCENT, max: MAX_LABEL_FONT_SCALE_PERCENT, step: 1 }}
+              helperText={`Само текстът: ${MIN_LABEL_FONT_SCALE_PERCENT}% - ${MAX_LABEL_FONT_SCALE_PERCENT}%`}
               fullWidth
             />
 
