@@ -365,26 +365,55 @@ function printHtml(title, bodyHtml) {
 function printCustomHtml(title, html, printWindow = null) {
   const targetWindow = printWindow || window.open("", "_blank");
   if (targetWindow) {
-    targetWindow.document.write(`
+    const documentHtml = `
       <!doctype html>
       <html>
         <head>
+          <meta charset="utf-8" />
           <title>${escapeHtml(title)}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </head>
         <body>
           ${html}
-          <script>
-            window.addEventListener("load", () => {
-              window.focus();
-              setTimeout(() => window.print(), 300);
-            });
-          </script>
         </body>
       </html>
-    `);
+    `;
+    targetWindow.document.open();
+    targetWindow.document.write(documentHtml);
     targetWindow.document.close();
-    schedulePrintWindow(targetWindow);
+    const printWhenReady = () => {
+      const images = Array.from(targetWindow.document.images || []);
+      const pendingImages = images.filter((image) => !image.complete);
+      const startPrint = () => {
+        try {
+          targetWindow.focus();
+        } catch {}
+        setTimeout(() => {
+          try {
+            targetWindow.print();
+          } catch {}
+        }, 350);
+      };
+      if (!pendingImages.length) {
+        startPrint();
+        return;
+      }
+      let remaining = pendingImages.length;
+      const imageReady = () => {
+        remaining -= 1;
+        if (remaining <= 0) startPrint();
+      };
+      pendingImages.forEach((image) => {
+        image.addEventListener("load", imageReady, { once: true });
+        image.addEventListener("error", imageReady, { once: true });
+      });
+      setTimeout(startPrint, 2000);
+    };
+    if (targetWindow.document.readyState === "complete") {
+      printWhenReady();
+    } else {
+      targetWindow.addEventListener("load", printWhenReady, { once: true });
+    }
     return;
   }
 
