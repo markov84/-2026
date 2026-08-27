@@ -506,19 +506,37 @@ export default function ProductsPagePolished() {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, [data, filteredProducts, highlightedProductId, openEditDialog, selectionModel]);
 
-  useBarcodeKeyboardScan((code) => {
+  useBarcodeKeyboardScan(async (code) => {
     if (open) {
       handleProductBarcodeDetected(code);
       return;
     }
 
-    const product = findProductByCode(code);
+    const parsedCode = parseScannedInput(code);
+    let product = findProductByCode(code);
+    if (!product && parsedCode && !/^https?:\/\/marklight\.bg\/?$/i.test(parsedCode)) {
+      try {
+        const response = await api.get(`/products?search=${encodeURIComponent(parsedCode)}`);
+        const remoteProducts = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.items)
+            ? response.data.items
+            : Array.isArray(response?.data?.data)
+              ? response.data.data
+              : [];
+        product = findProductByScanCode(remoteProducts, parsedCode);
+        if (product) {
+          setData((current) => current.some((item) => item._id === product._id) ? current : [product, ...current]);
+        }
+      } catch {
+        // Keep the local lookup error below when the API is unavailable.
+      }
+    }
     if (!product) {
       if (/^https?:\/\/marklight\.bg\/?$/i.test(String(code || "").trim())) {
         toast.error("Сканиран е QR кодът към сайта. Насочи четеца към линейния баркод.");
         return;
       }
-      const parsedCode = parseScannedInput(code);
       if (parsedCode) {
         setQuery(parsedCode);
         setHighlightedProductId("");
