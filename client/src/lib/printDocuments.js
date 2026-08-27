@@ -776,29 +776,29 @@ export function setProductLabelOffsetYmm(value) {
 function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl, logoDataUrl, scale, offsetXmm, offsetYmm, isThermal, barcodeFirst = false }) {
   const readabilityBoost = isThermal ? 1.35 : 1;
   const cardPadding = Math.max(6, Math.round(7 * scale));
-  const qrSizeMm = barcodeFirst ? 22 : 12;
+  const qrSizeMm = barcodeFirst ? 28 : 12;
   const titleFont = Math.max(isThermal ? 15 : 11, Math.round(13.5 * scale * readabilityBoost));
   const skuFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
   const metaFont = Math.max(isThermal ? 12 : 9, Math.round(10.5 * scale * readabilityBoost));
   const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
-    ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="max-width:${barcodeFirst ? 36 : 28}mm; height:${barcodeFirst ? 8 : 5}mm; object-fit:contain; display:block; margin-bottom:1mm;" />`
+    ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="max-width:${barcodeFirst ? 28 : 28}mm; height:${barcodeFirst ? 9 : 5}mm; object-fit:contain; object-position:left center; display:block; margin-bottom:1mm;" />`
     : `<div style="font-size:${Math.max(12, Math.round(14 * scale))}px; font-weight:800; line-height:1; margin-bottom:1mm;">MARK LIGHT</div>`;
 
   return `
-    <article class="label-card" style="padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;">
+    <article class="label-card ${barcodeFirst ? "label-card-barcode-first" : ""}" style="padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;">
       ${logoHtml}
       <div class="label-title" style="font-size:${titleFont}px;">${escapeHtml(product?.name || "Продукт")}</div>
       <div class="label-subtitle" style="font-size:${skuFont}px;">Модел: ${escapeHtml(modelCode)}</div>
       <div class="label-meta" style="font-size:${metaFont}px; margin-bottom:4px;">Баркод: ${escapeHtml(fallbackCode)}</div>
 
       <div class="label-main-row" style="gap:${Math.max(4, Math.round(6 * scale))}px;">
-        <div class="label-barcode-wrap" style="min-width:0;">
+        <div class="label-barcode-wrap" style="min-width:0;${barcodeFirst ? "width:100%; padding-right:0;" : ""}">
           <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
           <div style="font-size:${codeFont}px; margin-top:4px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
-        <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;">
+        <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;${barcodeFirst ? "position:absolute; top:2mm; right:2mm;" : ""}">
           <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrSizeMm}mm; height:${qrSizeMm}mm; max-width:none; display:block; image-rendering:pixelated;" />
         </div>
       </div>
@@ -1172,7 +1172,7 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
     new URL("/MARKLIGHT.png", window.location.origin).toString()
   ]);
   const trimmedLogoDataUrl = await trimLogoWhitespaceDataUrl(rawLogoDataUrl);
-  const logoDataUrl = rawLogoDataUrl || trimmedLogoDataUrl;
+  const logoDataUrl = trimmedLogoDataUrl || rawLogoDataUrl;
 
   const labelHtml = buildSingleLabelHtml({
     product,
