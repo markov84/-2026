@@ -116,6 +116,17 @@ function trimNumericLeadingZeros(value) {
   return trimmed || "0";
 }
 
+function getNumericCodeVariants(value) {
+  const digits = normalizeScanCode(value).replace(/\D/g, "");
+  if (!digits) return new Set();
+
+  const variants = new Set([digits, trimNumericLeadingZeros(digits)]);
+  if (digits.length > 1 && digits.startsWith("0")) {
+    variants.add(digits.slice(1));
+  }
+  return variants;
+}
+
 function safeDecode(value) {
   try {
     return decodeURIComponent(value);
@@ -162,6 +173,7 @@ function getCodeCandidates(rawValue) {
 export function findProductByScanCode(products, rawCode) {
   const scanCandidates = getCodeCandidates(rawCode);
   const normalizedInput = normalizeScanCode(rawCode).toLowerCase();
+  const numericInputVariants = getNumericCodeVariants(rawCode);
   const terms = normalizedInput
     .split(/[^a-z0-9]+/)
     .map((term) => term.trim())
@@ -176,7 +188,9 @@ export function findProductByScanCode(products, rawCode) {
       const fieldValue = normalizeScanCode(field).toLowerCase();
       const compactFieldValue = toComparableCode(fieldValue);
       const rawCompactValue = toComparableCode(rawCode);
-      if (fieldValue === normalizedInput || (compactFieldValue && compactFieldValue === rawCompactValue)) {
+      const fieldNumericVariants = getNumericCodeVariants(field);
+      const numericMatch = Array.from(numericInputVariants).some((candidate) => fieldNumericVariants.has(candidate));
+      if (fieldValue === normalizedInput || (compactFieldValue && compactFieldValue === rawCompactValue) || numericMatch) {
         return product;
       }
       if (fieldValue && terms.some((term) => fieldValue.includes(term))) {
