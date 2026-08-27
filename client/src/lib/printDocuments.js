@@ -1204,6 +1204,7 @@ export async function printProductLabel(product, { scalePercent, fontScalePercen
   const code = String(product?.barcode || product?.sku || product?.productNumber || "").trim();
   const title = `Етикет ${product?.name || "продукт"}`;
   const fallbackCode = code || String(product?._id || "").slice(-8);
+  const qrPayload = `${storeUrl}?barcode=${encodeURIComponent(fallbackCode)}`;
   const codeLength = String(fallbackCode).length;
   const barcodeWidthBase = isA4Sheet
     ? codeLength > 20
@@ -1231,7 +1232,7 @@ export async function printProductLabel(product, { scalePercent, fontScalePercen
     ),
     margin: isA4Sheet ? 2 : 10
   });
-  const qrDataUrl = await createQrPng(storeUrl, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * thermalRenderScale)));
+  const qrDataUrl = await createQrPng(qrPayload, Math.max(isA4Sheet ? 72 : 74, Math.round((isA4Sheet ? 84 : 78) * thermalRenderScale)));
   const rawLogoDataUrl = await loadFirstAvailableImageAsDataUrl([
     new URL("/MARK%20LIGHT.png", window.location.origin).toString(),
     new URL("/MARKLIGHT.png", window.location.origin).toString()
