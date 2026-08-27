@@ -315,7 +315,7 @@ export default function InventoryPageReady() {
       scannerLastKeyAtRef.current = now;
 
       if (event.key.length === 1) {
-        if (typingTarget) return;
+        if (typingTarget && event.target !== scanFieldRef.current) return;
         scannerBufferRef.current += event.key;
         if (scannerBufferRef.current.length > 220) {
           scannerBufferRef.current = "";

@@ -529,7 +529,7 @@ export default function ProductsPagePolished() {
 
     focusProductInTable(product);
     toast.success(`Маркиран продукт: ${product.name}`);
-  });
+  }, { captureInInputs: true, flushOnIdle: true, idleMs: 120, minLength: 4 });
 
   async function handleDelete() {
     if (!productToDelete?._id) return;
