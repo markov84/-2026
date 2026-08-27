@@ -1216,6 +1216,11 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       <section class="label-sheet">${thermalLabelsHtml}</section>
     `;
 
+    if (isBarcodeFirstProfile) {
+      printCustomHtml(title, fallbackThermalBodyHtml, printWindow);
+      return;
+    }
+
     try {
       const thermalLabelDataUrl = await renderThermalLabelCanvasDataUrl({
         product,
@@ -1233,21 +1238,12 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       if (!thermalLabelDataUrl || !thermalLabelDataUrl.startsWith("data:image/")) {
         throw new Error("Invalid thermal label image");
       }
-      if (isBarcodeFirstProfile) {
-        printThermalLabelHtml({
-          labelImageDataUrl: thermalLabelDataUrl,
-          copies: safeCopies,
-          thermalPrintSurface,
-          printWindow
-        });
-      } else {
-        await printThermalLabelPdf({
-          labelImageDataUrl: thermalLabelDataUrl,
-          copies: safeCopies,
-          thermalPrintSurface,
-          printWindow
-        });
-      }
+      await printThermalLabelPdf({
+        labelImageDataUrl: thermalLabelDataUrl,
+        copies: safeCopies,
+        thermalPrintSurface,
+        printWindow
+      });
     } catch {
       try {
         printThermalLabelHtml({
