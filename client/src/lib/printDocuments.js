@@ -1233,12 +1233,21 @@ export async function printProductLabel(product, { scalePercent, copies, paperPr
       if (!thermalLabelDataUrl || !thermalLabelDataUrl.startsWith("data:image/")) {
         throw new Error("Invalid thermal label image");
       }
-      await printThermalLabelPdf({
-        labelImageDataUrl: thermalLabelDataUrl,
-        copies: safeCopies,
-        thermalPrintSurface,
-        printWindow
-      });
+      if (isBarcodeFirstProfile) {
+        printThermalLabelHtml({
+          labelImageDataUrl: thermalLabelDataUrl,
+          copies: safeCopies,
+          thermalPrintSurface,
+          printWindow
+        });
+      } else {
+        await printThermalLabelPdf({
+          labelImageDataUrl: thermalLabelDataUrl,
+          copies: safeCopies,
+          thermalPrintSurface,
+          printWindow
+        });
+      }
     } catch {
       try {
         printThermalLabelHtml({
