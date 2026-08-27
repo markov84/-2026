@@ -804,20 +804,32 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
   const codeFont = Math.max(isThermal ? 12 : 10, Math.round(11 * scale * readabilityBoost * safeFontScale));
   const modelCode = String(product?.productNumber || product?.sku || "").trim() || "-";
   const logoHtml = logoDataUrl
-    ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="max-width:${barcodeFirst ? 28 : 28}mm; height:${barcodeFirst ? 9 : 5}mm; object-fit:contain; object-position:left center; display:block; margin-bottom:1mm;" />`
+    ? `<img src="${escapeHtml(logoDataUrl)}" alt="MARK LIGHT logo" style="width:${barcodeFirst ? 30 : 28}mm; max-width:100%; height:${barcodeFirst ? 13 : 5}mm; object-fit:contain; object-position:left center; display:block; margin-bottom:${barcodeFirst ? 2 : 1}mm;" />`
     : `<div style="font-size:${Math.max(12, Math.round(14 * scale))}px; font-weight:800; line-height:1; margin-bottom:1mm;">MARK LIGHT</div>`;
+  const labelStyle = barcodeFirst
+    ? "padding:4mm; left:0mm; top:0mm;"
+    : `padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;`;
+  const titleStyle = barcodeFirst
+    ? `font-size:${Math.max(4.2, 4.4 * safeFontScale)}mm; line-height:1.12; margin:0 0 2mm;`
+    : `font-size:${titleFont}px;`;
+  const subtitleStyle = barcodeFirst
+    ? `font-size:${Math.max(3.2, 3.4 * safeFontScale)}mm; line-height:1.15; margin:0 0 1mm;`
+    : `font-size:${skuFont}px;`;
+  const metaStyle = barcodeFirst
+    ? `font-size:${Math.max(3.2, 3.4 * safeFontScale)}mm; line-height:1.15; margin:0 0 3mm;`
+    : `font-size:${metaFont}px; margin-bottom:4px;`;
 
   return `
-    <article class="label-card ${barcodeFirst ? "label-card-barcode-first" : ""}" style="padding:${cardPadding}px; left:${offsetXmm}mm; top:${offsetYmm}mm;">
+    <article class="label-card ${barcodeFirst ? "label-card-barcode-first" : ""}" style="${labelStyle}">
       ${logoHtml}
-      <div class="label-title" style="font-size:${titleFont}px;">${escapeHtml(product?.name || "Продукт")}</div>
-      <div class="label-subtitle" style="font-size:${skuFont}px;">Модел: ${escapeHtml(modelCode)}</div>
-      <div class="label-meta" style="font-size:${metaFont}px; margin-bottom:4px;">Баркод: ${escapeHtml(fallbackCode)}</div>
+      <div class="label-title" style="${titleStyle}">${escapeHtml(product?.name || "Продукт")}</div>
+      <div class="label-subtitle" style="${subtitleStyle}">Модел: ${escapeHtml(modelCode)}</div>
+      <div class="label-meta" style="${metaStyle}">Баркод: ${escapeHtml(fallbackCode)}</div>
 
-      <div class="label-main-row" style="gap:${Math.max(4, Math.round(6 * scale))}px;">
+      <div class="label-main-row" style="gap:${Math.max(4, Math.round(6 * scale))}px;${barcodeFirst ? "margin-top:4mm;" : ""}">
         <div class="label-barcode-wrap" style="min-width:0;${barcodeFirst ? "width:100%; padding-right:0;" : ""}">
-          <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="max-width:100%; height:auto; display:block;" />
-          <div style="font-size:${codeFont}px; margin-top:4px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
+          <img src="${escapeHtml(barcodeDataUrl)}" alt="Barcode" style="width:${barcodeFirst ? 53 : 100}%; max-width:100%; height:${barcodeFirst ? 16 : "auto"}; display:block; object-fit:fill;" />
+          <div style="font-size:${barcodeFirst ? `${Math.max(3.2, 3.4 * safeFontScale)}mm` : `${codeFont}px`}; margin-top:${barcodeFirst ? 1 : 4}px; font-weight:700; letter-spacing:0.05em; line-height:1.15;">${escapeHtml(fallbackCode)}</div>
         </div>
         <div class="label-qr-wrap" style="display:flex; flex:0 0 ${qrSizeMm}mm; width:${qrSizeMm}mm; height:${qrSizeMm}mm; align-items:flex-start; justify-content:flex-start;${barcodeFirst ? "position:absolute; top:2mm; right:2mm;" : ""}">
           <img src="${escapeHtml(qrDataUrl)}" alt="QR code" style="width:${qrSizeMm}mm; height:${qrSizeMm}mm; max-width:none; display:block; image-rendering:pixelated;" />
