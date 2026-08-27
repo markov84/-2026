@@ -819,7 +819,7 @@ function buildSingleLabelHtml({ product, fallbackCode, barcodeDataUrl, qrDataUrl
     ? `font-size:${Math.max(3.2, 3.4 * safeFontScale)}mm; line-height:1.15; margin:0 0 3mm;`
     : `font-size:${metaFont}px; margin-bottom:4px;`;
   const companyDetailsHtml = barcodeFirst
-    ? `<div class="label-company-details" style="font-size:${Math.max(2.2, 2.4 * safeFontScale)}mm; line-height:1.2; margin-top:3mm; color:#111827;">гр. Габрово | ул. П. Постомпиров<br />marklightltd@gmail.com | marklight.bg</div>`
+    ? `<div class="label-company-details" style="width:calc(100% - 31mm); max-width:calc(100% - 31mm); font-size:${Math.max(2.2, 2.4 * safeFontScale)}mm; line-height:1.2; margin-top:3mm; color:#111827;">гр. Габрово | ул. П. Постомпиров<br />marklightltd@gmail.com | marklight.bg</div>`
     : "";
 
   return `
