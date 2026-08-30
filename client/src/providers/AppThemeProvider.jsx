@@ -579,16 +579,21 @@ function WatermarkOverlay({ isDark }) {
       sx={{
         position: "fixed",
         inset: 0,
-        display: "grid",
-        placeItems: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
         pointerEvents: "none",
         zIndex: 2,
         overflow: "hidden",
-        paddingLeft: { xs: 0, lg: "15.5rem" }
+        paddingLeft: { xs: "10vw", lg: "21rem" },
+        paddingRight: { xs: "6vw", lg: "4rem" }
       }}
     >
       <Typography
         sx={{
+          width: "100%",
+          maxWidth: "calc(100vw - 12rem)",
+          textAlign: "left",
           fontSize: { xs: "3rem", sm: "5rem", md: "7rem", lg: "8rem" },
           fontWeight: 900,
           letterSpacing: "0.22em",
@@ -598,7 +603,7 @@ function WatermarkOverlay({ isDark }) {
           textShadow: isDark
             ? "0 0 1px rgba(255,255,255,0.12), 0 12px 32px rgba(0,0,0,0.18)"
             : "0 0 1px rgba(255,255,255,0.28), 0 12px 32px rgba(24,36,47,0.10)",
-          transform: "rotate(-18deg) translateY(-2vh)",
+          transform: "rotate(-18deg) translateY(-2vh) translateX(-2vw)",
           userSelect: "none"
         }}
       >

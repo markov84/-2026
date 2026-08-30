@@ -501,9 +501,7 @@ export default function CommandCenterShellClean({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          minWidth: 0,
-          width: { lg: `calc(100% - ${drawerWidth}px)` },
-          ml: { lg: `${drawerWidth}px` }
+          minWidth: 0
         }}
       >
         <Toolbar

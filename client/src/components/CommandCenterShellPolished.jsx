@@ -34,7 +34,7 @@ import MobileBottomNavigationBar from "./MobileBottomNavigation";
 import MobileQuickActions from "./MobileQuickActions";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 
-const drawerWidth = 248;
+const drawerWidth = 300;
 
 const navItems = [
   { label: "Табло", path: "/", icon: <DashboardRoundedIcon /> },
@@ -231,7 +231,7 @@ export default function CommandCenterShellPolished({ children }) {
         </Box>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: { lg: `calc(100% - ${drawerWidth}px)` }, ml: { lg: `${drawerWidth}px` } }}>
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
         <Toolbar
           sx={{
             minHeight: { xs: 60, md: 68 },
