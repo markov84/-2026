@@ -583,7 +583,8 @@ function WatermarkOverlay({ isDark }) {
         placeItems: "center",
         pointerEvents: "none",
         zIndex: 2,
-        overflow: "hidden"
+        overflow: "hidden",
+        paddingLeft: { xs: 0, lg: "15.5rem" }
       }}
     >
       <Typography
