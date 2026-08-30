@@ -497,7 +497,15 @@ export default function CommandCenterShellClean({ children }) {
         </Box>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minWidth: 0,
+          width: { lg: `calc(100% - ${drawerWidth}px)` },
+          ml: { lg: `${drawerWidth}px` }
+        }}
+      >
         <Toolbar
           sx={(theme) => ({
             px: { xs: 2, md: 4 },
