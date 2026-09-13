@@ -1516,11 +1516,18 @@ export async function printProductLabel(product, { scalePercent, fontScalePercen
   printCustomHtml(title, bodyHtml, printWindow);
 }
 
-function composeInvoiceDocument(invoice) {
+function getPrintedInvoiceUnitPrice(item, priceMode) {
+  const unitPrice = Number(item.unitPrice || 0);
+  if (priceMode !== "wholesale" || item.wholesalePrice == null) return unitPrice;
+  return Number(item.wholesalePrice);
+}
+
+function composeInvoiceDocument(invoice, { priceMode = "retail" } = {}) {
   const supplier = invoice.supplier || {};
-  const subtotal = Number(invoice.subtotal || 0);
-  const vatAmount = Number(invoice.vatAmount || 0);
-  const totalAmount = Number(invoice.totalAmount || 0);
+  const items = (invoice.items || []).map((item) => ({ ...item, unitPrice: getPrintedInvoiceUnitPrice(item, priceMode) }));
+  const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+  const vatAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0) * (Number(item.vatRate || 0) / 100), 0);
+  const totalAmount = subtotal + vatAmount;
 
   return {
     title: `Фактура ${invoice.invoiceNumber || ""}`,
@@ -1571,7 +1578,7 @@ function composeInvoiceDocument(invoice) {
             <th class="num">Сума</th>
           </tr>
         </thead>
-        <tbody>${getItemRows(invoice.items)}</tbody>
+        <tbody>${getItemRows(items)}</tbody>
       </table>
 
       <section class="totals">
@@ -1600,8 +1607,8 @@ export function getInvoiceDocumentEmailData(invoice) {
   };
 }
 
-export function printInvoice(invoice) {
-  const { title, bodyHtml } = composeInvoiceDocument(invoice);
+export function printInvoice(invoice, options = {}) {
+  const { title, bodyHtml } = composeInvoiceDocument(invoice, options);
   printHtml(title, bodyHtml);
 }
 

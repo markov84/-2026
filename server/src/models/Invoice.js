@@ -6,6 +6,7 @@ const invoiceItemSchema = new mongoose.Schema(
     unit: { type: String, default: "бр.", trim: true },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
+    wholesalePrice: { type: Number, min: 0 },
     vatRate: { type: Number, default: 20, min: 0 }
   },
   { _id: false }

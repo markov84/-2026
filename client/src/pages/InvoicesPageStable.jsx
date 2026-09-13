@@ -35,6 +35,7 @@ import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
 import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
+import PrintPriceDialog from "../components/PrintPriceDialog";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
@@ -76,6 +77,7 @@ function blankItem() {
     unit: "бр.",
     quantity: "",
     unitPrice: "",
+    wholesalePrice: "",
     vatRate: "20"
   };
 }
@@ -188,6 +190,7 @@ function buildPayload(invoice, { includeInvoiceNumber = false } = {}) {
       unit: item.unit.trim() || "бр.",
       quantity: numberValue(item.quantity),
       unitPrice: numberValue(item.unitPrice),
+      wholesalePrice: numberValue(item.wholesalePrice),
       vatRate: numberValue(item.vatRate)
     })),
     ...totals
@@ -300,6 +303,7 @@ function InvoiceForm({ invoice, setInvoice, stores, products = [] }) {
                 description: product.name || item.description,
                 unit: item.unit || "бр.",
                 unitPrice: String(product.price ?? item.unitPrice ?? ""),
+                wholesalePrice: String(product.wholesalePrice ?? item.wholesalePrice ?? ""),
                 vatRate: String(product.vatRate ?? item.vatRate ?? 20)
               }
             : item
@@ -551,6 +555,8 @@ export default function InvoicesPageStable() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => blankInvoice());
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [printInvoiceDraft, setPrintInvoiceDraft] = useState(null);
+  const [printPriceMode, setPrintPriceMode] = useState("retail");
   const [deletingInvoice, setDeletingInvoice] = useState(null);
   const [emailDraft, setEmailDraft] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -599,6 +605,7 @@ export default function InvoicesPageStable() {
               unit: item.unit || "бр.",
               quantity: String(item.quantity ?? 1),
               unitPrice: String(item.unitPrice ?? ""),
+              wholesalePrice: String(item.wholesalePrice ?? ""),
               vatRate: String(item.vatRate ?? 20)
             }))
           : [blankItem()]
@@ -758,7 +765,7 @@ export default function InvoicesPageStable() {
           ...current,
           items: [
             ...currentItems,
-            { product: product._id, quantity: "1", unitPrice: String(product.price ?? ""), vatRate: String(product.vatRate ?? 20) }
+            { productId: product._id, description: product.name || "", quantity: "1", unitPrice: String(product.price ?? ""), wholesalePrice: String(product.wholesalePrice ?? ""), vatRate: String(product.vatRate ?? 20) }
           ]
         };
       });
@@ -800,7 +807,7 @@ export default function InvoicesPageStable() {
               { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <StatusChip value={params?.value} /> },
               { field: "vatAmount", headerName: "ДДС", flex: 0.75, minWidth: 105, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "totalAmount", headerName: "Общо", flex: 0.85, minWidth: 115, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => openEmailDialog(params.row)} onPrint={() => printInvoice(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => openEmailDialog(params.row)} onPrint={() => { setPrintInvoiceDraft(params.row); setPrintPriceMode("retail"); }} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingInvoice(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -822,6 +829,17 @@ export default function InvoicesPageStable() {
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingInvoice(null)} onConfirm={handleUpdate} />
       </Dialog>
+
+      <PrintPriceDialog
+        open={Boolean(printInvoiceDraft)}
+        value={printPriceMode}
+        onChange={setPrintPriceMode}
+        onClose={() => setPrintInvoiceDraft(null)}
+        onConfirm={() => {
+          if (printInvoiceDraft) printInvoice(printInvoiceDraft, { priceMode: printPriceMode });
+          setPrintInvoiceDraft(null);
+        }}
+      />
 
       <ConfirmDeleteDialog
         open={Boolean(deletingInvoice)}
