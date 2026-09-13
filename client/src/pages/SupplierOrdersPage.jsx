@@ -35,6 +35,7 @@ import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
 import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
+import PrintPriceDialog from "../components/PrintPriceDialog";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
@@ -359,6 +360,8 @@ export default function SupplierOrdersPage() {
   const [open, setOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [printSupplierOrderDraft, setPrintSupplierOrderDraft] = useState(null);
+  const [printPriceMode, setPrintPriceMode] = useState("retail");
   const [emailDraft, setEmailDraft] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -663,7 +666,7 @@ export default function SupplierOrdersPage() {
               </Box>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                 <Button variant="outlined" color="info" onClick={() => setEmailDraft(getSupplierOrderDocumentEmailData(selectedOrder))}>Изпрати по имейл</Button>
-                <Button variant="outlined" color="secondary" onClick={() => printSupplierOrder(selectedOrder)}>Документ</Button>
+                <Button variant="outlined" color="secondary" onClick={() => { setPrintSupplierOrderDraft(selectedOrder); setPrintPriceMode("retail"); }}>Документ</Button>
                 <Button variant="outlined" onClick={() => void exportSupplierOrderPdf(selectedOrder)}>PDF</Button>
                 <Button variant="outlined" onClick={() => openEditDialog(selectedOrder)} disabled={selectedOrder.status === "received"}>Редактирай</Button>
                 <Button variant="contained" color="success" onClick={() => void handleReceive(selectedOrder)} disabled={selectedOrder.status === "received" || selectedOrder.status === "cancelled"}>Приеми доставка</Button>
@@ -692,7 +695,7 @@ export default function SupplierOrdersPage() {
               { field: "totalAmount", headerName: "Стойност", flex: 0.7, minWidth: 120, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 110, renderCell: (params) => <Chip size="small" label={statusLabel(params.value)} color={statusColor(params.value)} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getSupplierOrderDocumentEmailData(params.row))} onPrint={() => printSupplierOrder(params.row)} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getSupplierOrderDocumentEmailData(params.row))} onPrint={() => { setPrintSupplierOrderDraft(params.row); setPrintPriceMode("retail"); }} printLabel="Документ" onEdit={() => openEditDialog(params.row)} onDelete={params.row.status === "received" ? undefined : () => setDeletingOrder(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -788,6 +791,17 @@ export default function SupplierOrdersPage() {
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setOpen(false)} onConfirm={editingOrder ? handleUpdate : handleCreate} />
       </Dialog>
+
+      <PrintPriceDialog
+        open={Boolean(printSupplierOrderDraft)}
+        value={printPriceMode}
+        onChange={setPrintPriceMode}
+        onClose={() => setPrintSupplierOrderDraft(null)}
+        onConfirm={() => {
+          if (printSupplierOrderDraft) printSupplierOrder(printSupplierOrderDraft, { priceMode: printPriceMode });
+          setPrintSupplierOrderDraft(null);
+        }}
+      />
 
       <ConfirmDeleteDialog
         open={Boolean(deletingOrder)}

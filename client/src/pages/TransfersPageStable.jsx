@@ -37,6 +37,7 @@ import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
 import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
+import PrintPriceDialog from "../components/PrintPriceDialog";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
@@ -578,6 +579,8 @@ export default function TransfersPageStable() {
   const [form, setForm] = useState(() => createInitialTransfer());
   const [editingTransfer, setEditingTransfer] = useState(null);
   const [deletingTransfer, setDeletingTransfer] = useState(null);
+  const [printTransferDraft, setPrintTransferDraft] = useState(null);
+  const [printPriceMode, setPrintPriceMode] = useState("retail");
   const [emailDraft, setEmailDraft] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [scanCode, setScanCode] = useState("");
@@ -857,7 +860,7 @@ export default function TransfersPageStable() {
                 <Button variant="outlined" color="info" onClick={() => setEmailDraft(getTransferDocumentEmailData(selectedTransfer))}>
                   Изпрати по имейл
                 </Button>
-                <Button variant="outlined" color="secondary" onClick={() => printTransfer(selectedTransfer)}>
+                <Button variant="outlined" color="secondary" onClick={() => { setPrintTransferDraft(selectedTransfer); setPrintPriceMode("retail"); }}>
                   Документ
                 </Button>
                 <Button variant="outlined" onClick={() => void exportTransferPdf(selectedTransfer)}>
@@ -896,7 +899,7 @@ export default function TransfersPageStable() {
               { field: "totalAmount", headerName: "Общо с ДДС", flex: 0.8, minWidth: 130, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
               { field: "status", headerName: "Статус", flex: 0.65, minWidth: 105, renderCell: (params) => <Chip label={params?.value || "-"} size="small" color={params?.value === "completed" ? "success" : "warning"} /> },
               { field: "requestedBy", headerName: "Заявил", flex: 0.75, minWidth: 120 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getTransferDocumentEmailData(params.row))} onPrint={() => printTransfer(params.row)} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 186, align: "center", renderCell: (params) => <GridRowActions onEmail={() => setEmailDraft(getTransferDocumentEmailData(params.row))} onPrint={() => { setPrintTransferDraft(params.row); setPrintPriceMode("retail"); }} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingTransfer(params.row)} printLabel="Документ" /> }
             ]}
             disableRowSelectionOnClick
           />
@@ -963,7 +966,7 @@ export default function TransfersPageStable() {
               </TextField>
             </FormGrid>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              <Button variant="outlined" color="secondary" onClick={() => printTransfer(editingTransfer)}>
+              <Button variant="outlined" color="secondary" onClick={() => { setPrintTransferDraft(editingTransfer); setPrintPriceMode("retail"); }}>
                 Документ за трансфера
               </Button>
               <Button variant="outlined" onClick={() => void exportTransferPdf(editingTransfer)}>
@@ -990,6 +993,17 @@ export default function TransfersPageStable() {
         </DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingTransfer(null)} onConfirm={handleUpdate} />
       </Dialog>
+
+      <PrintPriceDialog
+        open={Boolean(printTransferDraft)}
+        value={printPriceMode}
+        onChange={setPrintPriceMode}
+        onClose={() => setPrintTransferDraft(null)}
+        onConfirm={() => {
+          if (printTransferDraft) printTransfer(printTransferDraft, { priceMode: printPriceMode });
+          setPrintTransferDraft(null);
+        }}
+      />
 
       <ConfirmDeleteDialog
         open={Boolean(deletingTransfer)}

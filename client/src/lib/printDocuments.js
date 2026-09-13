@@ -1693,12 +1693,17 @@ export function printOrder(order, options = {}) {
   printHtml(title, bodyHtml);
 }
 
-function composeTransferDocument(transfer) {
+function getPrintedProductPrice(product, priceMode, fallbackPrice = 0) {
+  if (priceMode === "wholesale" && product?.wholesalePrice != null) return Number(product.wholesalePrice);
+  return Number(fallbackPrice);
+}
+
+function composeTransferDocument(transfer, { priceMode = "retail" } = {}) {
   const items = transfer.items || [];
   const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const subtotal = items.reduce((sum, item) => {
     const quantityValue = Number(item.quantity || 0);
-    const unitPrice = Number(item.product?.price || 0);
+    const unitPrice = getPrintedProductPrice(item.product, priceMode, item.product?.price || 0);
     const vatRate = Number(item.product?.vatRate ?? 20);
     const grossAmount = quantityValue * unitPrice;
     const vatDivider = 1 + vatRate / 100;
@@ -1707,7 +1712,7 @@ function composeTransferDocument(transfer) {
   const vatAmount = items.reduce(
     (sum, item) => {
       const quantityValue = Number(item.quantity || 0);
-      const unitPrice = Number(item.product?.price || 0);
+      const unitPrice = getPrintedProductPrice(item.product, priceMode, item.product?.price || 0);
       const vatRate = Number(item.product?.vatRate ?? 20);
       const grossAmount = quantityValue * unitPrice;
       const vatDivider = 1 + vatRate / 100;
@@ -1722,7 +1727,7 @@ function composeTransferDocument(transfer) {
     .map((item, index) => {
       const product = item.product || {};
       const quantityValue = Number(item.quantity || 0);
-      const unitPrice = Number(product.price || 0);
+      const unitPrice = getPrintedProductPrice(product, priceMode, product.price || 0);
       const vatRate = Number(product.vatRate ?? 20);
       const grossAmount = quantityValue * unitPrice;
       return `
@@ -1800,8 +1805,8 @@ export function getTransferDocumentEmailData(transfer) {
   };
 }
 
-export function printTransfer(transfer) {
-  const { title, bodyHtml } = composeTransferDocument(transfer);
+export function printTransfer(transfer, options = {}) {
+  const { title, bodyHtml } = composeTransferDocument(transfer, options);
   printHtml(title, bodyHtml);
 }
 
@@ -2068,10 +2073,10 @@ export function printInventoryAudit(audit) {
   );
 }
 
-function composeSupplierOrderDocument(order) {
+function composeSupplierOrderDocument(order, { priceMode = "retail" } = {}) {
   const items = Array.isArray(order?.items) ? order.items : [];
   const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const totalAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitCost || 0), 0);
+  const totalAmount = items.reduce((sum, item) => sum + Number(item.quantity || 0) * getPrintedProductPrice(item.product, priceMode, item.unitCost || 0), 0);
 
   const rows = items
     .map(
@@ -2082,8 +2087,8 @@ function composeSupplierOrderDocument(order) {
           <td>${escapeHtml(item.product?.productNumber || "-")}</td>
           <td>${escapeHtml(item.product?.sku || "-")}</td>
           <td class="num">${Number(item.quantity || 0)}</td>
-          <td class="num">${formatCurrencyEUR(item.unitCost || 0)}</td>
-          <td class="num">${formatCurrencyEUR(Number(item.quantity || 0) * Number(item.unitCost || 0))}</td>
+          <td class="num">${formatCurrencyEUR(getPrintedProductPrice(item.product, priceMode, item.unitCost || 0))}</td>
+          <td class="num">${formatCurrencyEUR(Number(item.quantity || 0) * getPrintedProductPrice(item.product, priceMode, item.unitCost || 0))}</td>
         </tr>
       `
     )
@@ -2156,8 +2161,8 @@ export function getSupplierOrderDocumentEmailData(order) {
   };
 }
 
-export function printSupplierOrder(order) {
-  const { title, bodyHtml } = composeSupplierOrderDocument(order);
+export function printSupplierOrder(order, options = {}) {
+  const { title, bodyHtml } = composeSupplierOrderDocument(order, options);
   printHtml(title, bodyHtml);
 }
 
