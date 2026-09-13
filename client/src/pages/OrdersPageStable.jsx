@@ -20,6 +20,7 @@ import { FormGrid, FormGridFull } from "../components/FormGrid";
 import GridRowActions from "../components/GridRowActions";
 import PageLoadingNotice from "../components/PageLoadingNotice";
 import PageHeader from "../components/PageHeader";
+import PrintPriceDialog from "../components/PrintPriceDialog";
 import { ProductIdentity } from "../components/ProductPresentation";
 import ResponsiveTable from "../components/ResponsiveTable";
 import { useFetch } from "../hooks/useFetch";
@@ -621,6 +622,8 @@ export default function OrdersPageStable() {
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [printOrderDraft, setPrintOrderDraft] = useState(null);
+  const [printPriceMode, setPrintPriceMode] = useState("retail");
   const [emailDraft, setEmailDraft] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
@@ -790,7 +793,10 @@ export default function OrdersPageStable() {
         renderCell: (params) => (
           <GridRowActions
             onEmail={() => setEmailDraft(getOrderDocumentEmailData(params.row))}
-            onPrint={() => printOrder(params.row)}
+            onPrint={() => {
+              setPrintOrderDraft(params.row);
+              setPrintPriceMode("retail");
+            }}
             onEdit={() => openEditDialog(params.row)}
             onDelete={canSeeOrderAuthor ? () => setDeletingOrder(params.row) : undefined}
           />
@@ -1442,6 +1448,17 @@ export default function OrdersPageStable() {
         <DialogContent dividers>{editingOrder ? renderSharedOrderFields(editingOrder, setEditingOrder, editScanCode, setEditScanCode, editScanFieldRef) : null}</DialogContent>
         <DialogFooterActions isMobile={isMobile} onCancel={() => setEditingOrder(null)} onConfirm={handleUpdate} />
       </Dialog>
+
+      <PrintPriceDialog
+        open={Boolean(printOrderDraft)}
+        value={printPriceMode}
+        onChange={setPrintPriceMode}
+        onClose={() => setPrintOrderDraft(null)}
+        onConfirm={() => {
+          if (printOrderDraft) printOrder(printOrderDraft, { priceMode: printPriceMode });
+          setPrintOrderDraft(null);
+        }}
+      />
 
       <ConfirmDeleteDialog
         open={Boolean(deletingOrder)}

@@ -121,6 +121,12 @@ function getItemRows(items = [], { priceIncludesVat = false } = {}) {
     .join("");
 }
 
+function getPrintedOrderUnitPrice(item, priceMode) {
+  const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+  if (priceMode !== "wholesale" || item.product?.wholesalePrice == null) return unitPrice;
+  return Number(item.product.wholesalePrice);
+}
+
 export function buildDocumentHtml(title, bodyHtml) {
   const companyLogoUrl = new URL("/MARK%20LIGHT.png", window.location.origin).toString();
 
@@ -1599,11 +1605,11 @@ export function printInvoice(invoice) {
   printHtml(title, bodyHtml);
 }
 
-function composeOrderDocument(order) {
+function composeOrderDocument(order, { priceMode = "retail" } = {}) {
   const items = order.items?.length ? order.items : [];
   const subtotal = items.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
-    const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+    const unitPrice = getPrintedOrderUnitPrice(item, priceMode);
     const vatRate = Number(item.vatRate ?? item.product?.vatRate ?? 0);
     const grossAmount = quantity * unitPrice;
     const vatDivider = 1 + vatRate / 100;
@@ -1611,7 +1617,7 @@ function composeOrderDocument(order) {
   }, 0);
   const vatAmount = items.reduce((sum, item) => {
     const quantity = Number(item.quantity || 0);
-    const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+    const unitPrice = getPrintedOrderUnitPrice(item, priceMode);
     const vatRate = Number(item.vatRate ?? item.product?.vatRate ?? 0);
     const grossAmount = quantity * unitPrice;
     const vatDivider = 1 + vatRate / 100;
@@ -1650,7 +1656,7 @@ function composeOrderDocument(order) {
         <thead>
           <tr><th>№</th><th>Продукт</th><th>Мярка</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
-        <tbody>${getItemRows(items, { priceIncludesVat: true })}</tbody>
+        <tbody>${getItemRows(items.map((item) => ({ ...item, unitPrice: getPrintedOrderUnitPrice(item, priceMode) })), { priceIncludesVat: true })}</tbody>
       </table>
       <section class="totals">
         <p><span>Сума без ДДС:</span><strong>${formatCurrencyEUR(subtotal)}</strong></p>
@@ -1675,8 +1681,8 @@ export function getOrderDocumentEmailData(order) {
   };
 }
 
-export function printOrder(order) {
-  const { title, bodyHtml } = composeOrderDocument(order);
+export function printOrder(order, options = {}) {
+  const { title, bodyHtml } = composeOrderDocument(order, options);
   printHtml(title, bodyHtml);
 }
 
