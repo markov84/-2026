@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     imageUrl: { type: String, trim: true },
     price: { type: Number, required: true, min: 0 },
+    wholesalePrice: { type: Number, default: 0, min: 0 },
     cost: { type: Number, default: 0, min: 0 },
     vatRate: { type: Number, default: 20 },
     isActive: { type: Boolean, default: true },

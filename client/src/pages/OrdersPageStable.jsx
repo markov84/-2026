@@ -8,7 +8,7 @@ import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartChe
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { Alert, Autocomplete, Box, Button, Chip, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
@@ -120,6 +120,11 @@ function createOrderItem(product = null, overrides = {}) {
     vatRate: String(product?.vatRate ?? 20),
     ...overrides
   };
+}
+
+function getProductOrderPrice(product, wholesaleMode = false) {
+  if (!product) return "";
+  return String(wholesaleMode ? (product.wholesalePrice ?? product.price ?? "") : (product.price ?? ""));
 }
 
 function normalizeOrderItems(items = []) {
@@ -237,7 +242,7 @@ function OrderProductsCell({ items }) {
   );
 }
 
-function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenScanner, onScanSuccess, onScanError, resolveScannedProduct }) {
+function OrderItemsEditor({ value, products, inventory, store, wholesaleMode, onChange, onOpenScanner, onScanSuccess, onScanError, resolveScannedProduct }) {
   const items = value?.length ? value : [createOrderItem()];
 
   async function applyScannedCodeToItems(rawCode, targetKey) {
@@ -263,7 +268,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
               ? {
                   ...row,
                   quantity: String(Number(row.quantity || 0) + 1),
-                  unitPrice: row.unitPrice || String(product.price ?? ""),
+                  unitPrice: row.unitPrice || getProductOrderPrice(product, wholesaleMode),
                   vatRate: row.vatRate || String(product.vatRate ?? 20)
                 }
               : row
@@ -285,7 +290,7 @@ function OrderItemsEditor({ value, products, inventory, store, onChange, onOpenS
                   ...row,
                   product: product._id,
                   quantity: row.quantity || "1",
-                  unitPrice: String(product.price ?? row.unitPrice ?? ""),
+                  unitPrice: getProductOrderPrice(product, wholesaleMode) || row.unitPrice || "",
                   vatRate: String(product.vatRate ?? row.vatRate ?? 20)
                 }
               : row
@@ -611,6 +616,7 @@ export default function OrdersPageStable() {
   const { data: inventory, refresh: refreshInventory } = useFetch("/inventory/summary");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialOrder);
+  const [wholesaleMode, setWholesaleMode] = useState(false);
   const [scanCode, setScanCode] = useState("");
   const [editScanCode, setEditScanCode] = useState("");
   const [editingOrder, setEditingOrder] = useState(null);
@@ -797,6 +803,7 @@ export default function OrdersPageStable() {
   async function openCreateDialog() {
     await refreshInventory();
     setForm({ ...initialOrder, items: [createOrderItem()] });
+    setWholesaleMode(false);
     setScanCode("");
     setOpen(true);
   }
@@ -812,6 +819,7 @@ export default function OrdersPageStable() {
       status: order.status || "pending",
       paymentStatus: order.paymentStatus || "unpaid"
     });
+    setWholesaleMode(false);
     setEditScanCode("");
   }
 
@@ -1025,7 +1033,7 @@ export default function OrdersPageStable() {
                 ? {
                     ...item,
                     quantity: String(Number(item.quantity || 0) + 1),
-                    unitPrice: item.unitPrice || String(product.price ?? ""),
+                    unitPrice: item.unitPrice || getProductOrderPrice(product, wholesaleMode),
                     vatRate: item.vatRate || String(product.vatRate ?? 20)
                   }
                 : item
@@ -1035,7 +1043,7 @@ export default function OrdersPageStable() {
 
         return {
           ...current,
-          items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
+          items: withTrailingOrderRow([...currentItems, createOrderItem(product, { unitPrice: getProductOrderPrice(product, wholesaleMode) })])
         };
       });
 
@@ -1044,7 +1052,7 @@ export default function OrdersPageStable() {
       const alreadyInCart = activeDraft?.items?.some((item) => item.product === product._id);
       toast.success(alreadyInCart ? "Количество +1." : `Добавен продукт: ${product.name}`);
     },
-    [resolveScannedProduct]
+    [resolveScannedProduct, wholesaleMode]
   );
 
   const handleOrderScannerDetected = useCallback(
@@ -1075,7 +1083,7 @@ export default function OrdersPageStable() {
                   ? {
                       ...item,
                       quantity: String(Number(item.quantity || 0) + 1),
-                      unitPrice: item.unitPrice || String(product.price ?? ""),
+                      unitPrice: item.unitPrice || getProductOrderPrice(product, wholesaleMode),
                       vatRate: item.vatRate || String(product.vatRate ?? 20)
                     }
                   : item
@@ -1087,14 +1095,14 @@ export default function OrdersPageStable() {
         toast.success(`Добавен продукт: ${product.name}`);
         return {
           ...current,
-          items: withTrailingOrderRow([...currentItems, createOrderItem(product)])
+          items: withTrailingOrderRow([...currentItems, createOrderItem(product, { unitPrice: getProductOrderPrice(product, wholesaleMode) })])
         };
       });
 
       playScanFeedback("success");
       setOrderScanOpen(false);
     },
-    [resolveScannedProduct, orderScanTarget, editingOrder]
+    [resolveScannedProduct, orderScanTarget, editingOrder, wholesaleMode]
   );
 
   function handleScanKeyDown(event, setter, clearScan, activeDraft, scanValue) {
@@ -1229,6 +1237,17 @@ export default function OrdersPageStable() {
             )
           }}
         />
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 0.5 }}>
+          <Switch
+            checked={wholesaleMode}
+            onChange={(event) => setWholesaleMode(event.target.checked)}
+            inputProps={{ "aria-label": "Цени на едро" }}
+          />
+          <Box>
+            <Typography variant="body2" fontWeight={800}>Цени на едро</Typography>
+            <Typography variant="caption" color="text.secondary">Новите продукти ще се попълват с цената на едро.</Typography>
+          </Box>
+        </Stack>
         <FormGrid min={230}>
           <TextField
             label="Номер на продажба"
@@ -1272,6 +1291,7 @@ export default function OrdersPageStable() {
             products={products}
             inventory={inventory}
             store={order.store}
+            wholesaleMode={wholesaleMode}
             onChange={(items) => setOrder((current) => ({ ...current, items }))}
             onScanSuccess={() => playScanFeedback("success")}
             onScanError={() => playScanFeedback("error")}

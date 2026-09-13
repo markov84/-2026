@@ -123,8 +123,8 @@ router.get("/", async (req, res) => {
   const products = await Product.find(filter)
     .select(
       compact
-        ? "name productNumber sku barcode category brand price lowStockThreshold isActive"
-        : "name productNumber sku barcode category brand description price cost vatRate isActive lowStockThreshold createdAt updatedAt"
+        ? "name productNumber sku barcode category brand price wholesalePrice lowStockThreshold isActive"
+        : "name productNumber sku barcode category brand description price wholesalePrice cost vatRate isActive lowStockThreshold createdAt updatedAt"
     )
     .sort({ createdAt: -1, _id: -1 })
     .lean();
@@ -159,6 +159,7 @@ router.post(
     body("barcode").optional({ values: "falsy" }).trim(),
     body("category").optional({ values: "falsy" }).trim(),
     body("price").isFloat({ min: 0 }),
+    body("wholesalePrice").optional().isFloat({ min: 0 }),
     body("initialQuantity").optional().isInt({ min: 0 })
   ],
   async (req, res) => {
@@ -235,6 +236,7 @@ router.put(
     body("barcode").optional({ values: "falsy" }).trim(),
     body("category").optional({ values: "falsy" }).trim(),
     body("price").optional().isFloat({ min: 0 }),
+    body("wholesalePrice").optional().isFloat({ min: 0 }),
     body("cost").optional().isFloat({ min: 0 }),
     body("lowStockThreshold").optional().isInt({ min: 0 }),
     body("vatRate").optional().isFloat({ min: 0 })

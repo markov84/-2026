@@ -95,6 +95,7 @@ const initialForm = {
   description: "",
   imageUrl: "",
   price: "",
+  wholesalePrice: "",
   cost: "",
   vatRate: "20",
   lowStockThreshold: "5",
@@ -106,6 +107,7 @@ const initialForm = {
 function validateProductForm(form) {
   if (!form.name.trim()) return "Името на продукта е задължително.";
   if (Number.isNaN(Number(form.price)) || Number(form.price) < 0) return "Продажната цена трябва да е число 0 или повече.";
+  if (Number.isNaN(Number(form.wholesalePrice)) || Number(form.wholesalePrice) < 0) return "Цената на едро трябва да е число 0 или повече.";
   if (Number.isNaN(Number(form.cost)) || Number(form.cost) < 0) return "Себестойността трябва да е число 0 или повече.";
   if (Number.isNaN(Number(form.vatRate)) || Number(form.vatRate) < 0) return "ДДС трябва да е число 0 или повече.";
   if (!Number.isInteger(Number(form.lowStockThreshold)) || Number(form.lowStockThreshold) < 0) return "Минималната наличност трябва да е цяло число 0 или повече.";
@@ -355,6 +357,7 @@ export default function ProductsPagePolished() {
       description: editableProduct.description || "",
       imageUrl: editableProduct.imageUrl || "",
       price: String(editableProduct.price ?? ""),
+      wholesalePrice: String(editableProduct.wholesalePrice ?? ""),
       cost: String(editableProduct.cost ?? ""),
       vatRate: String(editableProduct.vatRate ?? 20),
       lowStockThreshold: String(editableProduct.lowStockThreshold ?? 5),
@@ -408,6 +411,7 @@ export default function ProductsPagePolished() {
       imageUrl: form.imageUrl,
       isActive: form.isActive,
       price: Number(form.price || 0),
+      wholesalePrice: Number(form.wholesalePrice || 0),
       cost: Number(form.cost || 0),
       vatRate: Number(form.vatRate || 20),
       lowStockThreshold: Number(form.lowStockThreshold || 0)
@@ -665,7 +669,7 @@ export default function ProductsPagePolished() {
       <PageHeader
         eyebrow="Каталог"
         title="Управление на продукти"
-        subtitle="Поддържай пълни продуктови профили със снимка, цена, минимална наличност, ДДС и подробно описание."
+        subtitle="Поддържай пълни продуктови профили със снимка, стандартна и едро цена, минимална наличност, ДДС и подробно описание."
         icon={<Inventory2RoundedIcon />}
       />
 
@@ -760,6 +764,7 @@ export default function ProductsPagePolished() {
                   valueGetter: (_, row) => row.barcode || "-"
                 },
                 { field: "price", headerName: "Продажна цена", flex: 0.75, minWidth: 145, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+                { field: "wholesalePrice", headerName: "Цена на едро", flex: 0.75, minWidth: 135, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
                 ...(canViewCost
                   ? [{ field: "cost", headerName: "Себестойност", flex: 0.75, minWidth: 145, valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) }]
                   : []),
@@ -897,7 +902,8 @@ export default function ProductsPagePolished() {
             <Stack spacing={1}>
               <Typography variant="subtitle1" fontWeight={800}>Цени и контрол</Typography>
               <FormGrid min={220}>
-                <TextField label="Продажна цена" type="number" value={form.price} onChange={(e) => updateField("price", e.target.value)} />
+                <TextField label="Продажна цена" type="number" value={form.price} onChange={(e) => updateField("price", e.target.value)} inputProps={{ min: 0, step: "0.01" }} />
+                <TextField label="Цена на едро" type="number" value={form.wholesalePrice} onChange={(e) => updateField("wholesalePrice", e.target.value)} inputProps={{ min: 0, step: "0.01" }} helperText="Използва се при продажби на едро." />
                 {canViewCost ? <TextField label="Себестойност" type="number" value={form.cost} onChange={(e) => updateField("cost", e.target.value)} /> : null}
                 <TextField label="ДДС %" type="number" value={form.vatRate} onChange={(e) => updateField("vatRate", e.target.value)} />
                 <TextField label="Минимална наличност" type="number" value={form.lowStockThreshold} onChange={(e) => updateField("lowStockThreshold", e.target.value)} />
