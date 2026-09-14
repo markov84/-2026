@@ -19,6 +19,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const initialForm = {
   name: "",
@@ -268,7 +269,7 @@ export default function SuppliersPage() {
               { field: "email", headerName: "Email", flex: 1, minWidth: 180 },
               { field: "vatNumber", headerName: "ЕИК", flex: 0.8, minWidth: 130 },
               { field: "address", headerName: "Адрес", flex: 1.1, minWidth: 190 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingSupplier(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Доставчик", { "Име": params.row.name, "Лице за контакт": params.row.contactPerson, "Телефон": params.row.phone, "Имейл": params.row.email, "ЕИК": params.row.vatNumber, "Адрес": params.row.address })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingSupplier(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />

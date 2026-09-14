@@ -372,6 +372,20 @@ function printHtml(title, bodyHtml) {
   printInFrame(buildDocumentHtml(title, bodyHtml));
 }
 
+export function printRecord(title, fields) {
+  const rows = Object.entries(fields || {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
+    .join("");
+
+  printHtml(title, `
+    <h1>${escapeHtml(title)}</h1>
+    <table class="document-table">
+      <tbody>${rows}</tbody>
+    </table>
+  `);
+}
+
 function printCustomHtml(title, html, printWindow = null) {
   const targetWindow = printWindow || window.open("", "_blank");
   if (targetWindow) {

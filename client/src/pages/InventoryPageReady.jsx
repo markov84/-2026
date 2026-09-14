@@ -22,6 +22,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { findProductByScanCode, isWebsiteQrScan, parseScannedInput } from "../lib/scanCode";
+import { printRecord } from "../lib/printDocuments";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -514,7 +515,7 @@ export default function InventoryPageReady() {
               { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
               { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 80 },
               { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Складова наличност", { "Продукт": params.row.product?.name, "Код": getResolvedProduct(params.row)?.productNumber, "Баркод": getResolvedProduct(params.row)?.barcode, "Магазин": getStoreDisplayLabel(params.row.store), "Количество": params.row.quantity, "Резервирано": params.row.reserved, "Минимална наличност": params.row.reorderLevel })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />

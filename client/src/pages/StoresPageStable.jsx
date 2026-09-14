@@ -19,6 +19,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const emptyStore = { name: "", code: "", city: "", address: "" };
 
@@ -149,7 +150,7 @@ export default function StoresPageStable() {
               { field: "code", headerName: "Код", flex: 0.7, minWidth: 100 },
               { field: "city", headerName: "Град", flex: 0.8, minWidth: 120 },
               { field: "address", headerName: "Адрес", flex: 1.3, minWidth: 200 },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingStore(params.row)} /> }
+              { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Магазин", { "Име": params.row.name, "Код": params.row.code, "Град": params.row.city, "Адрес": params.row.address })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingStore(params.row)} /> }
             ]}
             disableRowSelectionOnClick
           />

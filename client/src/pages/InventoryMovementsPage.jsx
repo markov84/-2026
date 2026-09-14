@@ -13,10 +13,12 @@ import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
+import GridRowActions from "../components/GridRowActions";
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const movementTypeLabels = {
   all: "Всички",
@@ -397,6 +399,32 @@ export default function InventoryMovementsPage() {
                 flex: 1,
                 minWidth: 120,
                 valueGetter: (_, row) => row.actorName || row.actorUser?.fullName || row.actorUser?.username || "-"
+              },
+              {
+                field: "actions",
+                headerName: "",
+                sortable: false,
+                filterable: false,
+                width: isAdmin ? 190 : 100,
+                align: "center",
+                renderCell: (params) => (
+                  <GridRowActions
+                    onPrint={() => printRecord("Складово движение", {
+                      "Дата / час": formatDateTime(params.row.createdAt),
+                      "Продукт": params.row.product?.name,
+                      "Код": params.row.product?.productNumber,
+                      "Магазин": params.row.store?.name,
+                      "Вид": movementTypeLabels[params.row.movementType] || params.row.movementType,
+                      "Преди": params.row.quantityBefore,
+                      "Промяна": params.row.quantityDelta,
+                      "След": params.row.quantityAfter,
+                      "Източник": sourceLabels[params.row.sourceModule] || params.row.sourceModule,
+                      "Причина / коментар": params.row.reason,
+                      "Потребител": params.row.actorName || params.row.actorUser?.fullName || params.row.actorUser?.username
+                    })}
+                    onDelete={isAdmin ? () => setDeletingId(params.row._id) : undefined}
+                  />
+                )
               }
             ]}
             checkboxSelection={isAdmin}

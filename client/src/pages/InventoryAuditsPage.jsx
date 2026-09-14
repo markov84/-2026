@@ -13,6 +13,7 @@ import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
 import Dialog from "../components/DraggableDialog";
 import DialogFooterActions from "../components/DialogFooterActions";
+import GridRowActions from "../components/GridRowActions";
 import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
@@ -403,6 +404,15 @@ export default function InventoryAuditsPage() {
     printInventoryAudit(selectedAudit);
   }
 
+  async function handlePrintAuditRow(auditId) {
+    try {
+      const response = await api.get(`/inventory-audits/${auditId}`);
+      printInventoryAudit(response.data);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно зареждане на ревизията за печат.");
+    }
+  }
+
   function handleExportAuditCsv() {
     if (!selectedAudit) return;
 
@@ -610,6 +620,23 @@ export default function InventoryAuditsPage() {
                       size="small"
                       label={params.value || "-"}
                       color={statusColorMap[params.row.status] || "default"}
+                    />
+                  )
+                },
+                {
+                  field: "actions",
+                  headerName: "",
+                  sortable: false,
+                  filterable: false,
+                  width: 190,
+                  align: "center",
+                  renderCell: (params) => (
+                    <GridRowActions
+                      onPrint={() => void handlePrintAuditRow(params.row._id)}
+                      onDelete={() => {
+                        setSelectedAuditIds([params.row._id]);
+                        setBulkDeleteOpen(true);
+                      }}
                     />
                   )
                 }

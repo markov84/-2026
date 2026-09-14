@@ -26,6 +26,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const initialEntry = { type: "income", category: "", description: "", amount: "", store: "" };
 
@@ -267,7 +268,7 @@ export default function FinancePageStable() {
         />
       )
     },
-    { field: "actions", headerName: "", sortable: false, filterable: false, width: 110, align: "center", renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEntry(params.row)} /> }
+    { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Финансов запис", { "Дата": formatDate(params.row.date || params.row.createdAt), "Тип": params.row.type, "Категория": params.row.categoryLabel || params.row.category, "Описание": params.row.descriptionLabel || params.row.description, "Магазин": params.row.storeLabel, "Сума": params.row.amountLabel })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEntry(params.row)} /> }
   ];
 
   useEffect(() => {

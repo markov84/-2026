@@ -21,6 +21,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const initialEmployee = { username: "", fullName: "", password: "", role: "sales", active: true };
 
@@ -149,7 +150,7 @@ export default function EmployeesPageStable() {
       filterable: false,
       width: 110,
       align: "center",
-      renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEmployee(params.row)} />
+      renderCell: (params) => <GridRowActions onPrint={() => printRecord("Служител", { "Име": params.row.fullName, "Потребител": params.row.username, "Роля": params.row.role, "Статус": params.row.active ? "Активен" : "Изключен" })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingEmployee(params.row)} />
     });
   }
 

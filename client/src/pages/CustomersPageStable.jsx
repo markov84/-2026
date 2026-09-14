@@ -37,6 +37,7 @@ import { useBarcodeKeyboardScan } from "../hooks/useBarcodeKeyboardScan";
 import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
+import { printRecord } from "../lib/printDocuments";
 
 const initialForm = {
   customerType: "person",
@@ -372,7 +373,7 @@ export default function CustomersPageStable() {
                 filterable: false,
                 width: 110,
                 align: "center",
-                renderCell: (params) => <GridRowActions onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingCustomer(params.row)} />
+                renderCell: (params) => <GridRowActions onPrint={() => printRecord("Клиент", { "Име": getCustomerDisplayName(params.row), "Фирма": params.row.company, "ЕИК/ДДС": params.row.vatNumber || params.row.taxNumber, "Имейл": params.row.email, "Телефон": params.row.phone, "Адрес": params.row.address })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingCustomer(params.row)} />
               }
             ]}
             pageSizeOptions={[5, 10, 20]}
