@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "seed": "node src/scripts/seedAdmin.js",
     "seed:demo": "node src/scripts/seedDemoDataV2.js",
-    "reset:documents": "node src/scripts/resetDocuments.js"
+    "reset:documents": "node src/scripts/resetDocuments.js",
+    "initialize:inventory": "node src/scripts/initializeInventory.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
