@@ -4,6 +4,7 @@ import { AuditLog } from "../models/AuditLog.js";
 import { Counter } from "../models/Counter.js";
 import { FinancialEntry } from "../models/FinancialEntry.js";
 import { InventoryAudit } from "../models/InventoryAudit.js";
+import { InventoryItem } from "../models/InventoryItem.js";
 import { Invoice } from "../models/Invoice.js";
 import { Order } from "../models/Order.js";
 import { StockMovement } from "../models/StockMovement.js";
@@ -17,6 +18,7 @@ const documentModels = [
   ["transfers", StoreTransfer],
   ["financialEntries", FinancialEntry],
   ["inventoryAudits", InventoryAudit],
+  ["inventoryItems", InventoryItem],
   ["stockMovements", StockMovement],
   ["auditLogs", AuditLog]
 ];
