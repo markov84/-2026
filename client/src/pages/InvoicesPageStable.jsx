@@ -834,6 +834,8 @@ export default function InvoicesPageStable() {
         open={Boolean(printInvoiceDraft)}
         value={printPriceMode}
         onChange={setPrintPriceMode}
+        items={printInvoiceDraft?.items}
+        getItemName={(item) => item?.description || item?.product?.name || "-"}
         onClose={() => setPrintInvoiceDraft(null)}
         onConfirm={() => {
           if (printInvoiceDraft) printInvoice(printInvoiceDraft, { priceMode: printPriceMode });

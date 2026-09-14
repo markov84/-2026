@@ -796,6 +796,7 @@ export default function SupplierOrdersPage() {
         open={Boolean(printSupplierOrderDraft)}
         value={printPriceMode}
         onChange={setPrintPriceMode}
+        items={printSupplierOrderDraft?.items}
         onClose={() => setPrintSupplierOrderDraft(null)}
         onConfirm={() => {
           if (printSupplierOrderDraft) printSupplierOrder(printSupplierOrderDraft, { priceMode: printPriceMode });

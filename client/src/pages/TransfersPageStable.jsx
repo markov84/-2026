@@ -998,6 +998,7 @@ export default function TransfersPageStable() {
         open={Boolean(printTransferDraft)}
         value={printPriceMode}
         onChange={setPrintPriceMode}
+        items={printTransferDraft?.items}
         onClose={() => setPrintTransferDraft(null)}
         onConfirm={() => {
           if (printTransferDraft) printTransfer(printTransferDraft, { priceMode: printPriceMode });

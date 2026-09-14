@@ -1453,6 +1453,7 @@ export default function OrdersPageStable() {
         open={Boolean(printOrderDraft)}
         value={printPriceMode}
         onChange={setPrintPriceMode}
+        items={printOrderDraft?.items}
         onClose={() => setPrintOrderDraft(null)}
         onConfirm={() => {
           if (printOrderDraft) printOrder(printOrderDraft, { priceMode: printPriceMode });
