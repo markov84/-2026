@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AddBoxRoundedIcon from "@mui/icons-material/AddBoxRounded";
+import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
-import { Box, Button, Chip, DialogContent, DialogTitle, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, Collapse, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import BarcodeScannerDialog from "../components/BarcodeScannerDialog";
@@ -47,6 +49,7 @@ export default function InventoryPageReady() {
   const [query, setQuery] = useState("");
   const [storeFilter, setStoreFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [expandedProducts, setExpandedProducts] = useState(() => new Set());
   const scanFieldRef = useRef(null);
   const audioContextRef = useRef(null);
   const scannerBufferRef = useRef("");
@@ -133,6 +136,34 @@ export default function InventoryPageReady() {
         .some((value) => String(value).toLowerCase().includes(normalizedQuery));
     });
   }, [data, query, stockFilter, storeFilter]);
+
+  const groupedInventory = useMemo(() => {
+    const groups = new Map();
+
+    filteredInventory.forEach((item) => {
+      const product = getResolvedProduct(item);
+      const productId = product?._id || item.product?._id || item._id;
+      const current = groups.get(productId) || { product, rows: [], totalQuantity: 0 };
+      current.rows.push(item);
+      current.totalQuantity += Number(item.quantity || 0);
+      groups.set(productId, current);
+    });
+
+    return Array.from(groups.values()).map((group) => ({
+      ...group,
+      storeCount: group.rows.length,
+      lowStockCount: group.rows.filter((item) => item.isLowStock).length
+    }));
+  }, [filteredInventory, productsById]);
+
+  function toggleProductExpanded(productId) {
+    setExpandedProducts((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }
 
   function buildRow(responseData, productId, storeId) {
     const populatedProduct = products.find((product) => product._id === productId);
@@ -489,37 +520,60 @@ export default function InventoryPageReady() {
           </Box>
         ) : null}
 
-        <ResponsiveTable>
-          <DataGrid
-            autoHeight
-            loading={loading}
-            rowHeight={56}
-            columnHeaderHeight={44}
-            rows={filteredInventory}
-            getRowId={(row) => row._id}
-            columns={[
-              { field: "product", headerName: "Продукт", flex: 2, minWidth: 280, renderCell: (params) => <ProductIdentity product={params?.row?.product} /> },
-              {
-                field: "productCode",
-                headerName: "Баркод / QR",
-                flex: 1,
-                minWidth: 180,
-                valueGetter: (_, row) => {
-                  const product = getResolvedProduct(row);
-                  return product?.barcode || product?.qrCode || product?.productNumber || "-";
-                }
-              },
-              { field: "updatedAt", headerName: "Дата актуализация", flex: 0.85, minWidth: 130, valueFormatter: (params) => formatDate(params?.value ?? params) },
-              { field: "storeName", headerName: "Магазин / склад", flex: 1, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
-              { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 80 },
-              { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 80 },
-              { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 80 },
-              { field: "status", headerName: "Статус", flex: 0.75, minWidth: 115, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
-              { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Складова наличност", { "Продукт": params.row.product?.name, "Код": getResolvedProduct(params.row)?.productNumber, "Баркод": getResolvedProduct(params.row)?.barcode, "Магазин": getStoreDisplayLabel(params.row.store), "Количество": params.row.quantity, "Резервирано": params.row.reserved, "Минимална наличност": params.row.reorderLevel })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
-            ]}
-            disableRowSelectionOnClick
-          />
-        </ResponsiveTable>
+        <Stack spacing={1}>
+          {loading && !groupedInventory.length ? <Typography color="text.secondary">Зареждане на наличностите...</Typography> : null}
+          {!loading && !groupedInventory.length ? <Typography color="text.secondary">Няма наличности за избраните филтри.</Typography> : null}
+          {groupedInventory.map((group) => {
+            const productId = group.product?._id || group.rows[0]?._id;
+            const isExpanded = expandedProducts.has(productId);
+
+            return (
+              <Box key={productId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, overflow: "hidden" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  alignItems={{ xs: "stretch", sm: "center" }}
+                  justifyContent="space-between"
+                  onClick={() => toggleProductExpanded(productId)}
+                  sx={{ p: 1.25, cursor: "pointer", bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
+                    <IconButton size="small" aria-label={isExpanded ? "Свий магазините" : "Покажи магазините"}>
+                      {isExpanded ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                    </IconButton>
+                    <Box minWidth={0}><ProductIdentity product={group.product} /></Box>
+                  </Stack>
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pl: { xs: 5, sm: 0 } }}>
+                    <Chip size="small" label={`Обекти: ${group.storeCount}`} variant="outlined" />
+                    <Chip size="small" label={`Общо: ${group.totalQuantity}`} color="primary" variant="outlined" />
+                    {group.lowStockCount ? <Chip size="small" label={`Ниска наличност: ${group.lowStockCount}`} color="error" variant="outlined" /> : null}
+                  </Stack>
+                </Stack>
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <ResponsiveTable>
+                    <DataGrid
+                      autoHeight
+                      rows={group.rows}
+                      getRowId={(row) => row._id}
+                      rowHeight={52}
+                      columnHeaderHeight={42}
+                      columns={[
+                        { field: "storeName", headerName: "Магазин / склад", flex: 1.4, minWidth: 200, valueGetter: (_, row) => getStoreDisplayLabel(row.store) },
+                        { field: "updatedAt", headerName: "Актуализация", flex: 0.8, minWidth: 120, valueFormatter: (params) => formatDate(params?.value ?? params) },
+                        { field: "quantity", headerName: "Кол.", flex: 0.5, minWidth: 75 },
+                        { field: "reserved", headerName: "Рез.", flex: 0.5, minWidth: 75 },
+                        { field: "reorderLevel", headerName: "Мин.", flex: 0.5, minWidth: 75 },
+                        { field: "status", headerName: "Статус", flex: 0.7, minWidth: 110, renderCell: (params) => <Chip label={params?.row?.isLowStock ? "Ниска" : "Нормално"} color={params?.row?.isLowStock ? "error" : "success"} size="small" /> },
+                        { field: "actions", headerName: "", sortable: false, filterable: false, width: 190, align: "center", renderCell: (params) => <GridRowActions onPrint={() => printRecord("Складова наличност", { "Продукт": params.row.product?.name, "Код": getResolvedProduct(params.row)?.productNumber, "Баркод": getResolvedProduct(params.row)?.barcode, "Магазин": getStoreDisplayLabel(params.row.store), "Количество": params.row.quantity, "Резервирано": params.row.reserved, "Минимална наличност": params.row.reorderLevel })} onEdit={() => openEditDialog(params.row)} onDelete={() => setDeletingItem(params.row)} /> }
+                      ]}
+                      disableRowSelectionOnClick
+                    />
+                  </ResponsiveTable>
+                </Collapse>
+              </Box>
+            );
+          })}
+        </Stack>
       </DataSection>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>
