@@ -586,6 +586,7 @@ export default function TransfersPageStable() {
   const [scanCode, setScanCode] = useState("");
   const [scanCameraOpen, setScanCameraOpen] = useState(false);
   const [selectedTransferId, setSelectedTransferId] = useState("");
+  const [detailTransfer, setDetailTransfer] = useState(null);
   const [requestType, setRequestType] = useState("general");
   const audioContextRef = useRef(null);
   const isMobile = useMobileDetection();
@@ -886,7 +887,10 @@ export default function TransfersPageStable() {
             getRowId={(row) => row._id}
             rowSelectionModel={selectedTransferId ? [selectedTransferId] : []}
             onRowSelectionModelChange={(nextSelection) => setSelectedTransferId(String(nextSelection?.[0] || ""))}
-            onRowClick={(params) => setSelectedTransferId(String(params.row._id))}
+            onRowClick={(params) => {
+              setSelectedTransferId(String(params.row._id));
+              setDetailTransfer(params.row);
+            }}
             columns={[
               { field: "transferNumber", headerName: "Трансфер", flex: 0.75, minWidth: 120 },
               { field: "createdAt", headerName: "Дата", flex: 0.75, minWidth: 110, valueFormatter: (params) => formatDate(params?.value ?? params) },
@@ -905,6 +909,69 @@ export default function TransfersPageStable() {
           />
         </ResponsiveTable>
       </DataSection>
+
+      <Dialog open={Boolean(detailTransfer)} onClose={() => setDetailTransfer(null)} fullWidth maxWidth="lg" fullScreen={isMobile}>
+        <DialogTitle>Документ за трансфер {detailTransfer?.transferNumber || ""}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Дата</Typography>
+                <Typography fontWeight={700}>{formatDate(detailTransfer?.createdAt)}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Статус</Typography>
+                <Typography fontWeight={700}>{detailTransfer?.status || "-"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">От</Typography>
+                <Typography fontWeight={700}>{detailTransfer?.fromStore?.name || "-"} {detailTransfer?.fromStore?.city ? `| ${detailTransfer.fromStore.city}` : ""}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Към</Typography>
+                <Typography fontWeight={700}>{detailTransfer?.toStore?.name || "-"} {detailTransfer?.toStore?.city ? `| ${detailTransfer.toStore.city}` : ""}</Typography>
+              </Box>
+            </Box>
+            <Typography variant="h6">Предадена стока</Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Продукт</TableCell>
+                    <TableCell>Номер / SKU</TableCell>
+                    <TableCell align="right">Количество</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(detailTransfer?.items || []).map((item, index) => (
+                    <TableRow key={item?._id || item?.product?._id || index}>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <ProductIdentity product={item?.product || {}} compact />
+                          <Typography>{item?.product?.name || "-"}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{item?.product?.productNumber || "-"} / {item?.product?.sku || "-"}</TableCell>
+                      <TableCell align="right">{Number(item?.quantity || 0)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="body2" color="text.secondary">Заявил: {detailTransfer?.requestedBy || "-"}</Typography>
+            {detailTransfer?.notes ? <Typography variant="body2">Бележки: {detailTransfer.notes}</Typography> : null}
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="flex-end">
+              <Button variant="outlined" color="secondary" onClick={() => { setPrintTransferDraft(detailTransfer); setPrintPriceMode("retail"); }}>
+                Печат на документа
+              </Button>
+              <Button variant="outlined" onClick={() => void exportTransferPdf(detailTransfer)}>
+                PDF
+              </Button>
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogFooterActions isMobile={isMobile} onCancel={() => setDetailTransfer(null)} onConfirm={() => { setPrintTransferDraft(detailTransfer); setPrintPriceMode("retail"); }} confirmLabel="Печат" />
+      </Dialog>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={isMobile}>
         <DialogTitle>
