@@ -583,7 +583,7 @@ export default function TransfersPageStable() {
   const { data: transfers, loading, setData } = useFetch("/transfers");
   const { data: stores } = useFetch("/stores");
   const { data: products } = useFetch("/products");
-  const { data: inventory } = useFetch("/inventory/summary");
+  const { data: inventory, refresh: refreshInventory } = useFetch("/inventory/summary");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => createInitialTransfer());
   const [editingTransfer, setEditingTransfer] = useState(null);
@@ -772,6 +772,7 @@ export default function TransfersPageStable() {
     try {
       const response = await api.post("/transfers", buildTransferPayload(form));
       setData((current) => [response.data, ...current]);
+      await refreshInventory();
       setForm(createInitialTransfer());
       setOpen(false);
       toast.success("Трансферът е създаден.");
@@ -808,6 +809,7 @@ export default function TransfersPageStable() {
         ...buildTransferPayload(editingTransfer)
       });
       setData((current) => current.map((item) => (item._id === editingTransfer._id ? response.data : item)));
+      await refreshInventory();
       setEditingTransfer(null);
       toast.success("Трансферът е обновен.");
     } catch (error) {
@@ -821,6 +823,7 @@ export default function TransfersPageStable() {
     try {
       await api.delete(`/transfers/${deletingTransfer._id}`);
       setData((current) => current.filter((item) => item._id !== deletingTransfer._id));
+      await refreshInventory();
       setDeletingTransfer(null);
       toast.success("Трансферът е изтрит.");
     } catch (error) {

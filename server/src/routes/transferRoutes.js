@@ -321,6 +321,10 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     }
 
     clearCachedJson("inventory:");
+  } else {
+    return res.status(409).json({
+      message: "Трансферът не може да бъде изтрит, защото в магазина получател липсва част от получената стока. Първо коригирай наличността."
+    });
   }
 
   await StoreTransfer.findByIdAndDelete(req.params.id);
