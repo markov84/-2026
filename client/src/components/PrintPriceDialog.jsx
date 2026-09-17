@@ -42,6 +42,7 @@ export default function PrintPriceDialog({
           <RadioGroup value={value} onChange={(event) => onChange(event.target.value)}>
             <FormControlLabel value="retail" control={<Radio />} label="Продажна цена" />
             <FormControlLabel value="wholesale" control={<Radio />} label="Цена на едро" />
+            <FormControlLabel value="zero" control={<Radio />} label="Без цена (0.00)" />
           </RadioGroup>
         </FormControl>
         <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
@@ -53,12 +54,12 @@ export default function PrintPriceDialog({
               <TableRow>
                 <TableCell>Продукт</TableCell>
                 <TableCell align="right">Кол.</TableCell>
-                <TableCell align="right">{value === "wholesale" ? "Цена на едро" : "Продажна цена"}</TableCell>
+                <TableCell align="right">{value === "zero" ? "Цена" : value === "wholesale" ? "Цена на едро" : "Продажна цена"}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {previewItems.length ? previewItems.map((item, index) => {
-                const price = value === "wholesale" ? getWholesalePrice(item) : getRetailPrice(item);
+                const price = value === "zero" ? 0 : value === "wholesale" ? getWholesalePrice(item) : getRetailPrice(item);
                 return (
                   <TableRow key={item?._id || item?.product?._id || index}>
                     <TableCell>{getItemName(item)}</TableCell>

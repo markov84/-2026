@@ -234,6 +234,12 @@ export function buildDocumentHtml(title, bodyHtml) {
             text-align: right;
             white-space: nowrap;
           }
+          .product-image {
+            display: block;
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+          }
           .totals {
             width: 240px;
             margin-left: auto;
@@ -1708,6 +1714,7 @@ export function printOrder(order, options = {}) {
 }
 
 function getPrintedProductPrice(product, priceMode, fallbackPrice = 0) {
+  if (priceMode === "zero") return 0;
   if (priceMode === "wholesale" && product?.wholesalePrice != null) return Number(product.wholesalePrice);
   return Number(fallbackPrice);
 }
@@ -1744,9 +1751,11 @@ function composeTransferDocument(transfer, { priceMode = "retail" } = {}) {
       const unitPrice = getPrintedProductPrice(product, priceMode, product.price || 0);
       const vatRate = Number(product.vatRate ?? 20);
       const grossAmount = quantityValue * unitPrice;
+      const imageUrl = typeof product.imageUrl === "string" && product.imageUrl.trim() ? product.imageUrl.trim() : "";
       return `
         <tr>
           <td>${index + 1}</td>
+          <td>${imageUrl ? `<img class="product-image" src="${escapeHtml(imageUrl)}" alt="" />` : "-"}</td>
           <td>${escapeHtml(product.name || "-")}</td>
           <td>${escapeHtml(product.productNumber || "-")}</td>
           <td>${escapeHtml(product.sku || "-")}</td>
@@ -1788,7 +1797,7 @@ function composeTransferDocument(transfer, { priceMode = "retail" } = {}) {
       <h2>Артикули</h2>
       <table>
         <thead>
-          <tr><th>№</th><th>Продукт</th><th>Номер</th><th>SKU</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
+          <tr><th>№</th><th>Снимка</th><th>Продукт</th><th>Номер</th><th>SKU</th><th class="num">Кол.</th><th class="num">Ед. цена</th><th class="num">ДДС</th><th class="num">Сума</th></tr>
         </thead>
         <tbody>${transferRows}</tbody>
       </table>
