@@ -105,7 +105,7 @@ function getCleanItems(transfer) {
     .filter((item) => item.product && item.quantity > 0);
 }
 
-function validateTransfer(transfer) {
+function validateTransfer(transfer, products = [], inventory = []) {
   if (!transfer?.requestedBy?.trim()) return "Полето „Заявил“ е задължително.";
   if (!transfer?.fromStore) return "Избери изходен магазин.";
   if (!transfer?.toStore) return "Избери целеви магазин.";
@@ -122,8 +122,17 @@ function validateTransfer(transfer) {
     const rowNumber = index + 1;
     if (!item.product) return `Избери продукт на ред ${rowNumber}.`;
     if (Number(item.quantity || 0) <= 0) return `Количеството на ред ${rowNumber} трябва да е по-голямо от 0.`;
-    if (selectedProducts.has(item.product)) return "Един и същ продукт е добавен повече от веднъж. Обедини количествата в един ред.";
+    const selectedProduct = getProductById(products, item.product);
+    const productName = selectedProduct?.name || "неизвестен продукт";
+    if (selectedProducts.has(item.product)) return `Продуктът „${productName}“ е добавен повече от веднъж. Обедини количествата в един ред.`;
     selectedProducts.add(item.product);
+
+    const sourceInventory = getInventoryForItem(inventory, item.product, transfer.fromStore);
+    const availableQuantity = Number(sourceInventory?.quantity || 0);
+    const requestedQuantity = Number(item.quantity || 0);
+    if (sourceInventory && requestedQuantity > availableQuantity) {
+      return `Продуктът „${productName}“: заявени ${requestedQuantity} бр., налични ${availableQuantity} бр. в изходния магазин.`;
+    }
   }
 
   return "";
@@ -754,7 +763,7 @@ export default function TransfersPageStable() {
   });
 
   async function handleCreate() {
-    const validationMessage = validateTransfer(form);
+    const validationMessage = validateTransfer(form, products, inventory);
     if (validationMessage) {
       toast.error(validationMessage);
       return;
@@ -787,7 +796,7 @@ export default function TransfersPageStable() {
   async function handleUpdate() {
     if (!editingTransfer?._id) return;
 
-    const validationMessage = validateTransfer(editingTransfer);
+    const validationMessage = validateTransfer(editingTransfer, products, inventory);
     if (validationMessage) {
       toast.error(validationMessage);
       return;

@@ -23,6 +23,52 @@ async function getNextTransferNumber() {
   });
 }
 
+async function validateTransferItems({ items = [], fromStore, existingTransfer = null }) {
+  const quantitiesByProduct = new Map();
+  for (const item of items) {
+    const productId = String(item.product);
+    const quantity = Number(item.quantity || 0);
+    const previousQuantity = quantitiesByProduct.get(productId) || 0;
+    if (quantitiesByProduct.has(productId)) {
+      const product = await Product.findById(productId).select("name").lean();
+      const error = new Error(`Продуктът „${product?.name || productId}“ е добавен повече от веднъж. Обедини количествата в един ред.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    quantitiesByProduct.set(productId, previousQuantity + quantity);
+  }
+
+  const productIds = [...quantitiesByProduct.keys()];
+  const [products, inventoryItems] = await Promise.all([
+    Product.find({ _id: { $in: productIds } }).select("name").lean(),
+    InventoryItem.find({ store: fromStore, product: { $in: productIds } }).lean()
+  ]);
+  const productNames = new Map(products.map((product) => [String(product._id), product.name]));
+  const availableByProduct = new Map(inventoryItems.map((item) => [String(item.product), Number(item.quantity || 0)]));
+
+  if (existingTransfer) {
+    for (const item of existingTransfer.items || []) {
+      const productId = String(item.product);
+      const quantity = Number(item.quantity || 0);
+      if (String(existingTransfer.fromStore) === String(fromStore)) {
+        availableByProduct.set(productId, (availableByProduct.get(productId) || 0) + quantity);
+      }
+      if (String(existingTransfer.toStore) === String(fromStore)) {
+        availableByProduct.set(productId, (availableByProduct.get(productId) || 0) - quantity);
+      }
+    }
+  }
+
+  for (const [productId, requestedQuantity] of quantitiesByProduct) {
+    const availableQuantity = availableByProduct.get(productId) || 0;
+    if (requestedQuantity > availableQuantity) {
+      const error = new Error(`Продуктът „${productNames.get(productId) || productId}“: заявени ${requestedQuantity} бр., налични ${Math.max(0, availableQuantity)} бр. в изходния магазин.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+}
+
 router.get("/", asyncHandler(async (req, res) => {
   const transfers = await StoreTransfer.find()
     .sort({ createdAt: -1 })
@@ -66,6 +112,8 @@ router.post(
     if (productCount !== productIds.length) {
       return res.status(404).json({ message: "One or more products were not found." });
     }
+
+    await validateTransferItems({ items: req.body.items, fromStore: req.body.fromStore });
 
     for (const item of req.body.items) {
       await applyInventoryDelta({
@@ -149,6 +197,8 @@ router.put(
     if (productCount !== productIds.length) {
       return res.status(404).json({ message: "One or more products were not found." });
     }
+
+    await validateTransferItems({ items: nextItems, fromStore: nextFromStore, existingTransfer });
 
     for (const item of existingTransfer.items) {
       await applyInventoryDelta({
