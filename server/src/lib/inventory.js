@@ -24,11 +24,12 @@ export async function logStockMovement({
   sourceDocumentId,
   reason,
   actorUser,
-  actorName
+  actorName,
+  session
 }) {
   if (!productId || !storeId) return null;
 
-  return StockMovement.create({
+  const movementRecord = {
     product: productId,
     store: storeId,
     quantityBefore: Math.max(0, toNumber(quantityBefore, 0)),
@@ -40,12 +41,19 @@ export async function logStockMovement({
     reason: reason ? String(reason) : undefined,
     actorUser,
     actorName
-  });
+  };
+
+  if (session) {
+    const [createdMovement] = await StockMovement.create([movementRecord], { session });
+    return createdMovement;
+  }
+
+  return StockMovement.create(movementRecord);
 }
 
-export async function applyInventoryDelta({ productId, storeId, quantityDelta, reorderLevel, movement }) {
+export async function applyInventoryDelta({ productId, storeId, quantityDelta, reorderLevel, movement, session }) {
   const item =
-    (await InventoryItem.findOne({ product: productId, store: storeId })) ||
+    (await InventoryItem.findOne({ product: productId, store: storeId }).session(session || null)) ||
     new InventoryItem({
       product: productId,
       store: storeId,
@@ -69,7 +77,7 @@ export async function applyInventoryDelta({ productId, storeId, quantityDelta, r
     item.reorderLevel = reorderLevel;
   }
 
-  await item.save();
+  await item.save(session ? { session } : undefined);
 
   if (Number(quantityDelta || 0) !== 0 && !movement?.skipLog) {
     await logStockMovement({
@@ -83,7 +91,8 @@ export async function applyInventoryDelta({ productId, storeId, quantityDelta, r
       sourceDocumentId: movement?.sourceDocumentId,
       reason: movement?.reason,
       actorUser: movement?.actorUser,
-      actorName: movement?.actorName
+      actorName: movement?.actorName,
+      session
     });
   }
 

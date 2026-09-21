@@ -14,7 +14,7 @@ const stockMovementSchema = new mongoose.Schema(
     },
     sourceModule: {
       type: String,
-      enum: ["inventory", "order", "transfer", "audit", "product", "supplier-order", "system"],
+      enum: ["inventory", "inventory-correction", "order", "transfer", "audit", "product", "supplier-order", "system"],
       default: "system"
     },
     sourceDocumentId: { type: String, trim: true },

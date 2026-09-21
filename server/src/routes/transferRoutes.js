@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
 import { requireAuth } from "../middleware/auth.js";
 import { StoreTransfer } from "../models/StoreTransfer.js";
@@ -86,7 +87,9 @@ router.post(
     body("transferNumber").optional().trim().notEmpty(),
     body("fromStore").notEmpty(),
     body("toStore").notEmpty(),
-    body("items").isArray({ min: 1 })
+    body("items").isArray({ min: 1 }),
+    body("items.*.product").notEmpty(),
+    body("items.*.quantity").isFloat({ gt: 0 }).toFloat()
   ],
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -115,37 +118,51 @@ router.post(
 
     await validateTransferItems({ items: req.body.items, fromStore: req.body.fromStore });
 
-    for (const item of req.body.items) {
-      await applyInventoryDelta({
+    const transferNumber = req.body.transferNumber?.trim() || (await getNextTransferNumber());
+    let transfer;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        [transfer] = await StoreTransfer.create([{
+          ...req.body,
+          transferNumber
+        }], { session });
+
+        for (const item of req.body.items) {
+          await applyInventoryDelta({
         productId: item.product,
         storeId: req.body.fromStore,
         quantityDelta: -Number(item.quantity || 0),
         movement: {
           sourceModule: "transfer",
+          sourceDocumentId: transfer._id,
           reason: "Трансфер между магазини (изход)",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-      await applyInventoryDelta({
+          await applyInventoryDelta({
         productId: item.product,
         storeId: req.body.toStore,
         quantityDelta: Number(item.quantity || 0),
         movement: {
           sourceModule: "transfer",
+          sourceDocumentId: transfer._id,
           reason: "Трансфер между магазини (вход)",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
+        }
+
+      });
+    } finally {
+      await session.endSession();
     }
 
     clearCachedJson("inventory:");
-
-    const transfer = await StoreTransfer.create({
-      ...req.body,
-      transferNumber: req.body.transferNumber?.trim() || (await getNextTransferNumber())
-    });
     const populated = await StoreTransfer.findById(transfer._id)
       .populate("fromStore", "name city")
       .populate("toStore", "name city")
@@ -162,7 +179,9 @@ router.put(
     body("transferNumber").optional().trim().notEmpty(),
     body("fromStore").optional().notEmpty(),
     body("toStore").optional().notEmpty(),
-    body("items").optional().isArray({ min: 1 })
+    body("items").optional().isArray({ min: 1 }),
+    body("items.*.product").optional().notEmpty(),
+    body("items.*.quantity").optional().isFloat({ gt: 0 }).toFloat()
   ],
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -200,8 +219,12 @@ router.put(
 
     await validateTransferItems({ items: nextItems, fromStore: nextFromStore, existingTransfer });
 
-    for (const item of existingTransfer.items) {
-      await applyInventoryDelta({
+    let transfer;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        for (const item of existingTransfer.items) {
+          await applyInventoryDelta({
         productId: item.product,
         storeId: existingTransfer.fromStore,
         quantityDelta: Number(item.quantity || 0),
@@ -211,9 +234,10 @@ router.put(
           reason: "Отмяна на стар трансфер (връщане към изход)",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-      await applyInventoryDelta({
+          await applyInventoryDelta({
         productId: item.product,
         storeId: existingTransfer.toStore,
         quantityDelta: -Number(item.quantity || 0),
@@ -223,12 +247,13 @@ router.put(
           reason: "Отмяна на стар трансфер (изход от цел)",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-    }
+        }
 
-    for (const item of nextItems) {
-      await applyInventoryDelta({
+        for (const item of nextItems) {
+          await applyInventoryDelta({
         productId: item.product,
         storeId: nextFromStore,
         quantityDelta: -Number(item.quantity || 0),
@@ -238,9 +263,10 @@ router.put(
           reason: "Трансфер (редакция) - изход",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-      await applyInventoryDelta({
+          await applyInventoryDelta({
         productId: item.product,
         storeId: nextToStore,
         quantityDelta: Number(item.quantity || 0),
@@ -250,15 +276,23 @@ router.put(
           reason: "Трансфер (редакция) - вход",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-    }
+        }
 
-    const transfer = await StoreTransfer.findByIdAndUpdate(
+        transfer = await StoreTransfer.findByIdAndUpdate(
       req.params.id,
       { ...req.body, fromStore: nextFromStore, toStore: nextToStore, items: nextItems },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, session }
     )
+      .lean();
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    transfer = await StoreTransfer.findById(transfer._id)
       .populate("fromStore", "name city")
       .populate("toStore", "name city")
       .populate("items.product", "name sku imageUrl price vatRate")
@@ -293,8 +327,11 @@ router.delete("/:id", asyncHandler(async (req, res) => {
   }
 
   if (canReverseInventory) {
-    for (const item of transfer.items) {
-      await applyInventoryDelta({
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        for (const item of transfer.items) {
+          await applyInventoryDelta({
         productId: item.product,
         storeId: transfer.fromStore,
         quantityDelta: Number(item.quantity || 0),
@@ -304,9 +341,10 @@ router.delete("/:id", asyncHandler(async (req, res) => {
           reason: "Изтриване на трансфер - връщане към изход",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
-      await applyInventoryDelta({
+          await applyInventoryDelta({
         productId: item.product,
         storeId: transfer.toStore,
         quantityDelta: -Number(item.quantity || 0),
@@ -316,8 +354,15 @@ router.delete("/:id", asyncHandler(async (req, res) => {
           reason: "Изтриване на трансфер - изход от цел",
           actorUser: req.user?._id,
           actorName: req.user?.fullName || req.user?.username
-        }
+        },
+        session
       });
+        }
+
+        await StoreTransfer.findByIdAndDelete(req.params.id, { session });
+      });
+    } finally {
+      await session.endSession();
     }
 
     clearCachedJson("inventory:");
@@ -327,7 +372,6 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     });
   }
 
-  await StoreTransfer.findByIdAndDelete(req.params.id);
   return res.status(204).send();
 }));
 
