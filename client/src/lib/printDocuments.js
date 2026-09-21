@@ -392,6 +392,76 @@ export function printRecord(title, fields) {
   `);
 }
 
+const stockMovementTypeLabels = {
+  in: "Вход",
+  out: "Изход",
+  adjustment: "Корекция"
+};
+
+const stockMovementSourceLabels = {
+  inventory: "Наличности",
+  "inventory-correction": "Корекция на наличности",
+  order: "Продажби",
+  transfer: "Трансфери",
+  audit: "Ревизии",
+  product: "Продукти",
+  "supplier-order": "Доставки",
+  system: "Система"
+};
+
+function formatPrintTime(value) {
+  const date = new Date(value || 0);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+export function printDailyStockMovementReport({ date, movements = [], filters = {} }) {
+  const groups = new Map();
+  for (const movement of movements) {
+    const storeName = movement.store?.name || "Неуточнен обект";
+    const group = groups.get(storeName) || [];
+    group.push(movement);
+    groups.set(storeName, group);
+  }
+
+  const totals = { movements: 0, incoming: 0, outgoing: 0, adjustments: 0, incomingQuantity: 0, outgoingQuantity: 0, netQuantity: 0 };
+  const storeSections = [...groups.entries()]
+    .sort(([firstStore], [secondStore]) => firstStore.localeCompare(secondStore, "bg"))
+    .map(([storeName, storeMovements]) => {
+      const storeTotals = { movements: storeMovements.length, incoming: 0, outgoing: 0, adjustments: 0, incomingQuantity: 0, outgoingQuantity: 0, netQuantity: 0 };
+      const rows = storeMovements
+        .sort((first, second) => new Date(first.createdAt) - new Date(second.createdAt))
+        .map((movement, index) => {
+          const delta = Number(movement.quantityDelta || 0);
+          storeTotals.netQuantity += delta;
+          if (movement.movementType === "in") {
+            storeTotals.incoming += 1;
+            storeTotals.incomingQuantity += Math.max(0, delta);
+          } else if (movement.movementType === "out") {
+            storeTotals.outgoing += 1;
+            storeTotals.outgoingQuantity += Math.abs(Math.min(0, delta));
+          } else {
+            storeTotals.adjustments += 1;
+          }
+          return `<tr><td>${index + 1}</td><td>${formatPrintTime(movement.createdAt)}</td><td>${escapeHtml(movement.product?.name || "-")}</td><td>${escapeHtml(movement.product?.productNumber || movement.product?.sku || "-")}</td><td>${escapeHtml(stockMovementTypeLabels[movement.movementType] || movement.movementType || "-")}</td><td class="num">${Number(movement.quantityBefore || 0)}</td><td class="num">${delta > 0 ? "+" : ""}${delta}</td><td class="num">${Number(movement.quantityAfter || 0)}</td><td>${escapeHtml(stockMovementSourceLabels[movement.sourceModule] || movement.sourceModule || "-")}</td><td>${escapeHtml(movement.reason || "-")}</td></tr>`;
+        })
+        .join("");
+
+      Object.keys(totals).forEach((key) => { totals[key] += storeTotals[key]; });
+      return `<h2>${escapeHtml(storeName)}</h2><table><thead><tr><th>№</th><th>Час</th><th>Продукт</th><th>Код / SKU</th><th>Вид</th><th class="num">Преди</th><th class="num">Промяна</th><th class="num">След</th><th>Източник</th><th>Причина</th></tr></thead><tbody>${rows}</tbody></table><p class="muted"><strong>${storeTotals.movements}</strong> движения | Вход: ${storeTotals.incomingQuantity} бр. | Изход: ${storeTotals.outgoingQuantity} бр. | Корекции: ${storeTotals.adjustments} | Нетна промяна: ${storeTotals.netQuantity > 0 ? "+" : ""}${storeTotals.netQuantity} бр.</p>`;
+    })
+    .join("");
+
+  const filterText = [filters.storeName, filters.movementTypeLabel, filters.search ? `Търсене: ${filters.search}` : ""].filter(Boolean).join(" | ");
+  const title = `Дневник на движенията - ${formatDate(`${date}T00:00:00`)}`;
+  printHtml(title, `
+    <section class="header"><div><div class="brand">MARK LIGHT LTD</div><p class="muted">Дневен складов отчет</p></div><div><h1>ДНЕВНИК НА ДВИЖЕНИЯТА</h1><p><strong>Дата:</strong> ${escapeHtml(formatDate(`${date}T00:00:00`))}</p>${filterText ? `<p><strong>Филтри:</strong> ${escapeHtml(filterText)}</p>` : ""}</div></section>
+    ${storeSections || "<p>Няма движения за избраната дата и филтри.</p>"}
+    <section class="totals"><p><span>Общо движения:</span><strong>${totals.movements}</strong></p><p><span>Вход:</span><strong>${totals.incomingQuantity} бр.</strong></p><p><span>Изход:</span><strong>${totals.outgoingQuantity} бр.</strong></p><p><span>Корекции:</span><strong>${totals.adjustments}</strong></p><p class="total"><span>Нетна промяна:</span><span>${totals.netQuantity > 0 ? "+" : ""}${totals.netQuantity} бр.</span></p></section>
+    <section class="footer"><div class="signature">Изготвил</div><div class="signature">Проверил</div></section>
+  `);
+}
+
 function printCustomHtml(title, html, printWindow = null) {
   const targetWindow = printWindow || window.open("", "_blank");
   if (targetWindow) {

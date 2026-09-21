@@ -7,6 +7,60 @@ const router = Router();
 
 router.use(requireAuth, requireRole("admin", "manager"));
 
+function buildFilters({ store, movementType, from, to }) {
+  const filters = {};
+
+  if (store && store !== "all") {
+    filters.store = store;
+  }
+
+  if (movementType && movementType !== "all") {
+    filters.movementType = movementType;
+  }
+
+  if (from || to) {
+    filters.createdAt = {};
+    if (from) {
+      const fromDate = new Date(`${from}T00:00:00`);
+      if (!Number.isNaN(fromDate.getTime())) filters.createdAt.$gte = fromDate;
+    }
+    if (to) {
+      const toDate = new Date(`${to}T00:00:00`);
+      if (!Number.isNaN(toDate.getTime())) {
+        filters.createdAt.$lt = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1);
+      }
+    }
+    if (!Object.keys(filters.createdAt).length) {
+      delete filters.createdAt;
+    }
+  }
+
+  return filters;
+}
+
+function filterBySearch(rows, search) {
+  const normalized = search.toLowerCase();
+  if (!normalized) return rows;
+
+  return rows.filter((item) =>
+    [
+      item.product?.name,
+      item.product?.sku,
+      item.product?.barcode,
+      item.product?.productNumber,
+      item.reason,
+      item.sourceModule,
+      item.actorName,
+      item.actorUser?.fullName,
+      item.actorUser?.username,
+      item.store?.name,
+      item.store?.city
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalized))
+  );
+}
+
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -16,32 +70,7 @@ router.get(
     const from = String(req.query.from || "").trim();
     const to = String(req.query.to || "").trim();
 
-    const filters = {};
-
-    if (store && store !== "all") {
-      filters.store = store;
-    }
-
-    if (movementType && movementType !== "all") {
-      filters.movementType = movementType;
-    }
-
-    if (from || to) {
-      filters.createdAt = {};
-      if (from) {
-        const fromDate = new Date(`${from}T00:00:00`);
-        if (!Number.isNaN(fromDate.getTime())) filters.createdAt.$gte = fromDate;
-      }
-      if (to) {
-        const toDate = new Date(`${to}T00:00:00`);
-        if (!Number.isNaN(toDate.getTime())) {
-          filters.createdAt.$lt = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1);
-        }
-      }
-      if (!Object.keys(filters.createdAt).length) {
-        delete filters.createdAt;
-      }
-    }
+    const filters = buildFilters({ store, movementType, from, to });
 
     const baseQuery = StockMovement.find(filters)
       .sort({ createdAt: -1 })
@@ -53,28 +82,31 @@ router.get(
 
     const rows = await baseQuery;
 
-    const normalized = search.toLowerCase();
-    const filteredRows = normalized
-      ? rows.filter((item) =>
-          [
-            item.product?.name,
-            item.product?.sku,
-            item.product?.barcode,
-            item.product?.productNumber,
-            item.reason,
-            item.sourceModule,
-            item.actorName,
-            item.actorUser?.fullName,
-            item.actorUser?.username,
-            item.store?.name,
-            item.store?.city
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(normalized))
-        )
-      : rows;
+    return res.json(filterBySearch(rows, search));
+  })
+);
 
-    return res.json(filteredRows);
+router.get(
+  "/daily-report",
+  asyncHandler(async (req, res) => {
+    const date = String(req.query.date || "").trim();
+    const search = String(req.query.search || "").trim();
+    const store = String(req.query.store || "all").trim();
+    const movementType = String(req.query.movementType || "all").trim();
+    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(`${date}T00:00:00`).getTime());
+
+    if (!isValidDate) {
+      return res.status(400).json({ message: "Избери валидна дата за дневния отчет." });
+    }
+
+    const rows = await StockMovement.find(buildFilters({ store, movementType, from: date, to: date }))
+      .sort({ "store.name": 1, createdAt: 1 })
+      .populate("product", "name sku barcode productNumber")
+      .populate("store", "name city")
+      .populate("actorUser", "fullName username")
+      .lean();
+
+    return res.json(filterBySearch(rows, search));
   })
 );
 

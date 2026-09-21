@@ -5,6 +5,7 @@ import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
@@ -18,7 +19,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
-import { printRecord } from "../lib/printDocuments";
+import { printDailyStockMovementReport, printRecord } from "../lib/printDocuments";
 
 const movementTypeLabels = {
   all: "Всички",
@@ -29,6 +30,7 @@ const movementTypeLabels = {
 
 const sourceLabels = {
   inventory: "Наличности",
+  "inventory-correction": "Корекция на наличности",
   order: "Продажби",
   transfer: "Трансфери",
   audit: "Ревизии",
@@ -115,6 +117,36 @@ export default function InventoryMovementsPage() {
     }
   }
 
+  async function handlePrintDailyReport() {
+    if (!from || from !== to) {
+      toast.error("За дневен отчет избери една и съща дата в полетата „От дата“ и „До дата“.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ date: from });
+      if (search.trim()) params.set("search", search.trim());
+      if (store !== "all") params.set("store", store);
+      if (movementType !== "all") params.set("movementType", movementType);
+      const response = await api.get(`/inventory-movements/daily-report?${params.toString()}`);
+      const selectedStore = stores.find((item) => item._id === store);
+      printDailyStockMovementReport({
+        date: from,
+        movements: Array.isArray(response.data) ? response.data : [],
+        filters: {
+          storeName: selectedStore?.name || "",
+          movementTypeLabel: movementType !== "all" ? movementTypeLabels[movementType] : "",
+          search: search.trim()
+        }
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Неуспешно създаване на дневния отчет.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function handleConfirmDelete() {
     if (deletingId === "bulk") {
       handleBulkDelete();
@@ -136,7 +168,7 @@ export default function InventoryMovementsPage() {
       adjustmentCount,
       inQuantity,
       outQuantity,
-      netBalance: inQuantity - outQuantity
+      netBalance: rows.reduce((sum, row) => sum + Number(row.quantityDelta || 0), 0)
     };
   }, [rows]);
 
@@ -191,6 +223,9 @@ export default function InventoryMovementsPage() {
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
             <Button variant="contained" onClick={loadMovements}>Обнови</Button>
+            <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={handlePrintDailyReport} disabled={!from || from !== to || loading}>
+              Печат на дневен отчет
+            </Button>
             {(search || store !== "all" || movementType !== "all" || from || to) && (
               <Button 
                 variant="text" 
