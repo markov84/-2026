@@ -6,7 +6,7 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
-import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip, DialogContent, DialogTitle } from "@mui/material";
+import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import DataSection from "../components/DataSection";
@@ -14,8 +14,6 @@ import PageHeader from "../components/PageHeader";
 import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
-import Dialog from "../components/DraggableDialog";
-import DialogFooterActions from "../components/DialogFooterActions";
 import GridRowActions from "../components/GridRowActions";
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
@@ -71,6 +69,7 @@ export default function InventoryMovementsPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [dailyDocument, setDailyDocument] = useState(null);
   const [dailyDocumentLoading, setDailyDocumentLoading] = useState(false);
+  const [showDetailedJournal, setShowDetailedJournal] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
@@ -95,6 +94,7 @@ export default function InventoryMovementsPage() {
 
   useEffect(() => {
     void loadMovements();
+    void handleOpenDailyDocument();
   }, []);
 
   async function handleDeleteMovement(movementId) {
@@ -163,6 +163,10 @@ export default function InventoryMovementsPage() {
   async function handleOpenDailyDocument() {
     const report = await getDailyReport();
     if (report) setDailyDocument(report);
+  }
+
+  async function handleApplyFilters() {
+    await Promise.all([loadMovements(), handleOpenDailyDocument()]);
   }
 
   async function handlePrintDailyReport() {
@@ -240,14 +244,17 @@ export default function InventoryMovementsPage() {
       </Grid>
 
       <DataSection
-        title="Преглед на движенията"
-        subtitle="Търсете, филтрирайте и анализирайте историята на наличностите"
+        title="Дневен складов отчет"
+        subtitle="Един ред за всеки продукт в избрания магазин или склад за конкретната дата"
         icon={<ManageSearchRoundedIcon />}
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-            <Button variant="contained" onClick={loadMovements}>Обнови</Button>
-            <Button variant="contained" startIcon={<ManageSearchRoundedIcon />} onClick={handleOpenDailyDocument} disabled={!from || from !== to || dailyDocumentLoading}>
-              Отвори дневен документ
+            <Button variant="contained" onClick={handleApplyFilters} disabled={!from || from !== to || dailyDocumentLoading}>
+              Покажи отчет
+            </Button>
+            <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={handlePrintDailyReport} disabled={!dailyDocument || dailyDocumentLoading}>Печат</Button>
+            <Button variant="text" onClick={() => setShowDetailedJournal((current) => !current)}>
+              {showDetailedJournal ? "Скрий подробния журнал" : "Покажи подробния журнал"}
             </Button>
             {(search || store !== "all" || movementType !== "all" || from || to) && (
               <Button 
@@ -257,9 +264,11 @@ export default function InventoryMovementsPage() {
                   setSearch("");
                   setStore("all");
                   setMovementType("all");
-                  setFrom("");
-                  setTo("");
+                  const today = getTodayDateInputValue();
+                  setFrom(today);
+                  setTo(today);
                   setRows([]);
+                  setDailyDocument(null);
                 }}
               >
                 Изчисти
@@ -331,15 +340,49 @@ export default function InventoryMovementsPage() {
                 InputLabelProps={{ shrink: true }} 
                 sx={{ minWidth: 160 }} 
               />
-              <Button variant="outlined" onClick={loadMovements}>Приложи</Button>
+              <Button variant="outlined" onClick={handleApplyFilters} disabled={!from || from !== to || dailyDocumentLoading}>Приложи</Button>
             </Stack>
           </Box>
-          <Box>
-            <Typography variant="caption" fontWeight={800} color="text.secondary" display="block" mb={1}>
-              Резултати: {rows.length} движения
-            </Typography>
-          </Box>
+          {dailyDocument ? (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {[dailyDocument.filters?.storeName, dailyDocument.filters?.movementTypeLabel, dailyDocument.filters?.search ? `Търсене: ${dailyDocument.filters.search}` : ""].filter(Boolean).join(" | ") || "Всички обекти и всички видове движения"}
+              </Typography>
+              {[...new Set((dailyDocument.summaries || []).map((summary) => summary.store?.name || "Неуточнен обект"))]
+                .sort((first, second) => first.localeCompare(second, "bg"))
+                .map((storeName) => {
+                  const storeSummaries = dailyDocument.summaries.filter((summary) => (summary.store?.name || "Неуточнен обект") === storeName);
+                  return (
+                    <Box key={storeName}>
+                      <Typography variant="h6" sx={{ mb: 0.75 }}>{storeName}</Typography>
+                      <ResponsiveTable>
+                        <DataGrid
+                          autoHeight
+                          hideFooter
+                          disableColumnMenu
+                          rows={storeSummaries}
+                          getRowId={(row) => `${row.store?._id || row.store}:${row.product?._id || row.product}`}
+                          columns={[
+                            { field: "product", headerName: "Продукт", flex: 1.6, minWidth: 200, valueGetter: (_, row) => row.product?.name || "-" },
+                            { field: "productNumber", headerName: "Код / SKU", flex: 0.9, minWidth: 120, valueGetter: (_, row) => row.product?.productNumber || row.product?.sku || "-" },
+                            { field: "openingQuantity", headerName: "Начално", width: 90, type: "number", align: "right" },
+                            { field: "incomingQuantity", headerName: "Вход", width: 80, type: "number", align: "right" },
+                            { field: "outgoingQuantity", headerName: "Изход", width: 80, type: "number", align: "right" },
+                            { field: "adjustmentQuantity", headerName: "Корекция", width: 100, type: "number", align: "right", valueFormatter: (params) => { const value = Number(params?.value ?? params ?? 0); return `${value > 0 ? "+" : ""}${value}`; } },
+                            { field: "closingQuantity", headerName: "Крайно", width: 90, type: "number", align: "right" }
+                          ]}
+                          disableRowSelectionOnClick
+                        />
+                      </ResponsiveTable>
+                    </Box>
+                  );
+                })}
+              {!dailyDocument.summaries?.length ? <Typography color="text.secondary">Няма движения за избраната дата и филтри.</Typography> : null}
+            </Stack>
+          ) : null}
 
+        {showDetailedJournal ? <>
+          <Typography variant="subtitle2" color="text.secondary">Подробен технически журнал: {rows.length} движения</Typography>
         <ResponsiveTable>
           <DataGrid
             autoHeight
@@ -502,58 +545,9 @@ export default function InventoryMovementsPage() {
             }}
           />
         </ResponsiveTable>
+        </> : null}
         </Stack>
       </DataSection>
-
-      <Dialog open={Boolean(dailyDocument)} onClose={() => setDailyDocument(null)} fullWidth maxWidth="xl">
-        <DialogTitle>Дневен складов отчет - {formatDate(dailyDocument?.date ? `${dailyDocument.date}T00:00:00` : "")}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-              {[dailyDocument?.filters?.storeName, dailyDocument?.filters?.movementTypeLabel, dailyDocument?.filters?.search ? `Търсене: ${dailyDocument.filters.search}` : ""].filter(Boolean).join(" | ") || "Всички обекти и всички видове движения"}
-            </Typography>
-            {[...new Set((dailyDocument?.summaries || []).map((summary) => summary.store?.name || "Неуточнен обект"))]
-              .sort((first, second) => first.localeCompare(second, "bg"))
-              .map((storeName) => {
-                const storeSummaries = (dailyDocument?.summaries || []).filter((summary) => (summary.store?.name || "Неуточнен обект") === storeName);
-                const totals = storeSummaries.reduce((result, summary) => ({
-                  incoming: result.incoming + Number(summary.incomingQuantity || 0),
-                  outgoing: result.outgoing + Number(summary.outgoingQuantity || 0),
-                  adjustments: result.adjustments + Number(summary.adjustmentQuantity || 0)
-                }), { incoming: 0, outgoing: 0, adjustments: 0 });
-                return (
-                  <Box key={storeName}>
-                    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={0.5} sx={{ mb: 0.75 }}>
-                      <Typography variant="h6">{storeName}</Typography>
-                      <Typography variant="body2" color="text.secondary">{storeSummaries.length} продукта | Вход: {totals.incoming} | Изход: {totals.outgoing} | Корекция: {totals.adjustments > 0 ? "+" : ""}{totals.adjustments}</Typography>
-                    </Stack>
-                    <ResponsiveTable>
-                      <DataGrid
-                        autoHeight
-                        hideFooter
-                        disableColumnMenu
-                        rows={storeSummaries}
-                        getRowId={(row) => `${row.store?._id || row.store}:${row.product?._id || row.product}`}
-                        columns={[
-                          { field: "product", headerName: "Продукт", flex: 1.6, minWidth: 200, valueGetter: (_, row) => row.product?.name || "-" },
-                          { field: "productNumber", headerName: "Код / SKU", flex: 0.85, minWidth: 110, valueGetter: (_, row) => row.product?.productNumber || row.product?.sku || "-" },
-                          { field: "openingQuantity", headerName: "Начално", width: 90, type: "number", align: "right" },
-                          { field: "incomingQuantity", headerName: "Вход", width: 80, type: "number", align: "right" },
-                          { field: "outgoingQuantity", headerName: "Изход", width: 80, type: "number", align: "right" },
-                          { field: "adjustmentQuantity", headerName: "Корекция", width: 100, type: "number", align: "right", valueFormatter: (params) => { const value = Number(params?.value ?? params ?? 0); return `${value > 0 ? "+" : ""}${value}`; } },
-                          { field: "closingQuantity", headerName: "Крайно", width: 90, type: "number", align: "right" }
-                        ]}
-                        disableRowSelectionOnClick
-                      />
-                    </ResponsiveTable>
-                  </Box>
-                );
-              })}
-            {!dailyDocument?.summaries?.length ? <Typography color="text.secondary">Няма движения за избраната дата и филтри.</Typography> : null}
-          </Stack>
-        </DialogContent>
-        <DialogFooterActions isMobile={false} onCancel={() => setDailyDocument(null)} onConfirm={handlePrintDailyReport} confirmLabel="Печат на документа" />
-      </Dialog>
 
       <ConfirmDeleteDialog
         open={Boolean(deletingId)}
