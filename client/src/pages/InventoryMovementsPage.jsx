@@ -6,7 +6,7 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
-import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
+import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip, DialogContent, DialogTitle } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import DataSection from "../components/DataSection";
