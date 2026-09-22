@@ -1,8 +1,18 @@
 ﻿import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || `local-${Date.now()}`;
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "marklight-build-id",
+      transformIndexHtml(html) {
+        return html.replace("__MARKLIGHT_BUILD_ID__", buildId);
+      }
+    }
+  ],
   cacheDir: ".vite-runtime",
   test: {
     environment: "jsdom",
