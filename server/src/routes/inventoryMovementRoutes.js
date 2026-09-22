@@ -110,6 +110,55 @@ router.get(
   })
 );
 
+router.get(
+  "/daily-summary",
+  asyncHandler(async (req, res) => {
+    const date = String(req.query.date || "").trim();
+    const search = String(req.query.search || "").trim();
+    const store = String(req.query.store || "all").trim();
+    const movementType = String(req.query.movementType || "all").trim();
+    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(`${date}T00:00:00`).getTime());
+
+    if (!isValidDate) {
+      return res.status(400).json({ message: "Избери валидна дата за дневния отчет." });
+    }
+
+    const movements = filterBySearch(
+      await StockMovement.find(buildFilters({ store, movementType, from: date, to: date }))
+        .sort({ createdAt: 1 })
+        .populate("product", "name sku barcode productNumber")
+        .populate("store", "name city")
+        .lean(),
+      search
+    );
+    const summaries = new Map();
+
+    for (const movement of movements) {
+      const storeId = String(movement.store?._id || movement.store || "");
+      const productId = String(movement.product?._id || movement.product || "");
+      const key = `${storeId}:${productId}`;
+      const summary = summaries.get(key) || {
+        store: movement.store,
+        product: movement.product,
+        incomingQuantity: 0,
+        outgoingQuantity: 0,
+        adjustmentQuantity: 0,
+        openingQuantity: Number(movement.quantityBefore || 0),
+        closingQuantity: Number(movement.quantityAfter || 0)
+      };
+      const delta = Number(movement.quantityDelta || 0);
+
+      if (movement.movementType === "in") summary.incomingQuantity += Math.max(0, delta);
+      if (movement.movementType === "out") summary.outgoingQuantity += Math.abs(Math.min(0, delta));
+      if (movement.movementType === "adjustment") summary.adjustmentQuantity += delta;
+      summary.closingQuantity = Number(movement.quantityAfter || 0);
+      summaries.set(key, summary);
+    }
+
+    return res.json([...summaries.values()]);
+  })
+);
+
 router.delete(
   "/:id",
   requireRole("admin"),

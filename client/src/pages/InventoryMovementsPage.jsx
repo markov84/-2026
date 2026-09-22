@@ -21,7 +21,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatDate } from "../lib/currency";
-import { printDailyStockMovementReport, printRecord } from "../lib/printDocuments";
+import { printDailyStockMovementSummary, printRecord } from "../lib/printDocuments";
 
 const movementTypeLabels = {
   all: "Всички",
@@ -141,11 +141,11 @@ export default function InventoryMovementsPage() {
       if (search.trim()) params.set("search", search.trim());
       if (store !== "all") params.set("store", store);
       if (movementType !== "all") params.set("movementType", movementType);
-      const response = await api.get(`/inventory-movements/daily-report?${params.toString()}`);
+      const response = await api.get(`/inventory-movements/daily-summary?${params.toString()}`);
       const selectedStore = stores.find((item) => item._id === store);
       return {
         date: from,
-        movements: Array.isArray(response.data) ? response.data : [],
+        summaries: Array.isArray(response.data) ? response.data : [],
         filters: {
           storeName: selectedStore?.name || "",
           movementTypeLabel: movementType !== "all" ? movementTypeLabels[movementType] : "",
@@ -167,7 +167,7 @@ export default function InventoryMovementsPage() {
 
   async function handlePrintDailyReport() {
     const report = dailyDocument || await getDailyReport();
-    if (report) printDailyStockMovementReport(report);
+    if (report) printDailyStockMovementSummary(report);
   }
 
   function handleConfirmDelete() {
@@ -506,39 +506,42 @@ export default function InventoryMovementsPage() {
       </DataSection>
 
       <Dialog open={Boolean(dailyDocument)} onClose={() => setDailyDocument(null)} fullWidth maxWidth="xl">
-        <DialogTitle>Дневен документ за движенията - {formatDate(dailyDocument?.date ? `${dailyDocument.date}T00:00:00` : "")}</DialogTitle>
+        <DialogTitle>Дневен складов отчет - {formatDate(dailyDocument?.date ? `${dailyDocument.date}T00:00:00` : "")}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Typography variant="body2" color="text.secondary">
               {[dailyDocument?.filters?.storeName, dailyDocument?.filters?.movementTypeLabel, dailyDocument?.filters?.search ? `Търсене: ${dailyDocument.filters.search}` : ""].filter(Boolean).join(" | ") || "Всички обекти и всички видове движения"}
             </Typography>
-            {[...new Set((dailyDocument?.movements || []).map((movement) => movement.store?.name || "Неуточнен обект"))]
+            {[...new Set((dailyDocument?.summaries || []).map((summary) => summary.store?.name || "Неуточнен обект"))]
               .sort((first, second) => first.localeCompare(second, "bg"))
               .map((storeName) => {
-                const storeMovements = (dailyDocument?.movements || []).filter((movement) => (movement.store?.name || "Неуточнен обект") === storeName);
-                const netQuantity = storeMovements.reduce((sum, movement) => sum + Number(movement.quantityDelta || 0), 0);
+                const storeSummaries = (dailyDocument?.summaries || []).filter((summary) => (summary.store?.name || "Неуточнен обект") === storeName);
+                const totals = storeSummaries.reduce((result, summary) => ({
+                  incoming: result.incoming + Number(summary.incomingQuantity || 0),
+                  outgoing: result.outgoing + Number(summary.outgoingQuantity || 0),
+                  adjustments: result.adjustments + Number(summary.adjustmentQuantity || 0)
+                }), { incoming: 0, outgoing: 0, adjustments: 0 });
                 return (
                   <Box key={storeName}>
                     <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={0.5} sx={{ mb: 0.75 }}>
                       <Typography variant="h6">{storeName}</Typography>
-                      <Typography variant="body2" color="text.secondary">{storeMovements.length} движения | Нетна промяна: {netQuantity > 0 ? "+" : ""}{netQuantity} бр.</Typography>
+                      <Typography variant="body2" color="text.secondary">{storeSummaries.length} продукта | Вход: {totals.incoming} | Изход: {totals.outgoing} | Корекция: {totals.adjustments > 0 ? "+" : ""}{totals.adjustments}</Typography>
                     </Stack>
                     <ResponsiveTable>
                       <DataGrid
                         autoHeight
                         hideFooter
                         disableColumnMenu
-                        rows={storeMovements}
-                        getRowId={(row) => row._id}
+                        rows={storeSummaries}
+                        getRowId={(row) => `${row.store?._id || row.store}:${row.product?._id || row.product}`}
                         columns={[
-                          { field: "createdAt", headerName: "Час", width: 80, valueFormatter: (params) => formatDateTime(params?.value ?? params).slice(-5) },
-                          { field: "product", headerName: "Продукт", flex: 1.4, minWidth: 180, valueGetter: (_, row) => row.product?.name || "-" },
+                          { field: "product", headerName: "Продукт", flex: 1.6, minWidth: 200, valueGetter: (_, row) => row.product?.name || "-" },
                           { field: "productNumber", headerName: "Код / SKU", flex: 0.85, minWidth: 110, valueGetter: (_, row) => row.product?.productNumber || row.product?.sku || "-" },
-                          { field: "movementType", headerName: "Вид", width: 100, valueGetter: (_, row) => movementTypeLabels[row.movementType] || row.movementType || "-" },
-                          { field: "quantityBefore", headerName: "Преди", width: 80, type: "number", align: "right" },
-                          { field: "quantityDelta", headerName: "Промяна", width: 100, type: "number", align: "right", valueFormatter: (params) => { const value = Number(params?.value ?? params ?? 0); return `${value > 0 ? "+" : ""}${value}`; } },
-                          { field: "quantityAfter", headerName: "След", width: 80, type: "number", align: "right" },
-                          { field: "reason", headerName: "Причина", flex: 1.1, minWidth: 160, valueGetter: (_, row) => row.reason || "-" }
+                          { field: "openingQuantity", headerName: "Начално", width: 90, type: "number", align: "right" },
+                          { field: "incomingQuantity", headerName: "Вход", width: 80, type: "number", align: "right" },
+                          { field: "outgoingQuantity", headerName: "Изход", width: 80, type: "number", align: "right" },
+                          { field: "adjustmentQuantity", headerName: "Корекция", width: 100, type: "number", align: "right", valueFormatter: (params) => { const value = Number(params?.value ?? params ?? 0); return `${value > 0 ? "+" : ""}${value}`; } },
+                          { field: "closingQuantity", headerName: "Крайно", width: 90, type: "number", align: "right" }
                         ]}
                         disableRowSelectionOnClick
                       />
@@ -546,7 +549,7 @@ export default function InventoryMovementsPage() {
                   </Box>
                 );
               })}
-            {!dailyDocument?.movements?.length ? <Typography color="text.secondary">Няма движения за избраната дата и филтри.</Typography> : null}
+            {!dailyDocument?.summaries?.length ? <Typography color="text.secondary">Няма движения за избраната дата и филтри.</Typography> : null}
           </Stack>
         </DialogContent>
         <DialogFooterActions isMobile={false} onCancel={() => setDailyDocument(null)} onConfirm={handlePrintDailyReport} confirmLabel="Печат на документа" />

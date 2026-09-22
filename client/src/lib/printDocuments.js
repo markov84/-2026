@@ -462,6 +462,43 @@ export function printDailyStockMovementReport({ date, movements = [], filters = 
   `);
 }
 
+export function printDailyStockMovementSummary({ date, summaries = [], filters = {} }) {
+  const groups = new Map();
+  for (const summary of summaries) {
+    const storeName = summary.store?.name || "Неуточнен обект";
+    const group = groups.get(storeName) || [];
+    group.push(summary);
+    groups.set(storeName, group);
+  }
+
+  const storeSections = [...groups.entries()]
+    .sort(([firstStore], [secondStore]) => firstStore.localeCompare(secondStore, "bg"))
+    .map(([storeName, storeSummaries]) => {
+      const totals = storeSummaries.reduce(
+        (result, summary) => ({
+          incoming: result.incoming + Number(summary.incomingQuantity || 0),
+          outgoing: result.outgoing + Number(summary.outgoingQuantity || 0),
+          adjustments: result.adjustments + Number(summary.adjustmentQuantity || 0)
+        }),
+        { incoming: 0, outgoing: 0, adjustments: 0 }
+      );
+      const rows = storeSummaries
+        .sort((first, second) => String(first.product?.name || "").localeCompare(String(second.product?.name || ""), "bg"))
+        .map((summary, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(summary.product?.name || "-")}</td><td>${escapeHtml(summary.product?.productNumber || summary.product?.sku || "-")}</td><td class="num">${Number(summary.openingQuantity || 0)}</td><td class="num">${Number(summary.incomingQuantity || 0)}</td><td class="num">${Number(summary.outgoingQuantity || 0)}</td><td class="num">${Number(summary.adjustmentQuantity || 0)}</td><td class="num">${Number(summary.closingQuantity || 0)}</td></tr>`)
+        .join("");
+      return `<h2>${escapeHtml(storeName)}</h2><table><thead><tr><th>№</th><th>Продукт</th><th>Код / SKU</th><th class="num">Начално</th><th class="num">Вход</th><th class="num">Изход</th><th class="num">Корекция</th><th class="num">Крайно</th></tr></thead><tbody>${rows}</tbody></table><p class="muted">Вход: ${totals.incoming} бр. | Изход: ${totals.outgoing} бр. | Корекции: ${totals.adjustments > 0 ? "+" : ""}${totals.adjustments} бр.</p>`;
+    })
+    .join("");
+  const filterText = [filters.storeName, filters.movementTypeLabel, filters.search ? `Търсене: ${filters.search}` : ""].filter(Boolean).join(" | ");
+  const title = `Дневен складов отчет - ${formatDate(`${date}T00:00:00`)}`;
+
+  printHtml(title, `
+    <section class="header"><div><div class="brand">MARK LIGHT LTD</div><p class="muted">Обобщен дневен складов отчет</p></div><div><h1>ДНЕВЕН СКЛАДОВ ОТЧЕТ</h1><p><strong>Дата:</strong> ${escapeHtml(formatDate(`${date}T00:00:00`))}</p>${filterText ? `<p><strong>Филтри:</strong> ${escapeHtml(filterText)}</p>` : ""}</div></section>
+    ${storeSections || "<p>Няма движения за избраната дата и филтри.</p>"}
+    <section class="footer"><div class="signature">Изготвил</div><div class="signature">Проверил</div></section>
+  `);
+}
+
 function printCustomHtml(title, html, printWindow = null) {
   const targetWindow = printWindow || window.open("", "_blank");
   if (targetWindow) {
