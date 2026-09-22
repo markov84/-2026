@@ -64,7 +64,6 @@ export default function InventoryMovementsPage() {
   const [store, setStore] = useState("all");
   const [movementType, setMovementType] = useState("all");
   const [from, setFrom] = useState(getTodayDateInputValue);
-  const [to, setTo] = useState(getTodayDateInputValue);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
   const [dailyDocument, setDailyDocument] = useState(null);
@@ -81,7 +80,7 @@ export default function InventoryMovementsPage() {
       if (store !== "all") params.set("store", store);
       if (movementType !== "all") params.set("movementType", movementType);
       if (from) params.set("from", from);
-      if (to) params.set("to", to);
+      if (from) params.set("to", from);
 
       const response = await api.get(`/inventory-movements?${params.toString()}`);
       setRows(Array.isArray(response.data) ? response.data : []);
@@ -130,8 +129,8 @@ export default function InventoryMovementsPage() {
   }
 
   async function getDailyReport() {
-    if (!from || from !== to) {
-      toast.error("За дневен отчет избери една и съща дата в полетата „От дата“ и „До дата“.");
+    if (!from) {
+      toast.error("Избери дата за дневния отчет.");
       return null;
     }
 
@@ -249,14 +248,14 @@ export default function InventoryMovementsPage() {
         icon={<ManageSearchRoundedIcon />}
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-            <Button variant="contained" onClick={handleApplyFilters} disabled={!from || from !== to || dailyDocumentLoading}>
+            <Button variant="contained" onClick={handleApplyFilters} disabled={!from || dailyDocumentLoading}>
               Покажи отчет
             </Button>
             <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={handlePrintDailyReport} disabled={!dailyDocument || dailyDocumentLoading}>Печат</Button>
             <Button variant="text" onClick={() => setShowDetailedJournal((current) => !current)}>
               {showDetailedJournal ? "Скрий подробния журнал" : "Покажи подробния журнал"}
             </Button>
-            {(search || store !== "all" || movementType !== "all" || from || to) && (
+            {(search || store !== "all" || movementType !== "all" || from !== getTodayDateInputValue()) && (
               <Button 
                 variant="text" 
                 size="small"
@@ -266,7 +265,6 @@ export default function InventoryMovementsPage() {
                   setMovementType("all");
                   const today = getTodayDateInputValue();
                   setFrom(today);
-                  setTo(today);
                   setRows([]);
                   setDailyDocument(null);
                 }}
@@ -325,22 +323,13 @@ export default function InventoryMovementsPage() {
               <TextField 
                 size="small" 
                 type="date" 
-                label="От дата" 
+                label="Дата на отчета"
                 value={from} 
                 onChange={(event) => setFrom(event.target.value)} 
                 InputLabelProps={{ shrink: true }} 
-                sx={{ minWidth: 160 }} 
+                sx={{ minWidth: 170 }}
               />
-              <TextField 
-                size="small" 
-                type="date" 
-                label="До дата" 
-                value={to} 
-                onChange={(event) => setTo(event.target.value)} 
-                InputLabelProps={{ shrink: true }} 
-                sx={{ minWidth: 160 }} 
-              />
-              <Button variant="outlined" onClick={handleApplyFilters} disabled={!from || from !== to || dailyDocumentLoading}>Приложи</Button>
+              <Button variant="outlined" onClick={handleApplyFilters} disabled={!from || dailyDocumentLoading}>Покажи</Button>
             </Stack>
           </Box>
           {dailyDocument ? (
