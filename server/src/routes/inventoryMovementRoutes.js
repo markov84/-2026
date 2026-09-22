@@ -74,7 +74,6 @@ router.get(
 
     const baseQuery = StockMovement.find(filters)
       .sort({ createdAt: -1 })
-      .limit(600)
       .populate("product", "name sku barcode productNumber")
       .populate("store", "name city")
       .populate("actorUser", "fullName username")
