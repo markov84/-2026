@@ -18,7 +18,7 @@ import GridRowActions from "../components/GridRowActions";
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
-import { formatDate } from "../lib/currency";
+import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { printDailyStockMovementSummary, printRecord } from "../lib/printDocuments";
 
 const movementTypeLabels = {
@@ -358,7 +358,9 @@ export default function InventoryMovementsPage() {
                             { field: "incomingQuantity", headerName: "Вход", width: 80, type: "number", align: "right" },
                             { field: "outgoingQuantity", headerName: "Изход", width: 80, type: "number", align: "right" },
                             { field: "adjustmentQuantity", headerName: "Корекция", width: 100, type: "number", align: "right", valueFormatter: (params) => { const value = Number(params?.value ?? params ?? 0); return `${value > 0 ? "+" : ""}${value}`; } },
-                            { field: "closingQuantity", headerName: "Крайно", width: 90, type: "number", align: "right" }
+                            { field: "closingQuantity", headerName: "Крайно", width: 90, type: "number", align: "right" },
+                            { field: "price", headerName: "Ед. цена", width: 110, align: "right", valueGetter: (_, row) => Number(row.product?.price || 0), valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) },
+                            { field: "closingValue", headerName: "Стойност", width: 115, align: "right", valueGetter: (_, row) => Number(row.closingQuantity || 0) * Number(row.product?.price || 0), valueFormatter: (params) => formatCurrencyEUR(params?.value ?? params ?? 0) }
                           ]}
                           disableRowSelectionOnClick
                         />

@@ -126,7 +126,7 @@ router.get(
     const movements = filterBySearch(
       await StockMovement.find(buildFilters({ store, movementType, from: date, to: date }))
         .sort({ createdAt: 1 })
-        .populate("product", "name sku barcode productNumber")
+        .populate("product", "name sku barcode productNumber price")
         .populate("store", "name city")
         .lean(),
       search

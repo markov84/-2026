@@ -484,9 +484,13 @@ export function printDailyStockMovementSummary({ date, summaries = [], filters =
       );
       const rows = storeSummaries
         .sort((first, second) => String(first.product?.name || "").localeCompare(String(second.product?.name || ""), "bg"))
-        .map((summary, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(summary.product?.name || "-")}</td><td>${escapeHtml(summary.product?.productNumber || summary.product?.sku || "-")}</td><td class="num">${Number(summary.openingQuantity || 0)}</td><td class="num">${Number(summary.incomingQuantity || 0)}</td><td class="num">${Number(summary.outgoingQuantity || 0)}</td><td class="num">${Number(summary.adjustmentQuantity || 0)}</td><td class="num">${Number(summary.closingQuantity || 0)}</td></tr>`)
+        .map((summary, index) => {
+          const unitPrice = Number(summary.product?.price || 0);
+          const closingQuantity = Number(summary.closingQuantity || 0);
+          return `<tr><td>${index + 1}</td><td>${escapeHtml(summary.product?.name || "-")}</td><td>${escapeHtml(summary.product?.productNumber || summary.product?.sku || "-")}</td><td class="num">${Number(summary.openingQuantity || 0)}</td><td class="num">${Number(summary.incomingQuantity || 0)}</td><td class="num">${Number(summary.outgoingQuantity || 0)}</td><td class="num">${Number(summary.adjustmentQuantity || 0)}</td><td class="num">${closingQuantity}</td><td class="num">${formatCurrencyEUR(unitPrice)}</td><td class="num">${formatCurrencyEUR(closingQuantity * unitPrice)}</td></tr>`;
+        })
         .join("");
-      return `<h2>${escapeHtml(storeName)}</h2><table><thead><tr><th>№</th><th>Продукт</th><th>Код / SKU</th><th class="num">Начално</th><th class="num">Вход</th><th class="num">Изход</th><th class="num">Корекция</th><th class="num">Крайно</th></tr></thead><tbody>${rows}</tbody></table><p class="muted">Вход: ${totals.incoming} бр. | Изход: ${totals.outgoing} бр. | Корекции: ${totals.adjustments > 0 ? "+" : ""}${totals.adjustments} бр.</p>`;
+      return `<h2>${escapeHtml(storeName)}</h2><table><thead><tr><th>№</th><th>Продукт</th><th>Код / SKU</th><th class="num">Начално</th><th class="num">Вход</th><th class="num">Изход</th><th class="num">Корекция</th><th class="num">Крайно</th><th class="num">Ед. цена</th><th class="num">Стойност</th></tr></thead><tbody>${rows}</tbody></table><p class="muted">Вход: ${totals.incoming} бр. | Изход: ${totals.outgoing} бр. | Корекции: ${totals.adjustments > 0 ? "+" : ""}${totals.adjustments} бр.</p>`;
     })
     .join("");
   const filterText = [filters.storeName, filters.movementTypeLabel, filters.search ? `Търсене: ${filters.search}` : ""].filter(Boolean).join(" | ");
