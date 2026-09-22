@@ -6,7 +6,7 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
-import { Button, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
+import { Button, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import DataSection from "../components/DataSection";
@@ -15,6 +15,7 @@ import ResponsiveTable from "../components/ResponsiveTable";
 import StatCard from "../components/StatCard";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import GridRowActions from "../components/GridRowActions";
+import DraggableDialog from "../components/DraggableDialog";
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
@@ -47,12 +48,21 @@ function formatDateTime(value) {
   return `${datePart} ${hours}:${minutes}`;
 }
 
-function getTodayDateInputValue() {
+function getCurrentMonthInputValue() {
   const date = new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return `${year}-${month}`;
+}
+
+function getMonthDateRange(month) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return { from: "", to: "" };
+  const [year, monthNumber] = month.split("-").map(Number);
+  const lastDay = new Date(year, monthNumber, 0).getDate();
+  return {
+    from: `${month}-01`,
+    to: `${month}-${String(lastDay).padStart(2, "0")}`
+  };
 }
 
 export default function InventoryMovementsPage() {
@@ -63,12 +73,13 @@ export default function InventoryMovementsPage() {
   const [search, setSearch] = useState("");
   const [store, setStore] = useState("all");
   const [movementType, setMovementType] = useState("all");
-  const [from, setFrom] = useState(getTodayDateInputValue);
+  const [month, setMonth] = useState(getCurrentMonthInputValue);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
   const [dailyDocument, setDailyDocument] = useState(null);
   const [dailyDocumentLoading, setDailyDocumentLoading] = useState(false);
-  const [showDetailedJournal, setShowDetailedJournal] = useState(false);
+  const [showDetailedJournal, setShowDetailedJournal] = useState(true);
+  const [selectedMovement, setSelectedMovement] = useState(null);
 
   const isAdmin = user?.role === "admin";
 
@@ -79,8 +90,9 @@ export default function InventoryMovementsPage() {
       if (search.trim()) params.set("search", search.trim());
       if (store !== "all") params.set("store", store);
       if (movementType !== "all") params.set("movementType", movementType);
-      if (from) params.set("from", from);
-      if (from) params.set("to", from);
+      const dateRange = getMonthDateRange(month);
+      if (dateRange.from) params.set("from", dateRange.from);
+      if (dateRange.to) params.set("to", dateRange.to);
 
       const response = await api.get(`/inventory-movements?${params.toString()}`);
       setRows(Array.isArray(response.data) ? response.data : []);
@@ -129,21 +141,21 @@ export default function InventoryMovementsPage() {
   }
 
   async function getDailyReport() {
-    if (!from) {
-      toast.error("Избери дата за дневния отчет.");
+    if (!month) {
+      toast.error("Избери месец за отчета.");
       return null;
     }
 
     try {
       setDailyDocumentLoading(true);
-      const params = new URLSearchParams({ date: from });
+      const params = new URLSearchParams({ date: `${month}-01` });
       if (search.trim()) params.set("search", search.trim());
       if (store !== "all") params.set("store", store);
       if (movementType !== "all") params.set("movementType", movementType);
       const response = await api.get(`/inventory-movements/daily-summary?${params.toString()}`);
       const selectedStore = stores.find((item) => item._id === store);
       return {
-        date: from,
+        date: `${month}-01`,
         summaries: Array.isArray(response.data) ? response.data : [],
         filters: {
           storeName: selectedStore?.name || "",
@@ -243,19 +255,19 @@ export default function InventoryMovementsPage() {
       </Grid>
 
       <DataSection
-        title="Дневен складов отчет"
-        subtitle="Един ред за всеки продукт в избрания магазин или склад за конкретната дата"
+        title="Движения по месеци"
+        subtitle="Избери месец, прегледай всички движения по дата и отвори конкретното движение за подробности"
         icon={<ManageSearchRoundedIcon />}
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-            <Button variant="contained" onClick={handleApplyFilters} disabled={!from || dailyDocumentLoading}>
+            <Button variant="contained" onClick={handleApplyFilters} disabled={!month || dailyDocumentLoading}>
               Покажи отчет
             </Button>
             <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={handlePrintDailyReport} disabled={!dailyDocument || dailyDocumentLoading}>Печат</Button>
             <Button variant="text" onClick={() => setShowDetailedJournal((current) => !current)}>
               {showDetailedJournal ? "Скрий подробния журнал" : "Покажи подробния журнал"}
             </Button>
-            {(search || store !== "all" || movementType !== "all" || from !== getTodayDateInputValue()) && (
+            {(search || store !== "all" || movementType !== "all" || month !== getCurrentMonthInputValue()) && (
               <Button 
                 variant="text" 
                 size="small"
@@ -263,8 +275,7 @@ export default function InventoryMovementsPage() {
                   setSearch("");
                   setStore("all");
                   setMovementType("all");
-                  const today = getTodayDateInputValue();
-                  setFrom(today);
+                  setMonth(getCurrentMonthInputValue());
                   setRows([]);
                   setDailyDocument(null);
                 }}
@@ -322,14 +333,14 @@ export default function InventoryMovementsPage() {
               </TextField>
               <TextField 
                 size="small" 
-                type="date" 
-                label="Дата на отчета"
-                value={from} 
-                onChange={(event) => setFrom(event.target.value)} 
+                type="month" 
+                label="Месец на движенията"
+                value={month} 
+                onChange={(event) => setMonth(event.target.value)} 
                 InputLabelProps={{ shrink: true }} 
                 sx={{ minWidth: 170 }}
               />
-              <Button variant="outlined" onClick={handleApplyFilters} disabled={!from || dailyDocumentLoading}>Покажи</Button>
+              <Button variant="outlined" onClick={handleApplyFilters} disabled={!month || dailyDocumentLoading}>Покажи</Button>
             </Stack>
           </Box>
           {dailyDocument ? (
@@ -497,10 +508,12 @@ export default function InventoryMovementsPage() {
                 headerName: "",
                 sortable: false,
                 filterable: false,
-                width: isAdmin ? 190 : 100,
+                width: isAdmin ? 230 : 140,
                 align: "center",
                 renderCell: (params) => (
                   <GridRowActions
+                    editLabel="Отвори"
+                    onEdit={() => setSelectedMovement(params.row)}
                     onPrint={() => printRecord("Складово движение", {
                       "Дата / час": formatDateTime(params.row.createdAt),
                       "Продукт": params.row.product?.name,
@@ -551,6 +564,31 @@ export default function InventoryMovementsPage() {
         onConfirm={handleConfirmDelete}
         onClose={() => setDeletingId(null)}
       />
+
+      <DraggableDialog open={Boolean(selectedMovement)} onClose={() => setSelectedMovement(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Детайли за движение</DialogTitle>
+        <DialogContent dividers>
+          {selectedMovement ? (
+            <Stack spacing={1.25}>
+              <Typography><strong>Дата / час:</strong> {formatDateTime(selectedMovement.createdAt)}</Typography>
+              <Typography><strong>Продукт:</strong> {selectedMovement.product?.name || "-"}</Typography>
+              <Typography><strong>Код / SKU:</strong> {selectedMovement.product?.productNumber || selectedMovement.product?.sku || "-"}</Typography>
+              <Typography><strong>Баркод:</strong> {selectedMovement.product?.barcode || "-"}</Typography>
+              <Typography><strong>Магазин:</strong> {selectedMovement.store?.name || "-"}</Typography>
+              <Typography><strong>Вид:</strong> {movementTypeLabels[selectedMovement.movementType] || selectedMovement.movementType || "-"}</Typography>
+              <Typography><strong>Количество преди:</strong> {selectedMovement.quantityBefore ?? 0}</Typography>
+              <Typography><strong>Промяна:</strong> {selectedMovement.quantityDelta > 0 ? `+${selectedMovement.quantityDelta}` : selectedMovement.quantityDelta ?? 0}</Typography>
+              <Typography><strong>Количество след:</strong> {selectedMovement.quantityAfter ?? 0}</Typography>
+              <Typography><strong>Източник:</strong> {sourceLabels[selectedMovement.sourceModule] || selectedMovement.sourceModule || "-"}</Typography>
+              <Typography><strong>Причина / коментар:</strong> {selectedMovement.reason || "-"}</Typography>
+              <Typography><strong>Потребител:</strong> {selectedMovement.actorName || selectedMovement.actorUser?.fullName || selectedMovement.actorUser?.username || "-"}</Typography>
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedMovement(null)}>Затвори</Button>
+        </DialogActions>
+      </DraggableDialog>
     </Stack>
   );
 }
