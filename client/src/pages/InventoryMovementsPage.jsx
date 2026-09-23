@@ -6,7 +6,8 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
-import { Button, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Button, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
 import DataSection from "../components/DataSection";
@@ -211,6 +212,25 @@ export default function InventoryMovementsPage() {
     };
   }, [rows]);
 
+  const groupedByDate = useMemo(() => {
+    const groups = new Map();
+    rows.forEach((row) => {
+      const date = new Date(row.createdAt);
+      const dateKey = Number.isNaN(date.getTime())
+        ? "unknown"
+        : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const group = groups.get(dateKey) || [];
+      group.push(row);
+      groups.set(dateKey, group);
+    });
+    return [...groups.entries()].sort(([first], [second]) => second.localeCompare(first));
+  }, [rows]);
+
+  function formatJournalDate(dateKey) {
+    if (dateKey === "unknown") return "Без определена дата";
+    return formatDate(`${dateKey}T00:00:00`);
+  }
+
   return (
     <Stack spacing={3}>
       <PageHeader
@@ -386,11 +406,20 @@ export default function InventoryMovementsPage() {
 
         {showDetailedJournal ? <>
           <Typography variant="subtitle2" color="text.secondary">Подробен технически журнал: {rows.length} движения</Typography>
+        {groupedByDate.map(([dateKey, dateRows], index) => (
+          <Accordion key={dateKey} defaultExpanded={index === 0} disableGutters>
+            <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography fontWeight={800}>{formatJournalDate(dateKey)}</Typography>
+                <Chip label={`${dateRows.length} движения`} size="small" color="primary" variant="outlined" />
+              </Stack>
+            </AccordionSummary>
+            <AccordionDetails>
         <ResponsiveTable>
           <DataGrid
             autoHeight
             loading={loading}
-            rows={rows}
+            rows={dateRows}
             getRowId={(row) => row._id}
             columns={[
               { 
@@ -550,6 +579,10 @@ export default function InventoryMovementsPage() {
             }}
           />
         </ResponsiveTable>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+        {!loading && !groupedByDate.length ? <Typography color="text.secondary">Няма движения за избрания месец и филтри.</Typography> : null}
         </> : null}
         </Stack>
       </DataSection>
