@@ -113,17 +113,22 @@ router.get(
   "/daily-summary",
   asyncHandler(async (req, res) => {
     const date = String(req.query.date || "").trim();
+    const from = String(req.query.from || date).trim();
+    const to = String(req.query.to || date).trim();
     const search = String(req.query.search || "").trim();
     const store = String(req.query.store || "all").trim();
     const movementType = String(req.query.movementType || "all").trim();
-    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(`${date}T00:00:00`).getTime());
+    const isValidDateRange = /^\d{4}-\d{2}-\d{2}$/.test(from)
+      && /^\d{4}-\d{2}-\d{2}$/.test(to)
+      && !Number.isNaN(new Date(`${from}T00:00:00`).getTime())
+      && !Number.isNaN(new Date(`${to}T00:00:00`).getTime());
 
-    if (!isValidDate) {
-      return res.status(400).json({ message: "Избери валидна дата за дневния отчет." });
+    if (!isValidDateRange) {
+      return res.status(400).json({ message: "Избери валиден период за отчета." });
     }
 
     const movements = filterBySearch(
-      await StockMovement.find(buildFilters({ store, movementType, from: date, to: date }))
+      await StockMovement.find(buildFilters({ store, movementType, from, to }))
         .sort({ createdAt: 1 })
         .populate("product", "name sku barcode productNumber price")
         .populate("store", "name city")

@@ -148,14 +148,15 @@ export default function InventoryMovementsPage() {
 
     try {
       setDailyDocumentLoading(true);
-      const params = new URLSearchParams({ date: `${month}-01` });
+      const dateRange = getMonthDateRange(month);
+      const params = new URLSearchParams({ from: dateRange.from, to: dateRange.to });
       if (search.trim()) params.set("search", search.trim());
       if (store !== "all") params.set("store", store);
       if (movementType !== "all") params.set("movementType", movementType);
       const response = await api.get(`/inventory-movements/daily-summary?${params.toString()}`);
       const selectedStore = stores.find((item) => item._id === store);
       return {
-        date: `${month}-01`,
+        date: month,
         summaries: Array.isArray(response.data) ? response.data : [],
         filters: {
           storeName: selectedStore?.name || "",
