@@ -48,6 +48,7 @@ import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartChe
 import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
 import SpaceDashboardRoundedIcon from "@mui/icons-material/SpaceDashboardRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import CalculateRoundedIcon from "@mui/icons-material/CalculateRounded";
 import Diversity3RoundedIcon from "@mui/icons-material/Diversity3Rounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import StoreMallDirectoryRoundedIcon from "@mui/icons-material/StoreMallDirectoryRounded";
@@ -67,6 +68,7 @@ const glyphMap = {
   scan: QrCodeScannerRoundedIcon,
   dashboard: InsightsRoundedIcon,
   products: CategoryRoundedIcon,
+  calculate: CalculateRoundedIcon,
   customers: Diversity3RoundedIcon,
   orders: PointOfSaleRoundedIcon,
   finance: PaidRoundedIcon,

@@ -34,6 +34,7 @@ const iconRailHeight = 64;
 const navItems = [
   { label: "Табло", path: "/", iconKey: "dashboard", color: "#4f8cff", bg: "rgba(79,140,255,0.16)" },
   { label: "Продукти", path: "/products", iconKey: "products", color: "#12b886", bg: "rgba(18,184,134,0.16)" },
+  { label: "Калкулатор осветление", path: "/lighting-calculator", iconKey: "lighting", color: "#f08c00", bg: "rgba(240,140,0,0.16)" },
   { label: "Клиенти", path: "/customers", iconKey: "customers", color: "#f76707", bg: "rgba(247,103,7,0.16)" },
   { label: "Продажби", path: "/orders", iconKey: "orders", color: "#d9480f", bg: "rgba(217,72,15,0.16)" },
   { label: "Магазини", path: "/stores", iconKey: "stores", color: "#7950f2", bg: "rgba(121,80,242,0.16)" },
@@ -53,6 +54,7 @@ const navItems = [
 const iconKeyToGlyph = {
   dashboard: "dashboard",
   products: "products",
+  lighting: "calculate",
   customers: "customers",
   stores: "store",
   suppliers: "business",
