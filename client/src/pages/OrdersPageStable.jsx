@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AddShoppingCartRoundedIcon from "@mui/icons-material/AddShoppingCartRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import ShoppingCartCheckoutRoundedIcon from "@mui/icons-material/ShoppingCartCheckoutRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
@@ -28,6 +29,7 @@ import { useMobileDetection } from "../hooks/useMobileDetection";
 import api from "../lib/api";
 import { getErrorMessage } from "../lib/errorMessage";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
+import { downloadCsv } from "../lib/exportCsv";
 import { sendDocumentByEmail } from "../lib/documentEmail";
 import { getOrderDocumentEmailData, printOrder } from "../lib/printDocuments";
 import { useAuth } from "../providers/AuthProviderStable";
@@ -711,6 +713,19 @@ export default function OrdersPageStable() {
     [filteredOrders]
   );
 
+  function exportOrders() {
+    downloadCsv("prodazhbi.csv", [
+      { label: "Номер", value: (order) => order.orderNumber },
+      { label: "Дата", value: (order) => formatDate(order.createdAt) },
+      { label: "Клиент", value: (order) => order.customer?.company || order.customer?.fullName },
+      { label: "Магазин", value: (order) => order.store?.name },
+      { label: "Статус", value: (order) => orderStatusLabels[order.status] || order.status },
+      { label: "Плащане", value: (order) => paymentStatusLabels[order.paymentStatus] || order.paymentStatus },
+      { label: "Сума", value: (order) => order._exportTotals.totalAmount.toFixed(2) },
+      { label: "ДДС", value: (order) => order._exportTotals.vatAmount.toFixed(2) }
+    ], filteredOrders.map((order) => ({ ...order, _exportTotals: getOrderTotals(order) })));
+  }
+
   useEffect(() => {
     setSelectedOrderIds((current) => current.filter((id) => filteredOrders.some((order) => order._id === id)));
   }, [filteredOrders]);
@@ -1390,6 +1405,14 @@ export default function OrdersPageStable() {
         actions={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <Button
+              variant="outlined"
+              startIcon={<FileDownloadRoundedIcon />}
+              onClick={exportOrders}
+              disabled={!filteredOrders.length}
+            >
+              Експорт CSV
+            </Button>
+            <Button
               variant="contained"
               color="success"
               size="large"
@@ -1490,6 +1513,4 @@ export default function OrdersPageStable() {
     </Stack>
   );
 }
-
-
 

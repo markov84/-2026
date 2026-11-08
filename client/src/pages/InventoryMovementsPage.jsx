@@ -6,6 +6,7 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import { Accordion, AccordionDetails, AccordionSummary, Button, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, MenuItem, Stack, TextField, Typography, Box, Chip } from "@mui/material";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { DataGrid } from "@mui/x-data-grid";
@@ -21,6 +22,7 @@ import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../providers/AuthProviderStable";
 import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
+import { downloadCsv } from "../lib/exportCsv";
 import { printDailyStockMovementSummary, printRecord } from "../lib/printDocuments";
 
 const movementTypeLabels = {
@@ -187,6 +189,23 @@ export default function InventoryMovementsPage() {
     if (report) printDailyStockMovementSummary(report);
   }
 
+  function exportMovements() {
+    downloadCsv("dvizheniya.csv", [
+      { label: "Дата и час", value: (row) => formatDateTime(row.createdAt) },
+      { label: "Продукт", value: (row) => row.product?.name },
+      { label: "Код / SKU", value: (row) => row.product?.productNumber || row.product?.sku },
+      { label: "Баркод", value: (row) => row.product?.barcode },
+      { label: "Магазин", value: (row) => row.store?.name },
+      { label: "Тип движение", value: (row) => movementTypeLabels[row.movementType] || row.movementType },
+      { label: "Количество преди", value: (row) => row.quantityBefore },
+      { label: "Промяна", value: (row) => row.quantityDelta },
+      { label: "Количество след", value: (row) => row.quantityAfter },
+      { label: "Източник", value: (row) => sourceLabels[row.sourceModule] || row.sourceModule },
+      { label: "Причина", value: (row) => row.reason },
+      { label: "Потребител", value: (row) => row.actorName }
+    ], rows);
+  }
+
   function handleConfirmDelete() {
     if (deletingId === "bulk") {
       handleBulkDelete();
@@ -285,6 +304,7 @@ export default function InventoryMovementsPage() {
               Покажи отчет
             </Button>
             <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={handlePrintDailyReport} disabled={!dailyDocument || dailyDocumentLoading}>Печат</Button>
+            <Button variant="outlined" startIcon={<FileDownloadRoundedIcon />} onClick={exportMovements} disabled={!rows.length}>Експорт CSV</Button>
             <Button variant="text" onClick={() => setShowDetailedJournal((current) => !current)}>
               {showDetailedJournal ? "Скрий подробния журнал" : "Покажи подробния журнал"}
             </Button>

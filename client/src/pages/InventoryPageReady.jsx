@@ -5,6 +5,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import { Box, Button, Chip, Collapse, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import toast from "react-hot-toast";
@@ -25,6 +26,7 @@ import api from "../lib/api";
 import { formatCurrencyEUR, formatDate } from "../lib/currency";
 import { findProductByScanCode, isWebsiteQrScan, parseScannedInput } from "../lib/scanCode";
 import { printRecord } from "../lib/printDocuments";
+import { downloadCsv } from "../lib/exportCsv";
 
 const initialStockForm = { product: "", store: "", quantity: "1", reorderLevel: "5" };
 
@@ -60,6 +62,19 @@ export default function InventoryPageReady() {
     [products]
   );
   const scannedProduct = useMemo(() => findProductByScanCode(products, scanCode), [products, scanCode]);
+
+  function exportInventory() {
+    downloadCsv("nalichnosti.csv", [
+      { label: "Продукт", value: (row) => row.product?.name },
+      { label: "SKU", value: (row) => row.product?.sku },
+      { label: "Баркод", value: (row) => row.product?.barcode },
+      { label: "Магазин", value: (row) => row.store?.name },
+      { label: "Град", value: (row) => row.store?.city },
+      { label: "Количество", value: (row) => row.quantity },
+      { label: "Минимална наличност", value: (row) => row.reorderLevel },
+      { label: "Статус", value: (row) => row.isLowStock ? "Ниска наличност" : "Нормална" }
+    ], filteredInventory);
+  }
 
   function getStoreDisplayLabel(store) {
     if (!store) return "-";
@@ -439,7 +454,14 @@ export default function InventoryPageReady() {
         title="Наличности по обекти"
         subtitle="Редакция и триене на всеки ред"
         icon={<WarehouseRoundedIcon />}
-        actions={<Button variant="contained" startIcon={<AddBoxRoundedIcon />} onClick={() => setOpen(true)}>Добави наличност</Button>}
+        actions={
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button variant="outlined" startIcon={<FileDownloadRoundedIcon />} onClick={exportInventory} disabled={!filteredInventory.length}>
+              Експорт CSV
+            </Button>
+            <Button variant="contained" startIcon={<AddBoxRoundedIcon />} onClick={() => setOpen(true)}>Добави наличност</Button>
+          </Stack>
+        }
         toolbar={
           <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5} alignItems={{ xs: "stretch", lg: "center" }}>
             <TextField

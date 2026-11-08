@@ -2,6 +2,7 @@
 import { alpha } from "@mui/material/styles";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
+import { useAuth } from "../providers/AuthProviderStable";
 import AppGlyph from "./AppGlyph";
 
 const items = [
@@ -16,9 +17,15 @@ export default function MobileBottomNavigationBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
   const isDark = theme.palette.mode === "dark";
+  const mobileItems = items.map((item) =>
+    item.value === "/finance" && user?.role !== "admin"
+      ? { label: "Осветление", value: "/lighting-calculator", icon: <AppGlyph name="lighting" size={20} /> }
+      : item
+  );
 
-  const current = items.find((item) => location.pathname === item.value)?.value || "/";
+  const current = mobileItems.find((item) => location.pathname === item.value)?.value || "/";
 
   return (
     <Paper
@@ -38,7 +45,7 @@ export default function MobileBottomNavigationBar() {
       }}
     >
       <BottomNavigation value={current} onChange={(_, value) => navigate(value)} showLabels>
-        {items.map((item) => (
+        {mobileItems.map((item) => (
           <BottomNavigationAction key={item.value} label={item.label} value={item.value} icon={item.icon} />
         ))}
       </BottomNavigation>

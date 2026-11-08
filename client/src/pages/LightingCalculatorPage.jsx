@@ -2,17 +2,37 @@ import { useState } from "react";
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
+  IconButton,
   MenuItem,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
 import CalculateRoundedIcon from "@mui/icons-material/CalculateRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
+import { useFetch } from "../hooks/useFetch";
 import { calculateLighting } from "../lib/lightingCalculator";
+
+const SAVED_ROOMS_KEY = "marklight.savedLightingRooms";
+
+function readSavedRooms() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const savedRooms = JSON.parse(window.localStorage.getItem(SAVED_ROOMS_KEY) || "[]");
+    return Array.isArray(savedRooms) ? savedRooms : [];
+  } catch (error) {
+    toast.error("Неуспешно зареждане на запазените помещения.");
+    return [];
+  }
+}
 
 const roomTypes = [
   { value: "bedroom", label: "Спалня", illuminance: 150 },
@@ -69,6 +89,7 @@ function ResultCard({ label, value, unit, highlight = false }) {
 }
 
 export default function LightingCalculatorPage() {
+  const { data: products } = useFetch("/products");
   const [values, setValues] = useState(initialValues);
   const [calculation, setCalculation] = useState(() => calculateLighting({
     length: initialValues.length,
@@ -79,6 +100,14 @@ export default function LightingCalculatorPage() {
     maintenanceFactor: initialValues.maintenanceFactor
   }));
   const [validationMessage, setValidationMessage] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [savedRooms, setSavedRooms] = useState(readSavedRooms);
+  const [roomName, setRoomName] = useState("");
+  const [selectedSavedRoomId, setSelectedSavedRoomId] = useState("");
+
+  const lightingProducts = products.filter(
+    (product) => product?.isActive !== false && Number(product?.luminousFlux) > 0
+  );
 
   function updateField(key, value) {
     const nextValues = { ...values, [key]: value };
@@ -105,6 +134,76 @@ export default function LightingCalculatorPage() {
       setCalculation(null);
       setValidationMessage(error.message);
     }
+  }
+
+  function persistSavedRooms(nextRooms) {
+    try {
+      window.localStorage.setItem(SAVED_ROOMS_KEY, JSON.stringify(nextRooms));
+      setSavedRooms(nextRooms);
+    } catch (error) {
+      toast.error("Неуспешно запазване. Провери свободното място в браузъра.");
+      return false;
+    }
+    return true;
+  }
+
+  function saveRoom() {
+    const name = roomName.trim();
+    if (!name) {
+      toast.error("Въведи име на помещението или проекта.");
+      return;
+    }
+    if (!calculation) {
+      toast.error("Поправи параметрите преди запазване.");
+      return;
+    }
+
+    const savedRoom = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      values,
+      selectedProductId,
+      updatedAt: new Date().toISOString()
+    };
+    const nextRooms = [
+      savedRoom,
+      ...savedRooms.filter((room) => room.name.toLocaleLowerCase() !== name.toLocaleLowerCase())
+    ].slice(0, 30);
+
+    if (persistSavedRooms(nextRooms)) {
+      setSelectedSavedRoomId(savedRoom.id);
+      toast.success("Изчислението е запазено на това устройство.");
+    }
+  }
+
+  function loadRoom(roomId) {
+    const room = savedRooms.find((item) => item.id === roomId);
+    if (!room) return;
+    setSelectedProductId(room.selectedProductId || "");
+    setSelectedSavedRoomId(room.id);
+    setRoomName(room.name);
+    setValues(room.values);
+    try {
+      setCalculation(calculateLighting({
+        length: room.values.length,
+        width: room.values.width,
+        illuminance: room.values.illuminance,
+        lumensPerFixture: room.values.lumensPerFixture,
+        utilizationFactor: room.values.utilizationFactor,
+        maintenanceFactor: room.values.maintenanceFactor
+      }));
+      setValidationMessage("");
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      setCalculation(null);
+      setValidationMessage(error.message);
+    }
+    toast.success(`Заредено помещение „${room.name}“.`);
+  }
+
+  function deleteRoom(roomId) {
+    const nextRooms = savedRooms.filter((room) => room.id !== roomId);
+    if (persistSavedRooms(nextRooms)) toast.success("Запазеното помещение е изтрито.");
   }
 
   return (
@@ -144,6 +243,59 @@ export default function LightingCalculatorPage() {
                 ))}
               </TextField>
 
+              <TextField
+                select
+                fullWidth
+                label="Осветително тяло от каталога"
+                value={selectedProductId}
+                onChange={(event) => {
+                  const productId = event.target.value;
+                  setSelectedProductId(productId);
+                  if (productId) {
+                    const product = lightingProducts.find((item) => item._id === productId);
+                    if (product) updateField("lumensPerFixture", String(product.luminousFlux));
+                  }
+                }}
+                helperText={lightingProducts.length
+                  ? "Изборът попълва светлинния поток от продуктовия каталог."
+                  : "Добави светлинен поток (lm) в продукта или въведи стойност ръчно."}
+              >
+                <MenuItem value="">Ръчно въвеждане</MenuItem>
+                {lightingProducts.map((product) => (
+                  <MenuItem key={product._id} value={product._id}>
+                    {product.name} — {Number(product.luminousFlux).toLocaleString("bg-BG")} lm
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {savedRooms.length > 0 ? (
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr auto", sm: "minmax(0, 1fr) auto" }, gap: 1, alignItems: "center" }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Запазени помещения"
+                    value={selectedSavedRoomId}
+                    onChange={(event) => loadRoom(event.target.value)}
+                  >
+                    <MenuItem value="">Избери помещение</MenuItem>
+                    {savedRooms.map((room) => (
+                      <MenuItem key={room.id} value={room.id}>{room.name}</MenuItem>
+                    ))}
+                  </TextField>
+                  <IconButton
+                    aria-label="Изтрий избраното помещение"
+                    title="Изтрий избраното помещение"
+                    disabled={!selectedSavedRoomId}
+                    onClick={() => {
+                      deleteRoom(selectedSavedRoomId);
+                      setSelectedSavedRoomId("");
+                    }}
+                  >
+                    <DeleteOutlineRoundedIcon />
+                  </IconButton>
+                </Box>
+              ) : null}
+
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, minmax(0, 1fr))" }, gap: 1.5 }}>
                 {numberFields.map((field) => (
                   <TextField
@@ -151,7 +303,10 @@ export default function LightingCalculatorPage() {
                     type="number"
                     label={field.label}
                     value={values[field.key]}
-                    onChange={(event) => updateField(field.key, event.target.value)}
+                    onChange={(event) => {
+                      if (field.key === "lumensPerFixture") setSelectedProductId("");
+                      updateField(field.key, event.target.value);
+                    }}
                     inputProps={{ min: field.key.endsWith("Factor") ? 0.01 : 0.1, step: field.step }}
                     InputProps={{ endAdornment: <Typography variant="caption" color="text.secondary">{field.unit}</Typography> }}
                     fullWidth
@@ -160,6 +315,26 @@ export default function LightingCalculatorPage() {
               </Box>
 
               {validationMessage ? <Alert severity="warning">{validationMessage}</Alert> : null}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <TextField
+                  fullWidth
+                  label="Име на помещение / проект"
+                  placeholder="Например: Дневна — апартамент"
+                  value={roomName}
+                  onChange={(event) => setRoomName(event.target.value)}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<SaveRoundedIcon />}
+                  onClick={saveRoom}
+                  sx={{ flexShrink: 0 }}
+                >
+                  Запази
+                </Button>
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                Запазените помещения се съхраняват локално в този браузър и не се споделят между устройства.
+              </Typography>
             </Stack>
           </CardContent>
         </Card>

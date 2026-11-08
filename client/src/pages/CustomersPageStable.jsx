@@ -20,7 +20,8 @@ import {
   Typography
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import ConfirmDeleteDialog from "../components/ConfirmDeleteDialog";
 import DataSection from "../components/DataSection";
@@ -178,6 +179,7 @@ function CustomerFields({ customer, onChange, stores, attachedStoresLabel }) {
 }
 
 export default function CustomersPageStable() {
+  const location = useLocation();
   const { data, loading, setData } = useFetch("/customers");
   const { data: stores } = useFetch("/stores");
   const [form, setForm] = useState(initialForm);
@@ -185,6 +187,11 @@ export default function CustomersPageStable() {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
   const isMobile = useMobileDetection();
+
+  useEffect(() => {
+    const searchQuery = new URLSearchParams(location.search).get("q");
+    if (searchQuery !== null) setQuery(searchQuery);
+  }, [location.search]);
 
   const filteredCustomers = useMemo(() => {
     const normalized = query.trim().toLowerCase();

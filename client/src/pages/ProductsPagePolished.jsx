@@ -95,6 +95,7 @@ const initialForm = {
   description: "",
   imageUrl: "",
   price: "",
+  luminousFlux: "",
   wholesalePrice: "",
   cost: "",
   vatRate: "20",
@@ -107,6 +108,7 @@ const initialForm = {
 function validateProductForm(form) {
   if (!form.name.trim()) return "Името на продукта е задължително.";
   if (Number.isNaN(Number(form.price)) || Number(form.price) < 0) return "Продажната цена трябва да е число 0 или повече.";
+  if (Number.isNaN(Number(form.luminousFlux)) || Number(form.luminousFlux) < 0) return "Светлинният поток трябва да е число 0 или повече.";
   if (Number.isNaN(Number(form.wholesalePrice)) || Number(form.wholesalePrice) < 0) return "Цената на едро трябва да е число 0 или повече.";
   if (Number.isNaN(Number(form.cost)) || Number(form.cost) < 0) return "Себестойността трябва да е число 0 или повече.";
   if (Number.isNaN(Number(form.vatRate)) || Number(form.vatRate) < 0) return "ДДС трябва да е число 0 или повече.";
@@ -245,10 +247,12 @@ export default function ProductsPagePolished() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const searchQuery = params.get("q");
     const openCreateProduct = params.get("openCreateProduct") === "1";
     const rawScannedCode = params.get("newProductCode") || params.get("newProductSku") || "";
     const parsedCode = parseScannedInput(rawScannedCode);
 
+    if (searchQuery !== null) setQuery(searchQuery);
     if (openCreateProduct || parsedCode) {
       setEditingProductId(null);
       setForm({
@@ -256,7 +260,11 @@ export default function ProductsPagePolished() {
         barcode: parsedCode || ""
       });
       setOpen(true);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      params.delete("openCreateProduct");
+      params.delete("newProductCode");
+      params.delete("newProductSku");
+      const nextSearch = params.toString();
+      window.history.replaceState({}, document.title, `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}`);
     }
   }, [location.search]);
 
@@ -357,6 +365,7 @@ export default function ProductsPagePolished() {
       description: editableProduct.description || "",
       imageUrl: editableProduct.imageUrl || "",
       price: String(editableProduct.price ?? ""),
+      luminousFlux: String(editableProduct.luminousFlux ?? ""),
       wholesalePrice: String(editableProduct.wholesalePrice ?? ""),
       cost: String(editableProduct.cost ?? ""),
       vatRate: String(editableProduct.vatRate ?? 20),
@@ -411,6 +420,7 @@ export default function ProductsPagePolished() {
       imageUrl: form.imageUrl,
       isActive: form.isActive,
       price: Number(form.price || 0),
+      luminousFlux: Number(form.luminousFlux || 0),
       wholesalePrice: Number(form.wholesalePrice || 0),
       cost: Number(form.cost || 0),
       vatRate: Number(form.vatRate || 20),
@@ -903,6 +913,7 @@ export default function ProductsPagePolished() {
               <Typography variant="subtitle1" fontWeight={800}>Цени и контрол</Typography>
               <FormGrid min={220}>
                 <TextField label="Продажна цена" type="number" value={form.price} onChange={(e) => updateField("price", e.target.value)} inputProps={{ min: 0, step: "0.01" }} />
+                <TextField label="Светлинен поток" type="number" value={form.luminousFlux} onChange={(e) => updateField("luminousFlux", e.target.value)} inputProps={{ min: 0, step: 1 }} helperText="В лумени (lm), използва се в калкулатора за осветление." />
                 <TextField label="Цена на едро" type="number" value={form.wholesalePrice} onChange={(e) => updateField("wholesalePrice", e.target.value)} inputProps={{ min: 0, step: "0.01" }} helperText="Използва се при продажби на едро." />
                 {canViewCost ? <TextField label="Себестойност" type="number" value={form.cost} onChange={(e) => updateField("cost", e.target.value)} /> : null}
                 <TextField label="ДДС %" type="number" value={form.vatRate} onChange={(e) => updateField("vatRate", e.target.value)} />

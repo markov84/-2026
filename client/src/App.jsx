@@ -20,6 +20,7 @@ import OrdersPageStable from "./pages/OrdersPageStable";
 import InvoicesPage from "./pages/InvoicesPageStable";
 import VatReportsPage from "./pages/VatReportsPageClean";
 import LightingCalculatorPage from "./pages/LightingCalculatorPage";
+import ActivityLogPage from "./pages/ActivityLogPage";
 
 function PrivateRoutes({ user }) {
   return (
@@ -28,6 +29,7 @@ function PrivateRoutes({ user }) {
         <Route path="/" element={<ExecutiveDashboardPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/lighting-calculator" element={<LightingCalculatorPage />} />
+        <Route path="/activity" element={user?.role === "admin" ? <ActivityLogPage /> : <Navigate to="/" replace />} />
         <Route path="/suppliers" element={["admin", "manager", "warehouse"].includes(user?.role) ? <SuppliersPage /> : <Navigate to="/" replace />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/stores" element={<StoresPage />} />

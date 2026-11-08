@@ -22,9 +22,11 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import Groups2RoundedIcon from "@mui/icons-material/Groups2Rounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
@@ -62,9 +64,11 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 const glyphMap = {
   menu: MenuRoundedIcon,
+  history: HistoryRoundedIcon,
   logout: LogoutRoundedIcon,
   dark: DarkModeRoundedIcon,
   light: LightModeRoundedIcon,
+  lighting: LightbulbRoundedIcon,
   scan: QrCodeScannerRoundedIcon,
   dashboard: InsightsRoundedIcon,
   products: CategoryRoundedIcon,

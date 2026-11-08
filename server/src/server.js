@@ -11,6 +11,7 @@ import routes from "./routes/index.js";
 import authRoutes from "./routes/authRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { csrfProtection } from "./middleware/csrf.js";
+import { activityLogger } from "./middleware/activityLogger.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -121,6 +122,7 @@ app.set("io", io);
 
 // Compatibility route for stale frontend bundles still calling /auth/login.
 app.use("/auth", authRoutes);
+app.use("/api", activityLogger);
 app.use("/api", routes);
 app.use(errorHandler);
 

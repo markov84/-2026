@@ -1,6 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import authRoutes from "./authRoutes.js";
+import activityRoutes from "./activityRoutes.js";
 import customerRoutes from "./customerRoutes.js";
 import dashboardRoutes from "./dashboardOverviewRoutes.js";
 import documentMailRoutes from "./documentMailRoutes.js";
@@ -35,6 +36,7 @@ router.get("/health", (req, res) => {
 });
 
 router.use("/auth", authRoutes);
+router.use("/activity", activityRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/document-mail", documentMailRoutes);
 router.use("/products", productRoutes);

@@ -15,6 +15,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { alpha } from "@mui/material/styles";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProviderStable";
@@ -27,6 +28,7 @@ import ScanAndActionDialog from "./ScanAndActionDialog";
 import { useFetch } from "../hooks/useFetch";
 import api from "../lib/api";
 import AppGlyph from "./AppGlyph";
+import AppSearchDialog from "./AppSearchDialog";
 
 const drawerWidth = 240;
 const iconRailHeight = 64;
@@ -48,7 +50,8 @@ const navItems = [
   { label: "Фактури", path: "/invoices", iconKey: "invoices", color: "#15aabf", bg: "rgba(21,170,191,0.16)" },
   { label: "ДДС отчети", path: "/vat-reports", iconKey: "vat", color: "#9c36b5", bg: "rgba(156,54,181,0.16)" },
   { label: "Служители", path: "/employees", iconKey: "employees", color: "#5c7cfa", bg: "rgba(92,124,250,0.16)" },
-  { label: "Заявки", path: "/transfers", iconKey: "transfers", color: "#f08c00", bg: "rgba(240,140,0,0.16)" }
+  { label: "Заявки", path: "/transfers", iconKey: "transfers", color: "#f08c00", bg: "rgba(240,140,0,0.16)" },
+  { label: "Журнал", path: "/activity", iconKey: "activity", color: "#7048e8", bg: "rgba(112,72,232,0.16)" }
 ];
 
 const iconKeyToGlyph = {
@@ -67,12 +70,14 @@ const iconKeyToGlyph = {
   vat: "assessment",
   employees: "badge",
   transfers: "local-shipping",
-  scan: "qr-code-scanner"
+  scan: "qr-code-scanner",
+  activity: "history"
 };
 
 function getVisibleNavItems(user) {
   return navItems.filter((item) => {
     if (item.path === "/finance") return user?.role === "admin";
+    if (item.path === "/activity") return user?.role === "admin";
     if (item.path === "/employees") return ["admin", "manager"].includes(user?.role);
     if (["/suppliers", "/supplier-orders"].includes(item.path)) return ["admin", "manager", "warehouse"].includes(user?.role);
     if (item.path === "/inventory-movements") return ["admin", "manager"].includes(user?.role);
@@ -82,7 +87,14 @@ function getVisibleNavItems(user) {
 }
 
 function ModernModuleIcon({ type, size }) {
-  const glyphName = iconKeyToGlyph[type] || "circle";
+  const glyphName = iconKeyToGlyph[type] || ({
+    invoices: "receipt",
+    audits: "fact-check",
+    employees: "badge",
+    transfers: "local-shipping",
+    vat: "assessment",
+    activity: "history"
+  }[type] || "circle");
   return <AppGlyph name={glyphName} size={size} tone="inherit" />;
 }
 
@@ -395,6 +407,7 @@ export default function CommandCenterShellClean({ children }) {
   const AUTO_OPEN_SCAN_DIALOG = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -413,6 +426,25 @@ export default function CommandCenterShellClean({ children }) {
   const { data: customers = [] } = useFetch("/customers?compact=1", { enabled: scanDialogDataEnabled });
   
   useRealtimeNotifications(true);
+
+  useEffect(() => {
+    function onGlobalSearchShortcut(event) {
+      const target = event.target;
+      const tagName = target?.tagName?.toLowerCase?.() || "";
+      const isTypingField =
+        target?.isContentEditable ||
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select";
+
+      if (isTypingField || event.altKey || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      event.preventDefault();
+      setSearchOpen(true);
+    }
+
+    window.addEventListener("keydown", onGlobalSearchShortcut);
+    return () => window.removeEventListener("keydown", onGlobalSearchShortcut);
+  }, []);
 
   useEffect(() => {
     if (!AUTO_OPEN_SCAN_DIALOG) return undefined;
@@ -522,20 +554,51 @@ export default function CommandCenterShellClean({ children }) {
             backdropFilter: "blur(12px)"
           })}
         >
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <IconButton sx={{ display: { lg: "none" } }} onClick={() => setMobileOpen(true)}>
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center" sx={{ minWidth: 0 }}>
+            <IconButton sx={{ display: { lg: "none" }, flexShrink: 0 }} onClick={() => setMobileOpen(true)}>
               <AppGlyph name="menu" />
             </IconButton>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
                 Централизирано управление на MARK LIGHT LTD
               </Typography>
-              <Typography variant="subtitle1" fontWeight={700}>
+              <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ maxWidth: { xs: 140, sm: "none" }, fontSize: { xs: "0.78rem", sm: "1rem" } }}>
                  Търговска платформа на MARK LIGHT LTD
               </Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={{ xs: 0.25, sm: 1 }} alignItems="center" sx={{ flexShrink: 0 }}>
+            <Tooltip title="Глобално търсене (Ctrl+K)" arrow>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<SearchRoundedIcon />}
+                onClick={() => setSearchOpen(true)}
+                sx={{
+                  display: { xs: "none", sm: "inline-flex" },
+                  minWidth: { xs: 44, sm: 190 },
+                  px: { xs: 1, sm: 1.5 },
+                  justifyContent: { xs: "center", sm: "flex-start" },
+                  bgcolor: "background.paper",
+                  borderColor: "divider",
+                  "& .MuiButton-startIcon": { mx: { xs: 0, sm: 1 } }
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, flexGrow: 1, textAlign: "left", color: "text.secondary", fontWeight: 600 }}>
+                  Търси…
+                </Box>
+                <Chip label="Ctrl K" size="small" sx={{ display: { xs: "none", md: "inline-flex" }, ml: 1, height: 22, fontSize: 11 }} />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Търсене" arrow>
+              <IconButton
+                aria-label="Глобално търсене"
+                onClick={() => setSearchOpen(true)}
+                sx={{ display: { xs: "inline-flex", sm: "none" } }}
+              >
+                <SearchRoundedIcon />
+              </IconButton>
+            </Tooltip>
             <Chip label="Готово за мобилно приложение" color="secondary" variant="outlined" sx={{ bgcolor: "rgba(111,133,149,0.10)", display: { xs: "none", sm: "inline-flex" } }} />
             <Tooltip title="Сканирай и действай" arrow>
               <IconButton
@@ -547,6 +610,7 @@ export default function CommandCenterShellClean({ children }) {
                 sx={{
                   width: 46,
                   height: 46,
+                  display: { xs: "none", sm: "inline-flex" },
                   borderRadius: 2,
                   border: "1px solid",
                   borderColor: "rgba(15,118,110,0.28)",
@@ -593,6 +657,7 @@ export default function CommandCenterShellClean({ children }) {
                 aria-label={watermarkVisible ? "Скрий водния знак" : "Покажи водния знак"}
                 onClick={toggleWatermark}
                 sx={{
+                  display: { xs: "none", md: "inline-flex" },
                   width: 46,
                   height: 46,
                   borderRadius: 2,
@@ -612,8 +677,19 @@ export default function CommandCenterShellClean({ children }) {
                 {watermarkVisible ? <AppGlyph name="eye-off" /> : <AppGlyph name="eye" />}
               </IconButton>
             </Tooltip>
-            <Button variant="outlined" color="inherit" startIcon={<AppGlyph name="logout" size={20} />} onClick={logout} sx={{ whiteSpace: "nowrap" }}>
-              Изход
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<AppGlyph name="logout" size={20} />}
+              onClick={logout}
+              sx={{
+                whiteSpace: "nowrap",
+                minWidth: { xs: 42, sm: "auto" },
+                px: { xs: 0.75, sm: 2 },
+                "& .MuiButton-startIcon": { mr: { xs: 0, sm: 1 } }
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Изход</Box>
             </Button>
           </Stack>
         </Toolbar>
@@ -644,6 +720,7 @@ export default function CommandCenterShellClean({ children }) {
         onAddToInventory={handleAddToInventory}
         onOpenProductsPage={handleOpenProductsPage}
       />
+      <AppSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </Box>
   );
 }

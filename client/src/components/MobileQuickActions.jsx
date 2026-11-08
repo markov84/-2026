@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AppGlyph from "./AppGlyph";
 
 const actions = [
+  { icon: <AppGlyph name="lighting" size={20} />, name: "Калкулатор осветление", path: "/lighting-calculator" },
   { icon: <AppGlyph name="products" size={20} />, name: "Продукти", path: "/products" },
   { icon: <AppGlyph name="person-add" size={20} />, name: "Клиенти", path: "/customers" },
   { icon: <AppGlyph name="receipt" size={20} />, name: "Нова продажба", path: "/orders" }
